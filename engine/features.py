@@ -25,6 +25,15 @@ import numpy as np
 from utils.constants import COUNTRY_TO_REGION, PRODUCT_CATEGORIES
 
 
+def _safe_float(val, default=0.0):
+    """Convert to float safely, treating NaN / None / bad strings as *default*."""
+    try:
+        v = float(val)
+        return v if not np.isnan(v) else default
+    except (TypeError, ValueError):
+        return default
+
+
 def build_exporter_profiles(
     exporters: pd.DataFrame, 
     transactions: pd.DataFrame
@@ -149,7 +158,7 @@ def build_buyer_profiles(
     
     # Add region mapping
     profiles["region"] = profiles["country"].map(COUNTRY_TO_REGION)
-    profiles["region"].fillna("Unknown", inplace=True)
+    profiles["region"] = profiles["region"].fillna("Unknown")
     
     return profiles
 
@@ -179,14 +188,20 @@ def compute_compatibility(
     from utils.constants import get_corridor_strength
     
     # 1. Product compatibility
-    exp_hs = str(exporter_profile.get("primary_hs", "") or exporter_profile.get("primary_product", ""))
-    buy_hs = str(buyer_profile.get("interested_hs", "") or buyer_profile.get("preferred_hs", ""))
-    
-    if exp_hs == buy_hs and exp_hs != "":
+    # Supports two formats:
+    #   - HS codes (e.g., "84", "8501")
+    #   - Organizer dataset industries (e.g., "Engineering", "Solar")
+    exp_code = str(exporter_profile.get("primary_hs", "") or exporter_profile.get("primary_product", "") or "").strip()
+    buy_code = str(buyer_profile.get("interested_hs", "") or buyer_profile.get("preferred_hs", "") or "").strip()
+
+    exp_is_hs = exp_code[:2].isdigit()
+    buy_is_hs = buy_code[:2].isdigit()
+
+    if exp_code and buy_code and exp_code == buy_code:
         product_compatibility = 1.0
-    elif exp_hs[:2] == buy_hs[:2] and len(exp_hs) >= 2 and len(buy_hs) >= 2:
+    elif exp_is_hs and buy_is_hs and len(exp_code) >= 2 and len(buy_code) >= 2 and exp_code[:2] == buy_code[:2]:
         product_compatibility = 0.7
-    elif exp_hs != "" and buy_hs != "":
+    elif exp_code and buy_code:
         product_compatibility = 0.3
     else:
         product_compatibility = 0.0
@@ -215,14 +230,55 @@ def compute_compatibility(
         trade_frequency = min_freq / max_freq
     
     # 4. Buyer activity score
-    # Combine activity_score and intent_score from buyer profile
-    activity_score = buyer_profile.get("activity_score", 0.5)
-    intent_score = buyer_profile.get("intent_score", 0.5)
-    buyer_activity = 0.6 * activity_score + 0.4 * intent_score
-    
+    activity_score = _safe_float(buyer_profile.get("activity_score", 0.5))
+    intent_score_val = _safe_float(buyer_profile.get("intent_score", 0.5))
+    buyer_activity = 0.6 * activity_score + 0.4 * intent_score_val
+
+    # ── NEW organiser-data signals ──────────────────────────────────
+
+    # 5. Trust score  (payment reliability + response quality + certs)
+    exp_payment  = _safe_float(exporter_profile.get("good_payment_terms", 0))
+    buy_payment  = _safe_float(buyer_profile.get("good_payment_history", 0))
+    exp_response = _safe_float(exporter_profile.get("prompt_response_score", 0))
+    buy_response = _safe_float(buyer_profile.get("prompt_response", 0))
+    cert = str(exporter_profile.get("certification", "") or "").strip()
+    has_cert = 1.0 if cert and cert.lower() not in ("", "nan", "none") else 0.0
+
+    trust_score = (
+        0.25 * exp_payment
+        + 0.25 * buy_payment
+        + 0.15 * exp_response
+        + 0.15 * buy_response
+        + 0.20 * has_cert
+    )
+
+    # 6. Size compatibility  (log-ratio of exporter revenue vs buyer revenue)
+    exp_size = max(_safe_float(exporter_profile.get("annual_volume", 0)), 1.0)
+    buy_size = max(_safe_float(buyer_profile.get("revenue_size_usd", 0)), 1.0)
+    log_ratio = abs(np.log10(exp_size) - np.log10(buy_size))
+    size_compatibility = max(0.0, 1.0 - log_ratio / 3.0)
+
+    # 7. Intent momentum  (hiring, engagement spikes, decision-maker changes)
+    exp_intent   = _safe_float(exporter_profile.get("intent_score", 0))
+    buy_intent   = _safe_float(buyer_profile.get("intent_score", 0))
+    hiring       = _safe_float(exporter_profile.get("hiring_signal", 0))
+    engagement   = _safe_float(buyer_profile.get("engagement_spike", 0))
+    dm_change    = _safe_float(buyer_profile.get("decision_maker_change", 0))
+
+    intent_momentum = (
+        0.25 * exp_intent
+        + 0.25 * buy_intent
+        + 0.20 * hiring
+        + 0.20 * engagement
+        + 0.10 * dm_change
+    )
+
     return {
         "product_compatibility": float(product_compatibility),
-        "geography_fit": float(geography_fit),
-        "trade_frequency": float(trade_frequency),
-        "buyer_activity": float(buyer_activity),
+        "geography_fit":         float(geography_fit),
+        "trade_frequency":       float(trade_frequency),
+        "buyer_activity":        float(buyer_activity),
+        "trust_score":           float(trust_score),
+        "size_compatibility":    float(size_compatibility),
+        "intent_momentum":       float(intent_momentum),
     }

@@ -34,6 +34,46 @@ EXIM_XLSX_PATH = os.environ.get(
 )
 OUTPUT_DIR = _SCRIPT_DIR
 
+# ── deterministic company-name generator ──────────────────────────────────
+import hashlib as _hashlib
+
+_NAME_PREFIXES = [
+    "Global", "Pacific", "Atlas", "Nexus", "Prime", "Summit", "Crown",
+    "Vanguard", "Apex", "Zenith", "Sterling", "Titan", "Horizon", "Nova",
+    "Phoenix", "Vertex", "Compass", "Pinnacle", "Eagle", "Diamond",
+    "Meridian", "Quantum", "Stellar", "Olympus", "Keystone", "Beacon",
+    "Sovereign", "Crest", "Magellan", "Orion", "Velocity", "Alpine",
+    "Harbor", "Catalyst", "Frontier", "Ascent", "Paragon", "Venture",
+]
+
+_INDUSTRY_TAG = {
+    "Engineering":     "Engineering",
+    "Solar":           "Solar",
+    "Chemicals":       "Chem",
+    "Electronics":     "Electronics",
+    "Textiles":        "Textiles",
+    "Medical Devices": "MedTech",
+    "Auto Parts":      "Auto",
+    "Machinery":       "Machinery",
+    "Pharmaceuticals": "Pharma",
+    "IT Software":     "Tech",
+}
+
+_EXP_SUFFIXES = ["Exports", "Industries", "Manufacturing", "Corp", "International"]
+_BUY_SUFFIXES = ["Imports", "Trading", "Distribution", "Group", "Enterprises"]
+
+
+def _gen_name(entity_id: str, industry, entity_type: str = "exporter") -> str:
+    """Deterministic, realistic company name from an entity ID + industry."""
+    h = int(_hashlib.md5(entity_id.encode()).hexdigest(), 16)
+    prefix = _NAME_PREFIXES[h % len(_NAME_PREFIXES)]
+    tag = _INDUSTRY_TAG.get(
+        str(industry), str(industry)[:8] if pd.notna(industry) else "Trade"
+    )
+    suffixes = _EXP_SUFFIXES if entity_type == "exporter" else _BUY_SUFFIXES
+    suffix = suffixes[(h // len(_NAME_PREFIXES)) % len(suffixes)]
+    return f"{prefix} {tag} {suffix}"
+
 
 def load_excel_sheets(path: str):
     """Load all three sheets."""
@@ -64,7 +104,9 @@ def clean_exporters(exp: pd.DataFrame) -> pd.DataFrame:
     # Build exporter table with naming our app expects
     exporters_df = pd.DataFrame({
         "exporter_id": latest["Exporter_ID"],
-        "company_name": latest["Exporter_ID"].str.replace("EXP_", "Exporter "),
+        "company_name": latest.apply(
+            lambda r: _gen_name(r["Exporter_ID"], r.get("Industry", ""), "exporter"), axis=1
+        ),
         "country": "India",
         "state": latest["State"],
         "industry": latest["Industry"],
@@ -98,7 +140,9 @@ def clean_buyers(imp: pd.DataFrame) -> pd.DataFrame:
     
     buyers_df = pd.DataFrame({
         "buyer_id": latest["Buyer_ID"],
-        "company_name": latest["Buyer_ID"].str.replace("BUY_", "Buyer "),
+        "company_name": latest.apply(
+            lambda r: _gen_name(r["Buyer_ID"], r.get("Industry", ""), "buyer"), axis=1
+        ),
         "country": latest["Country"],
         "industry": latest["Industry"],
         "interested_hs": latest["Industry"],

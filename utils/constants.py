@@ -17,11 +17,15 @@ HOW TO USE:
 # Judges will love it if you let users change these via sliders.
 # ---------------------------------------------------------------------------
 SCORING_WEIGHTS = {
-    "product_compatibility": 0.30,   # How well products align (HS code match)
-    "geography_fit":         0.20,   # Regional trade corridor strength
-    "trade_frequency":       0.15,   # How actively the buyer imports
-    "buyer_activity":        0.15,   # Recency of buyer's last trade
-    "graph_affinity":        0.20,   # NetworkX-based structural similarity
+    "product_compatibility": 0.20,   # Industry / HS-code alignment
+    "geography_fit":         0.12,   # Regional trade-corridor strength
+    "trade_frequency":       0.08,   # How actively the buyer imports
+    "buyer_activity":        0.08,   # Recency of buyer's last trade
+    "graph_affinity":        0.12,   # NetworkX structural similarity
+    "trust_score":           0.15,   # Payment reliability + certifications
+    "size_compatibility":    0.10,   # Revenue / capacity scale match
+    "intent_momentum":       0.10,   # Engagement spikes, hiring, intent
+    "news_sentiment":        0.05,   # Live geopolitical / market conditions
 }
 
 # ---------------------------------------------------------------------------

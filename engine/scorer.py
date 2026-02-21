@@ -92,6 +92,7 @@ def rank_matches_for_exporter(
     graph,  # NetworkX Graph
     weights: Optional[dict] = None,
     top_k: int = TOP_K_MATCHES,
+    news_df: Optional[pd.DataFrame] = None,
 ) -> List[dict]:
     """
     Generate ranked match suggestions for a given exporter.
@@ -101,12 +102,32 @@ def rank_matches_for_exporter(
     """
     from engine.features import compute_compatibility
     from engine.graph import compute_graph_affinity
-    
+
+    # Pre-compute news sentiment per buyer country (avoids redundant work)
+    news_cache: dict = {}
+    if news_df is not None and len(news_df) > 0:
+        from engine.news import compute_news_score
+        industry = str(
+            exporter_profile.get("industry", "")
+            or exporter_profile.get("primary_hs", "")
+        )
+        for country in buyer_profiles["country"].dropna().unique():
+            news_cache[country] = compute_news_score(news_df, industry, country)
+
     matches = []
     
     for _, buyer in buyer_profiles.iterrows():
         compat = compute_compatibility(exporter_profile, buyer)
         g_score = compute_graph_affinity(graph, exporter_id, buyer["buyer_id"])
+
+        # Inject live news sentiment into the signal vector
+        buyer_country = buyer.get("country", "")
+        news_result = news_cache.get(
+            buyer_country,
+            {"news_sentiment": 0.5, "risk_flags": [], "opportunity_flags": []},
+        )
+        compat["news_sentiment"] = news_result["news_sentiment"]
+
         score, breakdown = compute_match_score(compat, g_score, weights)
         
         if score >= MIN_MATCH_SCORE * 100:
@@ -117,6 +138,11 @@ def rank_matches_for_exporter(
                 "buyer_type": buyer.get("buyer_type", "Unknown"),
                 "score": score,
                 "breakdown": breakdown,
+                "news_flags": {
+                    "risk": news_result.get("risk_flags", []),
+                    "opportunity": news_result.get("opportunity_flags", []),
+                    "sentiment": news_result.get("news_sentiment", 0.5),
+                },
             })
     
     matches.sort(key=lambda x: x["score"], reverse=True)

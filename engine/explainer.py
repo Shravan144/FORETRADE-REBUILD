@@ -58,15 +58,32 @@ def generate_explanation(
     top_2 = sorted_signals[1] if len(sorted_signals) > 1 else None
     
     # Step 3: Signal-to-sentence mapping
-    buyer_hs = str(buyer_profile.get("interested_hs", "") or buyer_profile.get("preferred_hs", ""))
-    product_name = PRODUCT_CATEGORIES.get(buyer_hs[:2], "products") if buyer_hs else "products"
+    buyer_code = str(buyer_profile.get("interested_hs", "") or buyer_profile.get("preferred_hs", "") or "").strip()
+    if buyer_code in PRODUCT_CATEGORIES:
+        product_name = PRODUCT_CATEGORIES[buyer_code]
+    elif buyer_code[:2] in PRODUCT_CATEGORIES:
+        product_name = PRODUCT_CATEGORIES[buyer_code[:2]]
+    elif buyer_code:
+        product_name = buyer_code
+    else:
+        product_name = "products"
     
+    _buyer_country = buyer_profile.get("country", "their region")
+    try:
+        _last_active = str(int(float(buyer_profile.get("last_active_days", 0) or 0)))
+    except (TypeError, ValueError):
+        _last_active = "N/A"
+
     signal_templates = {
         "product_compatibility": f"They import {product_name} — matching your export specialty",
-        "geography_fit": f"Located in {buyer_profile.get('country', 'a key market')}, a strong trade corridor for your region",
+        "geography_fit": f"Located in {_buyer_country}, a strong trade corridor for your region",
         "trade_frequency": f"They import {buyer_profile.get('import_frequency', 'regularly')}, indicating consistent demand",
-        "buyer_activity": f"They were active recently ({int(buyer_profile.get('last_active_days', 0))} days ago), showing current buying intent",
+        "buyer_activity": f"Active buyer ({_last_active} days since last trade), showing current buying intent",
         "graph_affinity": f"You share common trade connections, suggesting network compatibility",
+        "trust_score": "Both parties have strong payment reliability and responsiveness — low-risk partnership",
+        "size_compatibility": "Revenue and capacity scales align well, suggesting realistic order volumes",
+        "intent_momentum": "Strong momentum signals: engagement spikes, hiring activity, and high intent scores",
+        "news_sentiment": f"Current market conditions in {_buyer_country} favour this trade corridor",
     }
     
     # Step 4: Assemble
@@ -104,24 +121,30 @@ def generate_match_card_text(
         }
     """
     # Badge logic
-    if top_signal == "buyer_activity":
-        badge = "🔥 High Intent"
-    elif top_signal == "geography_fit":
-        badge = "🌍 New Market"
-    elif top_signal == "trade_frequency":
-        badge = "📦 Frequent Buyer"
-    elif top_signal == "product_compatibility":
-        badge = "✅ Product Match"
-    else:
-        badge = "⭐ Good Fit"
-    
+    _badge_map = {
+        "buyer_activity":        "🔥 High Intent",
+        "geography_fit":         "🌍 New Market",
+        "trade_frequency":       "📦 Frequent Buyer",
+        "product_compatibility": "✅ Product Match",
+        "graph_affinity":        "⭐ Good Fit",
+        "trust_score":           "🏆 Trusted Partner",
+        "size_compatibility":    "📐 Right Fit",
+        "intent_momentum":       "🚀 High Momentum",
+        "news_sentiment":        "📰 Market Opportunity",
+    }
+    badge = _badge_map.get(top_signal, "⭐ Good Fit")
+
     # Highlight text
     highlight_map = {
-        "buyer_activity": "Active buyer with recent trade activity",
-        "geography_fit": "Strong trade corridor connection",
-        "trade_frequency": "Consistent import frequency",
+        "buyer_activity":        "Active buyer with recent trade activity",
+        "geography_fit":         "Strong trade corridor connection",
+        "trade_frequency":       "Consistent import frequency",
         "product_compatibility": "Perfect product alignment",
-        "graph_affinity": "Shared trade network connections",
+        "graph_affinity":        "Shared trade network connections",
+        "trust_score":           "Reliable payment history & strong responsiveness",
+        "size_compatibility":    "Well-matched business scale",
+        "intent_momentum":       "Strong buying signals & engagement spike",
+        "news_sentiment":        "Favourable market conditions in this corridor",
     }
     highlight = highlight_map.get(top_signal, "Strong compatibility match")
     

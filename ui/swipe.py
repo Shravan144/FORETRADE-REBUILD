@@ -33,96 +33,186 @@ TODO CHECKLIST:
 
 import streamlit as st
 from typing import List, Optional
+import numbers
+
+
+def _is_num(v):
+    """Check if v is a real number (handles numpy int64/float64 + NaN)."""
+    if v is None:
+        return False
+    if isinstance(v, numbers.Number):
+        try:
+            return float(v) == float(v)  # False for NaN
+        except (ValueError, TypeError):
+            return False
+    return False
 
 
 def render_swipe_card(match: dict) -> Optional[str]:
     """
-    Render a single match card with swipe-like buttons.
-    
-    Args:
-        match: Dict containing:
-            - buyer_id, buyer_name, buyer_country
-            - score, breakdown
-            - explanation (from explainer)
-            - card_text (from explainer.generate_match_card_text)
-    
-    Returns:
-        "right" if user clicked Connect, "left" if Skip, None if no action
+    Render a premium match card with real data.
+    3 action buttons: Reject / Skip / Approve.
+    Returns "right" → Approve, "left" → Reject, None → no action.
     """
     card = match.get("card_text", {})
     score = match.get("score", 0)
-    
-    # Score color
+    details = match.get("importer_details") or {}
+    buyer_name = card.get("title", "Unknown")
+    industry = details.get("industry", "Trade")
+    country = details.get("country", match.get("buyer_country", ""))
+
+    # Revenue / Company Size
+    rev = details.get("revenue_usd")
+    rev_str = f"${float(rev):,.0f}" if _is_num(rev) else "N/A"
+    team = details.get("team_size")
+    team_str = str(int(float(team))) if _is_num(team) else "N/A"
+
+    # Score badge color + gradient
     if score >= 80:
-        score_color = "#2ecc71"  # Green
+        badge_bg = "linear-gradient(135deg,#22c55e,#16a34a)"
+        score_label = "Excellent"
     elif score >= 60:
-        score_color = "#f39c12"  # Orange
+        badge_bg = "linear-gradient(135deg,#f59e0b,#d97706)"
+        score_label = "Good"
     else:
-        score_color = "#e74c3c"  # Red
-    
+        badge_bg = "linear-gradient(135deg,#ef4444,#dc2626)"
+        score_label = "Fair"
+
+    # News market indicator
+    news_flags = match.get("news_flags") or {}
+    news_sent = news_flags.get("sentiment", 0.5)
+    if news_sent >= 0.6:
+        news_badge = '<span style="background:rgba(34,197,94,0.12);color:#16a34a;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">🟢 Favourable Market</span>'
+    elif news_sent <= 0.4:
+        news_badge = '<span style="background:rgba(239,68,68,0.1);color:#dc2626;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">🔴 Market Risk</span>'
+    else:
+        news_badge = '<span style="background:rgba(245,158,11,0.1);color:#d97706;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">🟡 Neutral</span>'
+
+    # Intent indicator
+    intent = details.get("intent_score", 0)
+    if _is_num(intent) and float(intent) > 0.6:
+        intent_badge = '<span style="background:rgba(139,92,246,0.1);color:#7c3aed;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">🔥 High Intent</span>'
+    else:
+        intent_badge = ''
+
+    # Top signal
+    bd = match.get("breakdown", {})
+    top_signal = ""
+    if bd:
+        top_sig = max(bd.items(), key=lambda x: x[1].get("contribution", 0))
+        top_signal = top_sig[0].replace("_", " ").title()
+
     with st.container():
-        st.markdown(f"""
-        <div style="border: 2px solid #e0e0e0; border-radius: 16px; 
-                    padding: 24px; margin: 16px 0; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin:0; color: #2c3e50;">{card.get('title', 'Unknown')}</h2>
-            <p style="color: #666; margin: 4px 0; font-size: 1.1em;">{card.get('subtitle', '')}</p>
-            <div style="font-size: 2.5em; font-weight: bold; color: {score_color}; 
-                        text-align: center; margin: 20px 0">
-                {card.get('score_text', '?% Match')}
-            </div>
-            <div style="text-align: center; margin: 12px 0">
-                <span style="background: #fff3cd; padding: 6px 12px; border-radius: 8px; 
-                             font-size: 0.95em; font-weight: 500;">{card.get('badge', '')}</span>
-            </div>
-            <p style="margin-top: 16px; font-style: italic; color: #444; text-align: center; font-size: 1.05em;">
-                {card.get('highlight', '')}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Why this match (explanation + breakdown)
-        with st.expander("🔍 Why this match?"):
-            st.write(match.get("explanation", "Explanation not available"))
-            
+        # ── Main Card ────────────────────────────────────────────────
+        card_html = f"""<div style="border:1px solid #e2e8f0;border-radius:18px;padding:0;margin:8px 0;
+background:#ffffff;box-shadow:0 4px 20px rgba(0,0,0,0.06);overflow:hidden;">
+
+<div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:22px 26px 18px;position:relative;">
+<div style="position:absolute;top:16px;right:20px;background:{badge_bg};color:white;
+padding:8px 18px;border-radius:22px;font-size:0.9em;font-weight:700;
+box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+{score:.0f}% · {score_label}
+</div>
+<h2 style="margin:0;color:#f1f5f9;font-size:1.3em;font-weight:700;">{buyer_name}</h2>
+<p style="color:#94a3b8;margin:5px 0 0;font-size:0.88em;">
+🏭 {industry} &nbsp;&nbsp; 📍 {country}
+</p>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+{news_badge} {intent_badge}
+</div>
+</div>
+
+<div style="padding:20px 26px 24px;">
+<div style="display:flex;gap:12px;margin-bottom:16px;">
+<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;padding:14px 16px;border-radius:12px;">
+<div style="font-size:0.75em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Preferred Channel</div>
+<div style="font-weight:700;color:#0f172a;margin-top:3px;">{details.get('preferred_channel','Email')}</div>
+</div>
+<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;padding:14px 16px;border-radius:12px;">
+<div style="font-size:0.75em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Top Signal</div>
+<div style="font-weight:700;color:#0ea5e9;margin-top:3px;">{top_signal}</div>
+</div>
+</div>
+
+<div style="display:flex;gap:12px;">
+<div style="flex:1;background:linear-gradient(135deg,#0f172a,#1e293b);color:white;padding:16px;border-radius:12px;">
+<div style="font-size:0.73em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Team Size</div>
+<div style="font-size:1.35em;font-weight:800;color:#f1f5f9;margin-top:2px;">{team_str}</div>
+</div>
+<div style="flex:1;background:linear-gradient(135deg,#0f172a,#1e293b);color:white;padding:16px;border-radius:12px;">
+<div style="font-size:0.73em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Est. Revenue</div>
+<div style="font-size:1.35em;font-weight:800;color:#f1f5f9;margin-top:2px;">{rev_str}</div>
+</div>
+</div>
+</div>
+</div>"""
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        # ── View Full Details (expandable) ───────────────────────────
+        with st.expander("ℹ️ View Full Details"):
+            # Explanation
+            st.write(match.get("explanation", ""))
+            st.markdown("---")
+
+            # Score breakdown
             if match.get("breakdown"):
-                breakdown = match["breakdown"]
                 st.markdown("**Score Breakdown:**")
-                for signal, data in breakdown.items():
+                for signal, data in match["breakdown"].items():
                     signal_name = signal.replace("_", " ").title()
-                    st.progress(
-                        data["raw"], 
-                        text=f"{signal_name}: {data['contribution']:.1f}% (weight: {data['weight']:.2f})"
-                    )
-        
-        # Full importer details (all data in one place)
-        details = match.get("importer_details") or {}
-        with st.expander("📋 Importer details"):
-            c1, c2 = st.columns(2)
+                    st.progress(data["raw"], text=f"{signal_name}: {data['contribution']:.1f}%")
+
+            st.markdown("---")
+
+            # Importer details grid
+            c1, c2, c3 = st.columns(3)
             with c1:
                 st.markdown(f"**Industry**  \n{details.get('industry', '—')}")
-                st.markdown(f"**Country**  \n{details.get('country', '—')}")
                 ch = details.get("preferred_channel", "—")
                 st.markdown(f"**Preferred contact**  \n{ch}")
+                pr = details.get("prompt_response")
+                pr_txt = f"{int(100 * float(pr))}%" if _is_num(pr) else "—"
+                st.markdown(f"**Response rate**  \n{pr_txt}")
             with c2:
                 intent = details.get("intent_score")
-                intent_txt = f"{int(100 * intent)}%" if isinstance(intent, (int, float)) else "—"
+                intent_txt = f"{int(100 * float(intent))}%" if _is_num(intent) else "—"
                 st.markdown(f"**Intent score**  \n{intent_txt}")
-                rev = details.get("revenue_usd")
-                rev_txt = f"{rev:,}" if isinstance(rev, (int, float)) else "—"
-                st.markdown(f"**Revenue (USD)**  \n{rev_txt}")
-                team = details.get("team_size")
-                st.markdown(f"**Team size**  \n{team if team is not None else '—'}")
-        
-        # Swipe buttons
-        col1, col2 = st.columns(2)
+                avg_t = details.get("avg_order_tons")
+                avg_txt = f"{float(avg_t):,.0f} t" if _is_num(avg_t) else "—"
+                st.markdown(f"**Avg order**  \n{avg_txt}")
+                st.markdown(f"**Revenue (USD)**  \n{rev_str}")
+            with c3:
+                gp = details.get("good_payment")
+                st.markdown(f"**Payment history**  \n{'✅ Good' if gp == 1 else '❌ Poor' if gp == 0 else '—'}")
+                es = details.get("engagement_spike")
+                st.markdown(f"**Engagement spike**  \n{'🔥 Yes' if es == 1 else 'No' if es == 0 else '—'}")
+                dm = details.get("decision_maker_change")
+                st.markdown(f"**Decision-maker change**  \n{'⚡ Yes' if dm == 1 else 'No' if dm == 0 else '—'}")
+
+            # News intelligence
+            nf = match.get("news_flags") or {}
+            risks = nf.get("risk", [])
+            opps  = nf.get("opportunity", [])
+            if risks or opps:
+                st.markdown("---")
+                st.markdown("**📰 Market Intelligence**")
+                for o in (opps or []):
+                    st.markdown(f"🟢 {o}")
+                for r in (risks or []):
+                    st.markdown(f"🔴 {r}")
+
+        # ── 3 Action Buttons: Reject / Skip / Approve ───────────────
+        col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("✖ Skip", key=f"skip_{match['buyer_id']}", 
-                          use_container_width=True, type="secondary"):
+            if st.button("✖ Reject", key=f"reject_{match['buyer_id']}",
+                          width="stretch", type="secondary"):
                 return "left"
         with col2:
-            if st.button("✔ Connect", key=f"connect_{match['buyer_id']}", 
-                          type="primary", use_container_width=True):
+            if st.button("⏭ Skip", key=f"skip_{match['buyer_id']}",
+                          width="stretch", type="secondary"):
+                return "left"  # treat skip as left for now
+        with col3:
+            if st.button("✔ Approve", key=f"approve_{match['buyer_id']}",
+                          type="primary", width="stretch"):
                 return "right"
     
     return None
@@ -175,11 +265,17 @@ def render_swipe_interface(matches: List[dict]) -> None:
             st.rerun()
         
         # Show progress
-        progress = (st.session_state.card_index + 1) / len(matches)
-        st.progress(progress, text=f"Match {st.session_state.card_index + 1} of {len(matches)}")
+        reviewed = st.session_state.card_index + 1
+        total = len(matches)
+        progress = reviewed / total
+        st.markdown(f"""<div style="text-align:center;font-size:0.88em;color:#6b7280;margin-top:8px;">
+{reviewed} of {total} leads reviewed
+</div>""", unsafe_allow_html=True)
+        st.progress(progress)
     else:
         st.success("🎉 You've reviewed all matches!")
-        st.write(f"✅ Connected with {len(st.session_state.connected)} buyers")
+        st.write(f"✅ Approved {len(st.session_state.connected)} buyers")
+        st.write(f"Go to **Approved Leads** to manage your pipeline, or **Conversations** to see AI outreach.")
         
         if st.button("🔄 Review Again"):
             st.session_state.card_index = 0
@@ -187,32 +283,48 @@ def render_swipe_interface(matches: List[dict]) -> None:
 
 
 def inject_card_css() -> None:
-    """
-    Inject custom CSS for card styling.
-    Call this once at the top of your app.
-    
-    TODO (HOUR 15): Customize colors, animations, shadows
-    """
+    """Card-specific CSS for the swipe buttons."""
     st.markdown("""
-    <style>
-        /* Card hover effect */
-        .stContainer > div {
-            transition: transform 0.2s ease;
-        }
-        .stContainer > div:hover {
-            transform: translateY(-2px);
-        }
-        
-        /* Score color coding */
-        .score-high   { color: #2ecc71; }
-        .score-medium { color: #f39c12; }
-        .score-low    { color: #e74c3c; }
-        
-        /* Button styling */
-        .stButton > button {
-            border-radius: 12px;
-            font-size: 1.1em;
-            padding: 12px 24px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+/* Reject button — red outline with hover fill */
+div[data-testid="stHorizontalBlock"] > div:first-child .stButton > button {
+    border: 2px solid #ef4444 !important;
+    color: #ef4444 !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    transition: all 0.2s !important;
+}
+div[data-testid="stHorizontalBlock"] > div:first-child .stButton > button:hover {
+    background: #ef4444 !important;
+    color: white !important;
+}
+/* Approve button — green gradient */
+div[data-testid="stHorizontalBlock"] > div:last-child .stButton > button[kind="primary"],
+div[data-testid="stHorizontalBlock"] > div:last-child .stButton > button {
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    border-color: #22c55e !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.3) !important;
+    transition: all 0.2s !important;
+}
+div[data-testid="stHorizontalBlock"] > div:last-child .stButton > button:hover {
+    box-shadow: 0 4px 16px rgba(34,197,94,0.4) !important;
+    transform: translateY(-1px);
+}
+/* Skip button — neutral with hover */
+div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stButton > button {
+    border: 1px solid #d1d5db !important;
+    color: #64748b !important;
+    background: transparent !important;
+    border-radius: 12px !important;
+    transition: all 0.2s !important;
+}
+div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stButton > button:hover {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+}
+</style>
+""", unsafe_allow_html=True)
