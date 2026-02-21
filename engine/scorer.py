@@ -44,7 +44,7 @@ _weight_adjustments: Dict[str, float] = {}
 
 def compute_match_score(
     compatibility: dict,
-    graph_affinity: float,
+    graph_affinity: float = 0.0,
     weights: Optional[dict] = None,
 ) -> Tuple[float, dict]:
     """
@@ -55,18 +55,16 @@ def compute_match_score(
     Formula:
         score = Σ (weight_i × signal_i) for each signal
     
-    Signals (from compatibility dict + graph):
+    Signals (from compatibility dict):
         - product_compatibility (0-1)
         - geography_fit (0-1)
         - trade_frequency (0-1)
         - buyer_activity (0-1)
-        - graph_affinity (0-1)  ← passed separately
     """
     if weights is None:
         weights = get_adjusted_weights()
     
-    # Merge graph_affinity into signals
-    signals = {**compatibility, "graph_affinity": graph_affinity}
+    signals = {**compatibility}
     
     # Compute weighted score
     breakdown = {}
@@ -123,7 +121,6 @@ def _compute_raw_signals(
             buyer_country,
             {"news_sentiment": 0.5, "risk_flags": [], "opportunity_flags": []},
         )
-        compat["news_sentiment"] = news_result["news_sentiment"]
 
         raw_list.append({
             "buyer_id": buyer["buyer_id"],
@@ -171,23 +168,53 @@ def rank_matches_for_exporter(
         if score >= MIN_MATCH_SCORE * 100:
             scored.append((entry, score, breakdown))
 
-    # Batch ML prediction (vectorised — ~100x faster than per-match calls)
+    # ── ML layer 1: GB+RF regression ensemble (match quality) ────────
     try:
         from engine.ml_models import predict_match_batch
         signal_list = [e["compat"] for e, _, _ in scored]
         ga_list = [e["graph_affinity"] for e, _, _ in scored]
-        ml_preds = predict_match_batch(signal_list, ga_list)
+        gb_preds = predict_match_batch(signal_list, ga_list)
     except Exception:
-        import numpy as _np
-        ml_preds = _np.full(len(scored), 0.5)
+        gb_preds = np.full(len(scored), 0.5)
+
+    # ── ML layer 2: LightGBM LambdaRank (learning-to-rank) ──────────
+    try:
+        from engine.ltr_ranker import predict_ltr_scores
+        signal_list = [e["compat"] for e, _, _ in scored]
+        ltr_preds = predict_ltr_scores(signal_list)
+    except Exception:
+        ltr_preds = np.full(len(scored), 0.5)
+
+    # ── ML layer 3: graph embedding similarity ───────────────────────
+    try:
+        from engine.graph_embeddings import compute_embedding_similarity
+        graph_emb_scores = np.array([
+            compute_embedding_similarity(exporter_id, e["buyer_id"])
+            for e, _, _ in scored
+        ])
+    except Exception:
+        graph_emb_scores = np.full(len(scored), 0.5)
 
     matches = []
-    for (entry, score, breakdown), ml_conf in zip(scored, ml_preds):
+    for i, (entry, ws_score, breakdown) in enumerate(scored):
         nr = entry["news_result"]
-        ml_conf = float(ml_conf)
+        gb_conf = float(gb_preds[i])
+        ltr_conf = float(ltr_preds[i])
+        ge_score = float(graph_emb_scores[i])
 
-        # Blend: 85% weighted-sum + 15% ML quality
-        blended = round(0.85 * score + 0.15 * (ml_conf * 100), 1)
+        # ── ML-first blending formula ────────────────────────────────
+        # 30 % weighted-sum (explainable baseline)
+        # 35 % LTR LambdaRank (learned ranking from trade data)
+        # 25 % GB+RF ensemble (match quality prediction)
+        # 10 % graph embedding similarity (structural network signal)
+        blended = round(
+            0.30 * ws_score
+            + 0.35 * (ltr_conf * 100)
+            + 0.25 * (gb_conf * 100)
+            + 0.10 * (ge_score * 100),
+            1,
+        )
+        blended = max(0.0, min(100.0, blended))
 
         matches.append({
             "buyer_id": entry["buyer_id"],
@@ -195,14 +222,17 @@ def rank_matches_for_exporter(
             "buyer_country": entry["buyer_country"],
             "buyer_type": entry["buyer_type"],
             "score": blended,
-            "weighted_sum_score": score,
-            "ml_confidence": round(ml_conf, 3),
+            "weighted_sum_score": ws_score,
+            "ml_confidence": round(gb_conf, 3),
+            "ltr_score": round(ltr_conf, 3),
+            "graph_emb_score": round(ge_score, 3),
             "breakdown": breakdown,
             "news_flags": {
                 "risk": nr.get("risk_flags", []),
                 "opportunity": nr.get("opportunity_flags", []),
                 "sentiment": nr.get("news_sentiment", 0.5),
             },
+            "_exporter_id": exporter_id,
         })
     
     matches.sort(key=lambda x: x["score"], reverse=True)
@@ -239,6 +269,13 @@ def update_weights_from_swipe(
     
     boost = SWIPE_RIGHT_BOOST if direction == "right" else SWIPE_LEFT_PENALTY
     _weight_adjustments[top_signal] = _weight_adjustments.get(top_signal, 0) + boost
+
+    # ── Also record for LTR RLHF loop ───────────────────────────────
+    try:
+        from engine.ltr_ranker import record_swipe_feedback
+        record_swipe_feedback(swiped_buyer, direction)
+    except Exception:
+        pass
 
 
 def get_adjusted_weights() -> dict:

@@ -244,51 +244,35 @@ def compute_compatibility(
     intent_score_val = _safe_float(buyer_profile.get("intent_score", 0.5))
     buyer_activity = 0.6 * activity_score + 0.4 * intent_score_val
 
-    # ── NEW organiser-data signals ──────────────────────────────────
+    # 5. Buyer readiness (EXIM signals: hiring_growth, funding_event, response_probability)
+    hiring = _safe_float(buyer_profile.get("hiring_growth", 0))
+    funding = _safe_float(buyer_profile.get("funding_event", 0))
+    resp_prob = _safe_float(buyer_profile.get("response_probability", 0.5))
+    buyer_readiness = 0.30 * hiring + 0.30 * funding + 0.40 * resp_prob
 
-    # 5. Trust score  (payment reliability + response quality + certs)
-    exp_payment  = _safe_float(exporter_profile.get("good_payment_terms", 0))
-    buy_payment  = _safe_float(buyer_profile.get("good_payment_history", 0))
-    exp_response = _safe_float(exporter_profile.get("prompt_response_score", 0))
-    buy_response = _safe_float(buyer_profile.get("prompt_response", 0))
-    cert = str(exporter_profile.get("certification", "") or "").strip()
-    has_cert = 1.0 if cert and cert.lower() not in ("", "nan", "none") else 0.0
+    # 6. Geo-political risk score (EXIM: tariff_news, stockmarket_shock,
+    #    war_event, natural_calamity, currency_fluctuation)
+    #    Risk flags are negative → invert so 0 risk = 1.0 score, all risk = 0.0
+    tariff = _safe_float(buyer_profile.get("tariff_news", 0))
+    stock_shock = _safe_float(buyer_profile.get("stockmarket_shock", 0))
+    war = _safe_float(buyer_profile.get("war_event", 0))
+    calamity = _safe_float(buyer_profile.get("natural_calamity", 0))
+    fx = _safe_float(buyer_profile.get("currency_fluctuation", 0))
+    # Sum of binary risk flags (0-4), plus absolute FX swing
+    risk_sum = tariff + stock_shock + war + calamity + abs(fx)
+    geo_risk = max(0.0, 1.0 - risk_sum / 5.0)  # 0 risk → 1.0, all 4+1 → 0.0
 
-    trust_score = (
-        0.25 * exp_payment
-        + 0.25 * buy_payment
-        + 0.15 * exp_response
-        + 0.15 * buy_response
-        + 0.20 * has_cert
-    )
-
-    # 6. Size compatibility  (log-ratio of exporter revenue vs buyer revenue)
-    exp_size = max(_safe_float(exporter_profile.get("annual_volume", 0)), 1.0)
-    buy_size = max(_safe_float(buyer_profile.get("revenue_size_usd", 0)), 1.0)
-    log_ratio = abs(np.log10(exp_size) - np.log10(buy_size))
-    size_compatibility = max(0.0, 1.0 - log_ratio / 3.0)
-
-    # 7. Intent momentum  (hiring, engagement spikes, decision-maker changes)
-    exp_intent   = _safe_float(exporter_profile.get("intent_score", 0))
-    buy_intent   = _safe_float(buyer_profile.get("intent_score", 0))
-    hiring       = _safe_float(exporter_profile.get("hiring_signal", 0))
-    engagement   = _safe_float(buyer_profile.get("engagement_spike", 0))
-    dm_change    = _safe_float(buyer_profile.get("decision_maker_change", 0))
-
-    intent_momentum = (
-        0.25 * exp_intent
-        + 0.25 * buy_intent
-        + 0.20 * hiring
-        + 0.20 * engagement
-        + 0.10 * dm_change
-    )
+    # 7. Payment trust (EXIM: good_payment_history, prompt_response)
+    good_pay = _safe_float(buyer_profile.get("good_payment_history", 0))
+    prompt_resp = _safe_float(buyer_profile.get("prompt_response", 0.5))
+    payment_trust = 0.5 * good_pay + 0.5 * prompt_resp
 
     return {
         "product_compatibility": float(product_compatibility),
         "geography_fit":         float(geography_fit),
         "trade_frequency":       float(trade_frequency),
         "buyer_activity":        float(buyer_activity),
-        "trust_score":           float(trust_score),
-        "size_compatibility":    float(size_compatibility),
-        "intent_momentum":       float(intent_momentum),
+        "buyer_readiness":       float(buyer_readiness),
+        "geo_risk":              float(geo_risk),
+        "payment_trust":         float(payment_trust),
     }

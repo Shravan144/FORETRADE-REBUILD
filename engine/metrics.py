@@ -348,7 +348,7 @@ def generate_conversation(buyer: dict, exporter_name: str, exporter_country: str
         intro_detail = f"Our {industry.lower()} product lines are a strong match for your import requirements"
     elif "geography_fit" in dict(top_signals):
         intro_detail = f"The trade corridor between {exporter_country} and {buyer_country} is highly active"
-    elif "trust_score" in dict(top_signals):
+    elif "payment_trust" in dict(top_signals):
         intro_detail = f"Both our companies have strong trade credentials and payment histories"
     else:
         intro_detail = f"Our analysis shows a {score:.0f}% compatibility match between our companies"

@@ -138,7 +138,26 @@ def clean_buyers(df: pd.DataFrame) -> pd.DataFrame:
         # Normalize to 0-1
         scaler = MinMaxScaler()
         df["activity_score"] = scaler.fit_transform(df[["activity_score"]])
-    
+
+    # Step 5: Clean EXIM buyer-level signals — fill NaN, clamp outliers
+    _binary_cols = ["hiring_growth", "funding_event", "tariff_news",
+                    "stockmarket_shock", "war_event", "natural_calamity",
+                    "engagement_spike", "decision_maker_change",
+                    "good_payment_history"]
+    for col in _binary_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).clip(0, 1).astype(int)
+
+    _float_cols = ["prompt_response", "response_probability", "intent_score"]
+    for col in _float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.5).clip(0, 1)
+
+    if "currency_fluctuation" in df.columns:
+        df["currency_fluctuation"] = pd.to_numeric(
+            df["currency_fluctuation"], errors="coerce"
+        ).fillna(0.0).clip(-1, 1)
+
     return df
 
 

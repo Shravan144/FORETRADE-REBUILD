@@ -79,11 +79,9 @@ def generate_explanation(
         "geography_fit": f"Located in {_buyer_country}, a strong trade corridor for your region",
         "trade_frequency": f"They import {buyer_profile.get('import_frequency', 'regularly')}, indicating consistent demand",
         "buyer_activity": f"Active buyer ({_last_active} days since last trade), showing current buying intent",
-        "graph_affinity": f"You share common trade connections, suggesting network compatibility",
-        "trust_score": "Both parties have strong payment reliability and responsiveness — low-risk partnership",
-        "size_compatibility": "Revenue and capacity scales align well, suggesting realistic order volumes",
-        "intent_momentum": "Strong momentum signals: engagement spikes, hiring activity, and high intent scores",
-        "news_sentiment": f"Current market conditions in {_buyer_country} favour this trade corridor",
+        "buyer_readiness": "Strong readiness signals: hiring growth, recent funding, and high response probability",
+        "geo_risk": f"Low geo-political risk in {_buyer_country} — stable trade environment",
+        "payment_trust": "Reliable payment history and prompt responsiveness — low-risk partnership",
     }
     
     # Step 4: Assemble
@@ -126,11 +124,9 @@ def generate_match_card_text(
         "geography_fit":         "🌍 New Market",
         "trade_frequency":       "📦 Frequent Buyer",
         "product_compatibility": "✅ Product Match",
-        "graph_affinity":        "⭐ Good Fit",
-        "trust_score":           "🏆 Trusted Partner",
-        "size_compatibility":    "📐 Right Fit",
-        "intent_momentum":       "🚀 High Momentum",
-        "news_sentiment":        "📰 Market Opportunity",
+        "buyer_readiness":       "🚀 High Readiness",
+        "geo_risk":              "🛡️ Low Risk",
+        "payment_trust":         "🏆 Trusted Partner",
     }
     badge = _badge_map.get(top_signal, "⭐ Good Fit")
 
@@ -140,11 +136,9 @@ def generate_match_card_text(
         "geography_fit":         "Strong trade corridor connection",
         "trade_frequency":       "Consistent import frequency",
         "product_compatibility": "Perfect product alignment",
-        "graph_affinity":        "Shared trade network connections",
-        "trust_score":           "Reliable payment history & strong responsiveness",
-        "size_compatibility":    "Well-matched business scale",
-        "intent_momentum":       "Strong buying signals & engagement spike",
-        "news_sentiment":        "Favourable market conditions in this corridor",
+        "buyer_readiness":       "Strong hiring, funding & engagement signals",
+        "geo_risk":              "Low geo-political risk — stable market",
+        "payment_trust":         "Reliable payment history & prompt responsiveness",
     }
     highlight = highlight_map.get(top_signal, "Strong compatibility match")
     

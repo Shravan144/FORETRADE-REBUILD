@@ -32,6 +32,8 @@ TODO CHECKLIST:
 """
 
 import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
 from typing import List, Optional
 import numbers
 
@@ -100,16 +102,28 @@ def render_swipe_card(match: dict) -> Optional[str]:
     seg_color = details.get("segment_color", "#94a3b8")
     seg_badge = f'<span style="background:rgba(255,255,255,0.08);color:{seg_color};padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">{seg_label}</span>' if seg_label else ''
 
-    # ML confidence
-    ml_conf = match.get("ml_confidence_display", match.get("ml_confidence", 0.5))
-    ml_pct = int(float(ml_conf) * 100) if _is_num(ml_conf) else 50
+    # Buyer Readiness badge (hiring + funding + response prob)
+    hiring = details.get("hiring_growth", 0) or 0
+    funding = details.get("funding_event", 0) or 0
+    resp_prob = details.get("response_probability")
+    readiness_signals = int(bool(hiring)) + int(bool(funding)) + (1 if _is_num(resp_prob) and float(resp_prob) > 0.6 else 0)
+    if readiness_signals >= 2:
+        readiness_badge = '<span style="background:rgba(34,197,94,0.12);color:#16a34a;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">🚀 Growth Ready</span>'
+    else:
+        readiness_badge = ''
 
-    # Top signal
-    bd = match.get("breakdown", {})
-    top_signal = ""
-    if bd:
-        top_sig = max(bd.items(), key=lambda x: x[1].get("contribution", 0))
-        top_signal = top_sig[0].replace("_", " ").title()
+    # Geo Risk badge (tariff + stock shock + war + calamity)
+    tariff = int(details.get("tariff_news", 0) or 0)
+    shock = int(details.get("stockmarket_shock", 0) or 0)
+    war = int(details.get("war_event", 0) or 0)
+    calamity = int(details.get("natural_calamity", 0) or 0)
+    risk_count = tariff + shock + war + calamity
+    if risk_count >= 3:
+        risk_badge = '<span style="background:rgba(239,68,68,0.12);color:#dc2626;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">⚠️ High Risk</span>'
+    elif risk_count >= 1:
+        risk_badge = '<span style="background:rgba(245,158,11,0.1);color:#d97706;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">⚡ Moderate Risk</span>'
+    else:
+        risk_badge = '<span style="background:rgba(34,197,94,0.08);color:#16a34a;padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">✅ Low Risk</span>'
 
     with st.container():
         # ── Main Card ────────────────────────────────────────────────
@@ -127,26 +141,11 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
 🏭 {industry} &nbsp;&nbsp; 📍 {country}
 </p>
 <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-{news_badge} {intent_badge} {seg_badge}
+{news_badge} {intent_badge} {seg_badge} {readiness_badge} {risk_badge}
 </div>
 </div>
 
 <div style="padding:20px 26px 24px;">
-<div style="display:flex;gap:12px;margin-bottom:16px;">
-<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
-<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Preferred Channel</div>
-<div style="font-weight:700;color:#f1f5f9;margin-top:3px;">{details.get('preferred_channel','Email')}</div>
-</div>
-<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
-<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Top Signal</div>
-<div style="font-weight:700;color:#0ea5e9;margin-top:3px;">{top_signal}</div>
-</div>
-<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
-<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">ML Confidence</div>
-<div style="font-weight:700;color:#8b5cf6;margin-top:3px;">{ml_pct}%</div>
-</div>
-</div>
-
 <div style="display:flex;gap:12px;">
 <div style="flex:1;background:linear-gradient(135deg,#0f172a,#1e293b);color:white;padding:16px;border-radius:12px;">
 <div style="font-size:0.73em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Team Size</div>
@@ -163,55 +162,41 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
 
         # ── View Full Details (expandable) ───────────────────────────
         with st.expander("ℹ️ View Full Details"):
-            # Explanation
-            st.write(match.get("explanation", ""))
-            st.markdown("---")
+            # Explanation text
+            explanation = match.get("explanation", "")
+            if explanation:
+                st.write(explanation)
+                st.markdown("---")
 
-            # Score breakdown
+            # Score contribution breakdown
             if match.get("breakdown"):
                 st.markdown("**Score Breakdown:**")
                 for signal, data in match["breakdown"].items():
                     signal_name = signal.replace("_", " ").title()
-                    st.progress(data["raw"], text=f"{signal_name}: {data['contribution']:.1f}%")
+                    raw = data.get("raw", 0)
+                    contrib = data.get("contribution", 0)
+                    st.progress(min(raw, 1.0), text=f"{signal_name}: {contrib:.1f}%")
 
+            # EXIM Risk & Readiness panel
             st.markdown("---")
-
-            # Importer details grid
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.markdown(f"**Industry**  \n{details.get('industry', '—')}")
-                ch = details.get("preferred_channel", "—")
-                st.markdown(f"**Preferred contact**  \n{ch}")
-                pr = details.get("prompt_response")
-                pr_txt = f"{int(100 * float(pr))}%" if _is_num(pr) else "—"
-                st.markdown(f"**Response rate**  \n{pr_txt}")
-            with c2:
-                intent = details.get("intent_score")
-                intent_txt = f"{int(100 * float(intent))}%" if _is_num(intent) else "—"
-                st.markdown(f"**Intent score**  \n{intent_txt}")
-                avg_t = details.get("avg_order_tons")
-                avg_txt = f"{float(avg_t):,.0f} t" if _is_num(avg_t) else "—"
-                st.markdown(f"**Avg order**  \n{avg_txt}")
-                st.markdown(f"**Revenue (USD)**  \n{rev_str}")
-            with c3:
-                gp = details.get("good_payment")
-                st.markdown(f"**Payment history**  \n{'✅ Good' if gp == 1 else '❌ Poor' if gp == 0 else '—'}")
-                es = details.get("engagement_spike")
-                st.markdown(f"**Engagement spike**  \n{'🔥 Yes' if es == 1 else 'No' if es == 0 else '—'}")
-                dm = details.get("decision_maker_change")
-                st.markdown(f"**Decision-maker change**  \n{'⚡ Yes' if dm == 1 else 'No' if dm == 0 else '—'}")
-
-            # News intelligence
-            nf = match.get("news_flags") or {}
-            risks = nf.get("risk", [])
-            opps  = nf.get("opportunity", [])
-            if risks or opps:
-                st.markdown("---")
-                st.markdown("**📰 Market Intelligence**")
-                for o in (opps or []):
-                    st.markdown(f"🟢 {o}")
-                for r in (risks or []):
-                    st.markdown(f"🔴 {r}")
+            r_col1, r_col2 = st.columns(2)
+            with r_col1:
+                st.markdown("**Buyer Readiness**")
+                _h = "✅" if hiring else "—"
+                _f = "✅" if funding else "—"
+                _r = f"{float(resp_prob):.0%}" if _is_num(resp_prob) else "N/A"
+                st.markdown(f"Hiring Growth: {_h}  \nFunding Event: {_f}  \nResponse Prob: {_r}")
+            with r_col2:
+                st.markdown("**Geo Risk Flags**")
+                _flags = []
+                if tariff: _flags.append("📋 Tariff Change")
+                if shock:  _flags.append("📉 Stock Shock")
+                if war:    _flags.append("⚔️ Conflict")
+                if calamity: _flags.append("🌊 Natural Calamity")
+                fx = details.get("currency_fluctuation", 0)
+                if _is_num(fx) and abs(float(fx)) > 0.3:
+                    _flags.append(f"💱 FX Shift ({float(fx):+.0%})")
+                st.markdown("  \n".join(_flags) if _flags else "✅ No risk flags")
 
         # ── 3 Action Buttons: Reject / Skip / Approve ───────────────
         col1, col2, col3 = st.columns(3)
@@ -229,6 +214,164 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
                 return "right"
     
     return None
+
+
+def _render_risk_panel(alerts: list, modifier: float, original_score: float, adjusted_score: float) -> None:
+    """Render the Global Risk Assessment panel from NewsEngine alerts."""
+    # Modifier badge colour
+    if modifier >= 1.1:
+        mod_bg = "rgba(34,197,94,0.12)"; mod_clr = "#16a34a"; mod_label = "Boosted"
+    elif modifier <= 0.9:
+        mod_bg = "rgba(239,68,68,0.1)"; mod_clr = "#dc2626"; mod_label = "Risk Adjusted"
+    else:
+        mod_bg = "rgba(245,158,11,0.1)"; mod_clr = "#d97706"; mod_label = "Neutral"
+
+    delta = adjusted_score - original_score
+    delta_sign = "+" if delta >= 0 else ""
+
+    st.markdown(f"""<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);
+    border-radius:14px;padding:16px 20px;margin:8px 0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-weight:700;font-size:0.95em;color:#f1f5f9;">🌐 Global Risk Assessment</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <span style="background:{mod_bg};color:{mod_clr};padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">
+                {modifier:.2f}x · {mod_label}
+            </span>
+            <span style="font-size:0.82em;color:#94a3b8;">
+                {original_score:.0f}% → <strong style="color:{mod_clr};">{adjusted_score:.1f}%</strong>
+                ({delta_sign}{delta:.1f})
+            </span>
+        </div>
+    </div>""", unsafe_allow_html=True)
+
+    for a in alerts:
+        a_type = a.get("type", "info")
+        if a_type == "error":
+            bg = "rgba(239,68,68,0.08)"; border = "rgba(239,68,68,0.25)"; clr = "#fca5a5"
+        elif a_type == "warning":
+            bg = "rgba(245,158,11,0.08)"; border = "rgba(245,158,11,0.25)"; clr = "#fde68a"
+        else:
+            bg = "rgba(34,197,94,0.08)"; border = "rgba(34,197,94,0.25)"; clr = "#86efac"
+        st.markdown(f"""<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+        background:{bg};border:1px solid {border};border-radius:10px;margin:4px 0;">
+        <span style="font-size:1.2em;">{a.get('icon','ℹ️')}</span>
+        <div style="flex:1;">
+            <div style="font-weight:600;font-size:0.85em;color:{clr};">{a.get('message','')}</div>
+            <div style="font-size:0.75em;color:#94a3b8;">{a.get('impact','')}</div>
+        </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_simulation_widget(matches: List[dict], news_engine) -> None:
+    """
+    Live event simulation widget — lets users pick a hypothetical global
+    event and see how it shifts match scores in real-time.
+    """
+    st.markdown("""<div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
+    border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px 24px;margin:16px 0;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <span style="font-size:1.3em;">🧪</span>
+        <span style="font-weight:700;font-size:1.05em;color:#f1f5f9;">Live Event Simulation</span>
+    </div>
+    <div style="font-size:0.82em;color:#94a3b8;margin-bottom:12px;">
+        What happens to your leads if a global event strikes? Pick an event and industry to simulate.
+    </div>
+    </div>""", unsafe_allow_html=True)
+
+    if not matches:
+        st.info("No matches to simulate. Score some leads first.")
+        return
+
+    # Build matches DataFrame for simulation
+    sim_rows = []
+    for m in matches:
+        details = m.get("importer_details") or {}
+        sim_rows.append({
+            "buyer_name": m.get("buyer_name", "Unknown"),
+            "buyer_country": m.get("buyer_country", ""),
+            "Industry": details.get("industry", "Trade"),
+            "score": m.get("score", 0),
+        })
+    sim_df = pd.DataFrame(sim_rows)
+
+    # Controls
+    ev_col, ind_col = st.columns(2)
+    event_types = ["War Alert", "Trade Agreement", "Tariff Hike",
+                   "Tariff Reduction", "Natural Calamity", "Stock Crash"]
+    industries = sorted(sim_df["Industry"].unique().tolist())
+
+    with ev_col:
+        event = st.selectbox("📌 Event Type", event_types, key="sim_event")
+    with ind_col:
+        industry = st.selectbox("🏭 Affected Industry", industries, key="sim_industry")
+
+    if st.button("⚡ Simulate Impact", type="primary", key="sim_btn"):
+        result = news_engine.simulate_event(sim_df, event, industry)
+        affected = result[result["score_change"] != 0]
+        unaffected = result[result["score_change"] == 0]
+
+        # KPI row
+        k1, k2, k3, k4 = st.columns(4)
+        n_affected = len(affected)
+        avg_change = affected["score_change"].mean() if n_affected > 0 else 0
+        worst = affected["score_change"].min() if n_affected > 0 else 0
+        best = affected["score_change"].max() if n_affected > 0 else 0
+
+        kdata = [
+            ("Leads Affected", str(n_affected), f"of {len(result)} total", "#0ea5e9"),
+            ("Avg Score Change", f"{'+' if avg_change >= 0 else ''}{avg_change:.1f}", event, "#f59e0b"),
+            ("Worst Impact", f"{worst:.1f}", "Single lead", "#ef4444"),
+            ("Best Impact", f"{'+' if best >= 0 else ''}{best:.1f}", "Single lead", "#22c55e"),
+        ]
+        for col, (lbl, val, sub, clr) in zip([k1, k2, k3, k4], kdata):
+            col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};
+            border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.15);">
+            <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{lbl}</div>
+            <div style="font-size:1.4em;font-weight:800;color:#f1f5f9;">{val}</div>
+            <div style="font-size:.72em;color:#64748b;">{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("")
+
+        # Before / After chart
+        if n_affected > 0:
+            chart_df = affected.head(15).copy()
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                name="Original Score", x=chart_df["buyer_name"],
+                y=chart_df["score"], marker_color="#334155", opacity=0.7,
+            ))
+            fig.add_trace(go.Bar(
+                name="Simulated Score", x=chart_df["buyer_name"],
+                y=chart_df["simulated_score"],
+                marker_color=["#22c55e" if c >= 0 else "#ef4444" for c in chart_df["score_change"]],
+                opacity=0.85,
+            ))
+            fig.update_layout(
+                barmode="group", height=340,
+                margin=dict(t=10, b=30, l=40, r=10),
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(gridcolor="rgba(255,255,255,0.08)"),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.08)", title="Match Score"),
+                legend=dict(orientation="h", y=-0.2, font=dict(size=10)),
+            )
+            fig.update_xaxes(tickangle=20)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Detailed table
+            with st.expander(f"📋 Full simulation results ({len(result)} leads)"):
+                display_df = result[["buyer_name", "buyer_country", "Industry", "score",
+                                     "simulated_score", "score_change"]].copy()
+                display_df.columns = ["Buyer", "Country", "Industry", "Original", "Simulated", "Change"]
+                st.dataframe(display_df.style.applymap(
+                    lambda v: "color: #22c55e" if isinstance(v, (int, float)) and v > 0
+                              else "color: #ef4444" if isinstance(v, (int, float)) and v < 0
+                              else "", subset=["Change"]
+                ), use_container_width=True, hide_index=True)
+        else:
+            st.info(f"No leads in **{industry}** — try a different industry.")
 
 
 def render_swipe_interface(matches: List[dict]) -> None:

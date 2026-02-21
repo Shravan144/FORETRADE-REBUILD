@@ -39,9 +39,14 @@ from engine.features import build_exporter_profiles, build_buyer_profiles
 from engine.graph import build_trade_graph, get_graph_stats
 from engine.scorer import rank_matches_for_exporter, get_adjusted_weights, _compute_raw_signals
 from engine.ml_models import train_buyer_segments, train_match_predictor, get_segment_for_buyer, get_segment_label, get_ml_metrics
+from engine.ltr_ranker import train_ltr_ranker, get_ltr_metrics, get_feedback_stats
+from engine.nlp_engine import initialize_nlp, compute_nlp_sentiment, get_nlp_stats
+from engine.graph_embeddings import train_graph_embeddings, get_embedding_stats
+from engine.model_cache import cache_exists, load_cache, save_cache
 from engine.explainer import generate_explanation, generate_match_card_text
 from ui.swipe import render_swipe_interface, inject_card_css
 from ui.dashboard import render_match_analytics, render_algorithm_workflow, render_outreach_panel
+from engine.news_engine import NewsEngine
 from ui.auth import render_login_page, logout
 from ui.pages import (
     render_dashboard_page,
@@ -110,6 +115,15 @@ def load_news_data():
         from engine.news import load_news
         return load_news(news_path)
     return pd.DataFrame()
+
+
+@st.cache_resource
+def get_news_engine():
+    """Initialise the NewsEngine (class-based, cached as resource)."""
+    news_csv = os.path.join(DATA_DIR, "global_news.csv")
+    if os.path.exists(news_csv):
+        return NewsEngine(news_csv)
+    return None
 
 
 @st.cache_data
@@ -396,7 +410,9 @@ NAV_PAGES = [
     "✅ Approved Leads",
     "💬 Conversations",
     "📊 Analytics",
+    "🌐 Global Risk",
     "🔄 Algorithm",
+    "🧪 Model Performance",
     "📧 Outreach",
     "👤 Profile",
 ]
@@ -586,6 +602,16 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
                 "decision_maker_change": buyer_profile.get("decision_maker_change"),
                 "avg_order_tons":     buyer_profile.get("avg_order_tons"),
                 "prompt_response":    buyer_profile.get("prompt_response"),
+                # EXIM buyer-readiness signals
+                "hiring_growth":      buyer_profile.get("hiring_growth"),
+                "funding_event":      buyer_profile.get("funding_event"),
+                "response_probability": buyer_profile.get("response_probability"),
+                # EXIM geo-political risk signals
+                "tariff_news":        buyer_profile.get("tariff_news"),
+                "stockmarket_shock":  buyer_profile.get("stockmarket_shock"),
+                "war_event":          buyer_profile.get("war_event"),
+                "natural_calamity":   buyer_profile.get("natural_calamity"),
+                "currency_fluctuation": buyer_profile.get("currency_fluctuation"),
             }
 
             # Add ML segment label & confidence
@@ -638,6 +664,472 @@ def page_outreach():
     render_outreach_panel(connected)
 
 
+def page_global_risk():
+    """🌐 Global Risk page — NewsEngine alerts overview."""
+    st.title("🌐 Global Risk Monitor")
+    st.caption("Analyse how global events impact your trade leads — powered by 8 000 geopolitical signals")
+
+    ne = get_news_engine()
+
+    if ne is None:
+        st.error("News data not found. Ensure `data/global_news.csv` exists.")
+        return
+
+    industries = sorted(ne.df["Affected_Industry"].unique().tolist())
+
+    # Collect alerts across all industries
+    all_alerts = []
+    for ind in industries:
+        _, alerts = ne.calculate_modifier(ind)
+        for a in alerts:
+            a["industry"] = ind
+            all_alerts.append(a)
+
+    # ── KPI row (alert counts) ────────────────────────────────────────
+    n_risk = len([a for a in all_alerts if a["type"] == "error"])
+    n_warn = len([a for a in all_alerts if a["type"] == "warning"])
+    n_opp  = len([a for a in all_alerts if a["type"] == "success"])
+    k1, k2, k3, k4 = st.columns(4)
+    kpis = [
+        ("Industries Tracked", str(len(industries)), "From global news data", "#0ea5e9"),
+        ("Risk Alerts", str(n_risk), "Wars, calamities, crashes", "#ef4444"),
+        ("Warnings", str(n_warn), "Tariff changes, volatility", "#f59e0b"),
+        ("Opportunities", str(n_opp), "Trade agreements, growth", "#22c55e"),
+    ]
+    for col, (lbl, val, sub, clr) in zip([k1, k2, k3, k4], kpis):
+        col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};
+        border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.15);min-height:95px;">
+        <div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{lbl}</div>
+        <div style="font-size:1.7em;font-weight:800;color:#f1f5f9;">{val}</div>
+        <div style="font-size:.75em;color:#64748b;margin-top:2px;">{sub}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("")
+    st.divider()
+
+    # ── Active Global Alerts (interactive cards) ──────────────────────
+    st.markdown("#### ⚠️ Active Global Alerts")
+
+    # De-dup alerts by message
+    seen_msgs = set()
+    unique_alerts = []
+    for a in all_alerts:
+        if a["message"] not in seen_msgs:
+            seen_msgs.add(a["message"])
+            unique_alerts.append(a)
+
+    if not unique_alerts:
+        st.info("No significant global alerts at this time.")
+        return
+
+    # ── Filter controls ───────────────────────────────────────────────
+    fc1, fc2, fc3 = st.columns([1.5, 1.5, 1])
+    type_map = {"🔴 Risk": "error", "🟡 Warning": "warning", "🟢 Opportunity": "success"}
+    with fc1:
+        sel_types = st.multiselect(
+            "Alert type",
+            list(type_map.keys()),
+            default=list(type_map.keys()),
+            key="gr_alert_type",
+        )
+    regions_in = sorted({a.get("region", "Global") for a in unique_alerts})
+    with fc2:
+        sel_regions = st.multiselect("Region", regions_in, default=regions_in, key="gr_region")
+    severity_opts = ["High", "Medium", "Low"]
+    with fc3:
+        sel_sev = st.multiselect("Severity", severity_opts, default=severity_opts, key="gr_sev")
+
+    active_types = {type_map[t] for t in sel_types}
+    filtered = [
+        a for a in unique_alerts
+        if a["type"] in active_types
+        and a.get("region", "Global") in sel_regions
+        and a.get("severity", "Medium") in sel_sev
+    ]
+
+    st.caption(f"Showing {len(filtered)} of {len(unique_alerts)} alerts")
+    st.markdown("")
+
+    # ── Card colour map ───────────────────────────────────────────────
+    colour = {
+        "error":   {"bg": "rgba(239,68,68,0.08)", "border": "#ef4444", "badge_bg": "#ef4444", "badge_txt": "#fff", "label": "RISK"},
+        "warning": {"bg": "rgba(245,158,11,0.08)", "border": "#f59e0b", "badge_bg": "#f59e0b", "badge_txt": "#000", "label": "WARNING"},
+        "success": {"bg": "rgba(34,197,94,0.08)",  "border": "#22c55e", "badge_bg": "#22c55e", "badge_txt": "#000", "label": "OPPORTUNITY"},
+    }
+
+    ALERTS_PER_PAGE = 6
+    total_pages = max(1, -(-len(filtered) // ALERTS_PER_PAGE))
+    page_num = st.number_input("Page", min_value=1, max_value=total_pages, value=1, step=1, key="gr_page", label_visibility="collapsed") if total_pages > 1 else 1
+    page_slice = filtered[(page_num - 1) * ALERTS_PER_PAGE : page_num * ALERTS_PER_PAGE]
+
+    # ── Render alert cards (2 per row) ────────────────────────────────
+    for i in range(0, len(page_slice), 2):
+        cols = st.columns(2)
+        for ci, col in enumerate(cols):
+            idx = i + ci
+            if idx >= len(page_slice):
+                break
+            a = page_slice[idx]
+            c = colour.get(a["type"], colour["warning"])
+            region_tag = a.get("region", "")
+            date_tag   = a.get("date", "")
+            severity   = a.get("severity", "")
+            link       = a.get("search_url", "#")
+            sev_color  = "#ef4444" if severity == "High" else "#f59e0b" if severity == "Medium" else "#94a3b8"
+            col.markdown(f"""
+<div style="background:{c['bg']};border-left:4px solid {c['border']};border-radius:12px;
+padding:20px 22px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.12);min-height:170px;
+display:flex;flex-direction:column;justify-content:space-between;">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="background:{c['badge_bg']};color:{c['badge_txt']};font-size:.65em;font-weight:700;
+      padding:3px 8px;border-radius:4px;letter-spacing:.5px;">{c['label']}</span>
+      <span style="font-size:.72em;color:{sev_color};font-weight:600;">{severity} Impact</span>
+    </div>
+    <div style="font-size:1.05em;font-weight:700;color:#f1f5f9;line-height:1.35;margin-bottom:8px;">
+      {a.get('icon','')} {a['message']}
+    </div>
+    <div style="font-size:.78em;color:#94a3b8;margin-bottom:6px;">
+      {a.get('impact','')}
+    </div>
+    <div style="display:flex;gap:14px;font-size:.72em;color:#64748b;">
+      <span>🌍 {region_tag}</span>
+      <span>📅 {date_tag}</span>
+      <span>🏭 {a.get('industry','')}</span>
+    </div>
+  </div>
+  <div style="margin-top:14px;">
+    <a href="{link}" target="_blank" rel="noopener noreferrer"
+       style="font-size:.78em;color:{c['border']};text-decoration:none;font-weight:600;
+       border:1px solid {c['border']};border-radius:6px;padding:5px 14px;
+       transition:background .15s;">
+       Read more →
+    </a>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    if total_pages > 1:
+        st.caption(f"Page {page_num} of {total_pages}")
+
+
+# ==========================================================================
+# MODEL PERFORMANCE PAGE
+# ==========================================================================
+def page_model_performance():
+    """🧪 Model Performance — comprehensive ML evaluation dashboard."""
+    import plotly.graph_objects as go
+    import plotly.express as px
+
+    st.title("🧪 Model Performance")
+    st.caption("Deep-dive into every ML component powering ForeTrade's matching intelligence")
+
+    # ── Collect metrics from all models ──────────────────────────────
+    gb_metrics = get_ml_metrics()
+    ltr_metrics = get_ltr_metrics()
+    nlp_stats = get_nlp_stats()
+    ge_stats = get_embedding_stats()
+    fb_stats = get_feedback_stats()
+
+    # ── Hero KPI row ─────────────────────────────────────────────────
+    k1, k2, k3, k4, k5 = st.columns(5)
+    hero_kpis = [
+        ("GB+RF AUC", f"{gb_metrics.get('auc', 0):.3f}", "Match Quality", "#0ea5e9"),
+        ("LTR NDCG@10", f"{ltr_metrics.get('ndcg_at_10', 0):.3f}", "Ranking Quality", "#8b5cf6"),
+        ("NLP Docs", str(nlp_stats.get('n_documents', 0)), "News Indexed", "#22c55e"),
+        ("Graph Nodes", str(ge_stats.get('n_embedded', 0)), "Embedded", "#f59e0b"),
+        ("RLHF Buffer", f"{fb_stats.get('buffer_size', 0)}/{fb_stats.get('retrain_threshold', 15)}", "Swipe feedback", "#ef4444"),
+    ]
+    for col, (lbl, val, sub, clr) in zip([k1, k2, k3, k4, k5], hero_kpis):
+        col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};
+        border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.15);min-height:90px;">
+        <div style="font-size:.72em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{lbl}</div>
+        <div style="font-size:1.5em;font-weight:800;color:#f1f5f9;">{val}</div>
+        <div style="font-size:.7em;color:#64748b;margin-top:2px;">{sub}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # ── Generalisation & Overfitting Diagnostics ─────────────────────
+    st.markdown("#### 🛡️ Generalisation & Overfitting Diagnostics")
+    st.caption("Proves this model works on **unseen data** — not just memorisation of the training set")
+
+    gb_result = st.session_state.get("ml_gb", {})
+    ltr_res   = st.session_state.get("ml_ltr", {})
+
+    # -- Overfitting gap gauges
+    og1, og2, og3 = st.columns(3)
+
+    gb_gap  = gb_result.get("overfit_gap",  gb_metrics.get("overfit_gap", 0))
+    ltr_gap = ltr_res.get("overfit_gap", ltr_metrics.get("overfit_gap", 0))
+
+    def _gap_colour(gap):
+        if gap <= 0.05: return "#22c55e", "Excellent"
+        if gap <= 0.10: return "#84cc16", "Good"
+        if gap <= 0.15: return "#f59e0b", "Acceptable"
+        return "#ef4444", "High — auto-tightened"
+
+    clr_gb, lbl_gb = _gap_colour(gb_gap)
+    clr_ltr, lbl_ltr = _gap_colour(ltr_gap)
+
+    with og1:
+        st.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px 18px;border:1px solid {clr_gb}40;">
+        <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">GB+RF Overfit Gap</div>
+        <div style="font-size:1.7em;font-weight:800;color:{clr_gb};">{gb_gap*100:.1f}%</div>
+        <div style="font-size:.72em;color:#64748b;">{lbl_gb} · Train R²={gb_result.get('train_r2', gb_metrics.get('train_r2', 0)):.3f} → Test R²={gb_result.get('r2', gb_metrics.get('r2', 0)):.3f}</div>
+        </div>""", unsafe_allow_html=True)
+
+    with og2:
+        train_ndcg = ltr_res.get("train_ndcg", ltr_metrics.get("train_ndcg", 0))
+        test_ndcg  = ltr_res.get("ndcg_at_10", ltr_metrics.get("ndcg_at_10", 0))
+        st.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px 18px;border:1px solid {clr_ltr}40;">
+        <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">LTR Overfit Gap</div>
+        <div style="font-size:1.7em;font-weight:800;color:{clr_ltr};">{ltr_gap*100:.1f}%</div>
+        <div style="font-size:.72em;color:#64748b;">{lbl_ltr} · Train NDCG={train_ndcg:.3f} → Test NDCG={test_ndcg:.3f}</div>
+        </div>""", unsafe_allow_html=True)
+
+    with og3:
+        gb_holdout  = gb_result.get("holdout_pct", "20%")
+        ltr_holdout = ltr_res.get("holdout_pct", "20%")
+        gb_auto  = "✅ Yes" if gb_result.get("auto_tightened") else "—"
+        ltr_auto = "✅ Yes" if ltr_res.get("auto_tightened") else "—"
+        st.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px 18px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">Holdout Config</div>
+        <div style="font-size:.82em;color:#e2e8f0;margin-top:8px;line-height:1.8;">
+        GB+RF holdout: <strong>{gb_holdout}</strong>  ·  Auto-tightened: {gb_auto}<br>
+        LTR holdout: <strong>{ltr_holdout}</strong>  ·  Auto-tightened: {ltr_auto}<br>
+        Augmentation: feature-masking 10% + noise ±5%
+        </div></div>""", unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("#### 🏗️ ML-First Scoring Architecture")
+    st.markdown("""
+<div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);margin-bottom:20px;">
+<div style="font-size:.88em;color:#e2e8f0;line-height:1.7;">
+
+**Final Score = 30% Weighted-Sum + 35% LTR LambdaRank + 25% GB+RF Ensemble + 10% Graph Embedding**
+
+| Component | Weight | Model | What it learns |
+|:---|:---:|:---|:---|
+| 📐 Weighted-Sum | 30% | 9 hand-crafted signals | Explainable baseline — product fit, geography, trust |
+| 🎯 LTR LambdaRank | 35% | LightGBM (listwise ranking) | Optimal buyer *ordering* — trained on trade history with NDCG |
+| 🤖 GB+RF Ensemble | 25% | Gradient Boosting + Random Forest | Match *quality* regression — continuous score prediction |
+| 🕸️ Graph Embedding | 10% | Node2Vec + Word2Vec (Skip-Gram) | Network structure — multi-hop trade relationships |
+
+**Feedback Loop (RLHF):** Every swipe trains the LTR model — right swipes = positive signal, left = negative. After 15 swipes the ranker retrains with human preferences incorporated.
+
+</div></div>
+""", unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── Tab layout for each model ────────────────────────────────────
+    tab_gb, tab_ltr, tab_nlp, tab_graph, tab_rlhf = st.tabs([
+        "🤖 GB+RF Ensemble", "🎯 LTR LambdaRank", "🧠 NLP Pipeline", "🕸️ Graph Embedding", "🔄 RLHF Loop"
+    ])
+
+    # ── TAB 1: GB+RF Ensemble ────────────────────────────────────────
+    with tab_gb:
+        st.markdown("##### Gradient Boosting + Random Forest Regression Ensemble")
+        if gb_metrics:
+            gb_result = st.session_state.get("ml_gb", {})
+
+            # Holdout test metrics (primary)
+            st.markdown("###### 🎯 Held-out Test Metrics (20% unseen data)")
+            m1, m2, m3, m4, m5 = st.columns(5)
+            m1.metric("AUC-ROC", f"{gb_metrics.get('auc', 0):.4f}")
+            m2.metric("F1 Score", f"{gb_metrics.get('f1', 0):.4f}")
+            m3.metric("R² Score", f"{gb_metrics.get('r2', 0):.4f}")
+            m4.metric("MAE", f"{gb_metrics.get('mae', 0):.4f}")
+            gap_val = gb_metrics.get('overfit_gap', gb_result.get('overfit_gap', 0))
+            gap_clr = "#22c55e" if gap_val <= 0.10 else "#f59e0b" if gap_val <= 0.15 else "#ef4444"
+            m5.markdown(f"""<div style="text-align:center;padding-top:6px;">
+            <div style="font-size:.72em;color:#94a3b8;">Overfit Gap</div>
+            <div style="font-size:1.4em;font-weight:800;color:{gap_clr};">{gap_val*100:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+            mc1, mc2 = st.columns(2)
+            with mc1:
+                st.markdown("###### All Metrics (Test + CV)")
+                display_items = []
+                for k, v in gb_metrics.items():
+                    if k in ("feature_importance", "fold_scores"):
+                        continue
+                    display_items.append({
+                        "Metric": k.replace("_", " ").title(),
+                        "Value": f"{v:.4f}" if isinstance(v, float) else str(v),
+                    })
+                # Add CV metrics from result
+                for cv_key in ("cv_accuracy", "cv_auc", "cv_f1", "cv_r2", "cv_mae"):
+                    cv_val = gb_result.get(cv_key)
+                    if cv_val is not None:
+                        display_items.append({
+                            "Metric": cv_key.replace("_", " ").title(),
+                            "Value": f"{cv_val:.4f}" if isinstance(cv_val, float) else str(cv_val),
+                        })
+                for meta_key in ("train_size", "test_size", "holdout_pct", "augmentation"):
+                    meta_val = gb_result.get(meta_key)
+                    if meta_val is not None:
+                        display_items.append({
+                            "Metric": meta_key.replace("_", " ").title(),
+                            "Value": str(meta_val),
+                        })
+                st.dataframe(pd.DataFrame(display_items), use_container_width=True, hide_index=True)
+
+            with mc2:
+                st.markdown("###### Feature Importance")
+                fi = gb_result.get("feature_importance", {})
+                if fi:
+                    fi_df = pd.DataFrame({"Feature": list(fi.keys()), "Importance": list(fi.values())})
+                    fi_df = fi_df.sort_values("Importance", ascending=True)
+                    fig = px.bar(fi_df, x="Importance", y="Feature", orientation="h",
+                                 color="Importance", color_continuous_scale=["#64748b", "#0ea5e9"])
+                    fig.update_layout(height=350, margin=dict(l=10, r=10, t=10, b=10),
+                                      plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig, use_container_width=True)
+
+            # Fold scores
+            fold_scores = gb_result.get("fold_scores", [])
+            if fold_scores:
+                st.markdown("###### 5-Fold Cross-Validation (on 80% train split)")
+                fold_df = pd.DataFrame(fold_scores)
+                st.dataframe(fold_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("GB+RF model not trained yet.")
+
+    # ── TAB 2: LTR LambdaRank ───────────────────────────────────────
+    with tab_ltr:
+        st.markdown("##### LightGBM LambdaRank — Learning to Rank")
+        if ltr_metrics and "error" not in ltr_metrics:
+            l1, l2, l3, l4, l5 = st.columns(5)
+            l1.metric("Test NDCG@10", f"{ltr_metrics.get('ndcg_at_10', 0):.4f}")
+            l2.metric("CV NDCG@10", f"{ltr_metrics.get('cv_ndcg_at_10', ltr_metrics.get('ndcg_at_10', 0)):.4f}")
+            l3.metric("Train Groups", str(ltr_metrics.get("n_train_groups", ltr_metrics.get("n_groups", 0))))
+            l4.metric("Test Groups", str(ltr_metrics.get("n_test_groups", 0)))
+            ltr_gap_val = ltr_metrics.get("overfit_gap", 0)
+            ltr_gap_clr = "#22c55e" if ltr_gap_val <= 0.10 else "#f59e0b" if ltr_gap_val <= 0.15 else "#ef4444"
+            l5.markdown(f"""<div style="text-align:center;padding-top:6px;">
+            <div style="font-size:.72em;color:#94a3b8;">Overfit Gap</div>
+            <div style="font-size:1.4em;font-weight:800;color:{ltr_gap_clr};">{ltr_gap_val*100:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+            lc1, lc2 = st.columns(2)
+            with lc1:
+                st.markdown("###### Per-Fold NDCG@10")
+                fold_ndcg = ltr_metrics.get("fold_ndcg", [])
+                if fold_ndcg:
+                    fold_data = [{"Fold": i + 1, "NDCG@10": n} for i, n in enumerate(fold_ndcg)]
+                    fig_fold = px.bar(pd.DataFrame(fold_data), x="Fold", y="NDCG@10",
+                                      color="NDCG@10", color_continuous_scale=["#ef4444", "#22c55e"])
+                    fig_fold.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10),
+                                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_fold, use_container_width=True)
+
+            with lc2:
+                st.markdown("###### LTR Feature Importance (Gain)")
+                ltr_fi = ltr_metrics.get("feature_importance", {})
+                if ltr_fi:
+                    ltr_fi_df = pd.DataFrame({"Feature": list(ltr_fi.keys()), "Importance": list(ltr_fi.values())})
+                    ltr_fi_df = ltr_fi_df.sort_values("Importance", ascending=True)
+                    fig_lfi = px.bar(ltr_fi_df, x="Importance", y="Feature", orientation="h",
+                                     color="Importance", color_continuous_scale=["#64748b", "#8b5cf6"])
+                    fig_lfi.update_layout(height=350, margin=dict(l=10, r=10, t=10, b=10),
+                                          plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_lfi, use_container_width=True)
+
+            st.markdown(f"""
+<div style="background:rgba(139,92,246,0.08);border-left:4px solid #8b5cf6;border-radius:10px;padding:14px 18px;">
+<div style="font-weight:700;font-size:.88em;color:#e2e8f0;">Why LambdaRank?</div>
+<div style="font-size:.82em;color:#94a3b8;line-height:1.6;">
+Unlike regression models that predict a score, LambdaRank directly optimises the <strong>ranking</strong> — 
+it learns which buyer should appear before another. The NDCG metric measures whether 
+high-value trade partners are ranked at the top. This is the same algorithm used by 
+search engines and recommendation systems at scale.
+</div></div>""", unsafe_allow_html=True)
+        else:
+            st.info("LTR model not trained yet.")
+
+    # ── TAB 3: NLP Pipeline ──────────────────────────────────────────
+    with tab_nlp:
+        st.markdown("##### Sentence-Transformer + TF-IDF News Intelligence")
+        if nlp_stats.get("initialized"):
+            n1, n2, n3 = st.columns(3)
+            n1.metric("Documents Indexed", str(nlp_stats.get("n_documents", 0)))
+            n2.metric("TF-IDF Features", str(nlp_stats.get("tfidf_features", 0)))
+            n3.metric("SBERT Available", "✅ Yes" if nlp_stats.get("sbert_available") else "❌ TF-IDF Only")
+
+            if nlp_stats.get("sbert_available"):
+                st.metric("Embedding Dimension", str(nlp_stats.get("embedding_dim", 0)))
+
+            st.markdown(f"""
+<div style="background:rgba(34,197,94,0.08);border-left:4px solid #22c55e;border-radius:10px;padding:14px 18px;">
+<div style="font-weight:700;font-size:.88em;color:#e2e8f0;">NLP Architecture</div>
+<div style="font-size:.82em;color:#94a3b8;line-height:1.6;">
+<strong>Layer 1 — TF-IDF:</strong> Extracts 5,000 keyword features from 8,000 news events using 
+bi-gram term frequency–inverse document frequency. Captures lexical overlap between 
+trade context and news headlines.<br>
+<strong>Layer 2 — all-MiniLM-L6-v2:</strong> Pre-trained sentence-transformer (22M parameters) encodes 
+news events into 384-dimensional dense vectors. Cosine similarity captures <em>semantic</em> 
+meaning — "trade embargo" is similar to "import restrictions" even without word overlap.<br>
+<strong>Blending:</strong> 60% SBERT + 40% TF-IDF combines semantic understanding with keyword precision.
+Recency-weighted aggregation with exponential decay (half-life = 90 days).
+</div></div>""", unsafe_allow_html=True)
+        else:
+            st.info("NLP pipeline not initialised yet.")
+
+    # ── TAB 4: Graph Embedding ───────────────────────────────────────
+    with tab_graph:
+        st.markdown("##### Node2Vec Graph Embeddings")
+        if ge_stats and "error" not in ge_stats:
+            g1, g2, g3, g4 = st.columns(4)
+            g1.metric("Nodes Embedded", str(ge_stats.get("n_embedded", 0)))
+            g2.metric("Embedding Dim", str(ge_stats.get("embedding_dim", 0)))
+            g3.metric("Random Walks", str(ge_stats.get("n_walks", 0)))
+            g4.metric("Walk Length", str(ge_stats.get("walk_length", 0)))
+
+            st.markdown(f"""
+<div style="background:rgba(245,158,11,0.08);border-left:4px solid #f59e0b;border-radius:10px;padding:14px 18px;">
+<div style="font-weight:700;font-size:.88em;color:#e2e8f0;">Graph Embedding Architecture</div>
+<div style="font-size:.82em;color:#94a3b8;line-height:1.6;">
+<strong>Step 1 — Biased Random Walks:</strong> {ge_stats.get('n_walks', 0):,} walks of length {ge_stats.get('walk_length', 0)} 
+with return parameter p={ge_stats.get('p', 1.0)} and in-out parameter q={ge_stats.get('q', 0.5)}. 
+The bias favours BFS-like exploration to capture industry clusters.<br>
+<strong>Step 2 — Skip-Gram Word2Vec:</strong> Treats node sequences as "sentences" and learns 
+{ge_stats.get('embedding_dim', 64)}-dimensional dense vectors such that nodes co-occurring in walks 
+have similar embeddings.<br>
+<strong>Step 3 — Cosine Similarity:</strong> cos(exporter_embedding, buyer_embedding) captures multi-hop 
+structural relationships that simple common-neighbours misses. Method: <code>{ge_stats.get('method', 'N/A')}</code>
+</div></div>""", unsafe_allow_html=True)
+        else:
+            st.info("Graph embeddings not trained yet.")
+
+    # ── TAB 5: RLHF Loop ────────────────────────────────────────────
+    with tab_rlhf:
+        st.markdown("##### Reinforcement Learning from Human Feedback")
+        rc1, rc2, rc3 = st.columns(3)
+        rc1.metric("Swipe Buffer", f"{fb_stats.get('buffer_size', 0)} / {fb_stats.get('retrain_threshold', 15)}")
+        rc2.metric("Progress", f"{fb_stats.get('progress_pct', 0):.0f}%")
+        rc3.metric("Next Retrain", f"After {max(0, fb_stats.get('retrain_threshold', 15) - fb_stats.get('buffer_size', 0))} swipes")
+
+        # Progress bar
+        progress = fb_stats.get("progress_pct", 0) / 100
+        st.progress(min(progress, 1.0), text=f"RLHF retraining at {fb_stats.get('retrain_threshold', 15)} swipes")
+
+        st.markdown("""
+<div style="background:rgba(239,68,68,0.08);border-left:4px solid #ef4444;border-radius:10px;padding:14px 18px;">
+<div style="font-weight:700;font-size:.88em;color:#e2e8f0;">How RLHF Works in ForeTrade</div>
+<div style="font-size:.82em;color:#94a3b8;line-height:1.6;">
+<strong>1. Collect:</strong> Every swipe right (approve) = relevance 4, swipe left (reject) = relevance 0. 
+These are stored as pairwise ranking preferences.<br>
+<strong>2. Accumulate:</strong> Feedback is buffered until the threshold is reached (15 swipes). 
+This prevents noisy single-swipe retraining.<br>
+<strong>3. Retrain:</strong> The LTR LambdaRank model is retrained with swipe feedback appended 
+to the historical trade data. The model learns which features the user actually cares about.<br>
+<strong>4. Deploy:</strong> Updated model is immediately used for the next batch of leads. 
+The weight-sum signal weights are also adjusted via gradient feedback.<br>
+<strong>Result:</strong> The more you swipe, the better ForeTrade understands your Ideal Customer Profile.
+</div></div>""", unsafe_allow_html=True)
+
+
 # ==========================================================================
 # MAIN ENTRY POINT
 # ==========================================================================
@@ -657,12 +1149,65 @@ def main():
     exporter_profiles, buyer_profiles, graph = build_profiles_and_graph(exporters, buyers, transactions)
     news_df = load_news_data()
 
-    # Train ML models once (spinner on first load only)
+    # ── ML Model Loading (disk-cached for instant restarts) ────────────
     if "ml_seg" not in st.session_state:
-        with st.spinner("🤖 Training ML models (K-Means + Gradient Boosting ensemble)…"):
-            seg_result, gb_result = train_ml_models(exporter_profiles, buyer_profiles, transactions, graph, news_df)
-            st.session_state["ml_seg"] = seg_result
-            st.session_state["ml_gb"] = gb_result
+        if cache_exists("ml_seg_gb"):
+            with st.spinner("⚡ Loading cached ML models…"):
+                cached = load_cache("ml_seg_gb")
+                if cached:
+                    st.session_state["ml_seg"] = cached["seg"]
+                    st.session_state["ml_gb"] = cached["gb"]
+                    # Restore model objects into ml_models module
+                    from engine.ml_models import _restore_models
+                    _restore_models(cached["gb"])
+        if "ml_seg" not in st.session_state:
+            with st.spinner("🤖 Training ML models (K-Means + GB+RF)… first run only"):
+                seg_result, gb_result = train_ml_models(exporter_profiles, buyer_profiles, transactions, graph, news_df)
+                st.session_state["ml_seg"] = seg_result
+                st.session_state["ml_gb"] = gb_result
+                save_cache("ml_seg_gb", {"seg": seg_result, "gb": gb_result})
+
+    if "ml_ltr" not in st.session_state:
+        if cache_exists("ml_ltr"):
+            with st.spinner("⚡ Loading cached LTR model…"):
+                cached_ltr = load_cache("ml_ltr")
+                if cached_ltr:
+                    from engine.ltr_ranker import restore_from_cache as ltr_restore
+                    ltr_restore(cached_ltr)
+                    st.session_state["ml_ltr"] = cached_ltr
+        if "ml_ltr" not in st.session_state:
+            with st.spinner("🎯 Training LTR model… first run only"):
+                ltr_result = train_ltr_ranker(exporter_profiles, buyer_profiles, transactions, graph, news_df)
+                st.session_state["ml_ltr"] = ltr_result
+                save_cache("ml_ltr", ltr_result)
+
+    if "ml_graph_emb" not in st.session_state:
+        if cache_exists("ml_graph_emb"):
+            with st.spinner("⚡ Loading cached graph embeddings…"):
+                cached_ge = load_cache("ml_graph_emb")
+                if cached_ge:
+                    from engine.graph_embeddings import restore_from_cache as ge_restore
+                    ge_restore(cached_ge)
+                    st.session_state["ml_graph_emb"] = cached_ge
+        if "ml_graph_emb" not in st.session_state:
+            with st.spinner("🕸️ Learning graph embeddings… first run only"):
+                ge_result = train_graph_embeddings(graph)
+                st.session_state["ml_graph_emb"] = ge_result
+                save_cache("ml_graph_emb", ge_result)
+
+    if "ml_nlp" not in st.session_state and news_df is not None:
+        if cache_exists("ml_nlp"):
+            with st.spinner("⚡ Loading cached NLP pipeline…"):
+                cached_nlp = load_cache("ml_nlp")
+                if cached_nlp and cached_nlp.get("_news_texts"):
+                    from engine.nlp_engine import restore_from_cache as nlp_restore
+                    nlp_restore(cached_nlp)
+                    st.session_state["ml_nlp"] = cached_nlp
+        if "ml_nlp" not in st.session_state:
+            with st.spinner("🧠 Initialising NLP pipeline… first run only"):
+                nlp_result = initialize_nlp(news_df)
+                st.session_state["ml_nlp"] = nlp_result
+                save_cache("ml_nlp", nlp_result)
 
     config = render_sidebar(exporters)
     page = config["page"]
@@ -688,8 +1233,14 @@ def main():
     elif page == "📊 Analytics":
         page_analytics()
 
+    elif page == "🌐 Global Risk":
+        page_global_risk()
+
     elif page == "🔄 Algorithm":
         page_algorithm()
+
+    elif page == "🧪 Model Performance":
+        page_model_performance()
 
     elif page == "📧 Outreach":
         page_outreach()

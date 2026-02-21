@@ -12,3 +12,9 @@ faker>=20.0.0          # For synthetic data generation
 streamlit-card>=1.0.0  # For swipe-style card UI (optional)
 python-dotenv>=1.0.0   # For .env file loading
 google-genai>=1.0.0    # Gemini AI for conversations
+
+# ── ML / AI upgrades ─────────────────────────────────────
+lightgbm>=4.0.0        # LambdaRank Learning-to-Rank
+sentence-transformers>=2.0.0  # SBERT embeddings for news NLP
+gensim>=4.0.0           # Word2Vec for graph embeddings
+scipy>=1.12.0           # Optimised distance / sparse ops
