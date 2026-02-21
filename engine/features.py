@@ -60,12 +60,17 @@ def build_exporter_profiles(
     ).reset_index()
     
     profiles = profiles.merge(agg, on="exporter_id", how="left")
-    profiles.fillna(0, inplace=True)
+    
+    # Fill numeric cols only (avoid putting 0 in date column)
+    for col in ["total_trade_volume", "avg_trade_value", "num_transactions", "num_unique_buyers", "num_unique_countries"]:
+        if col in profiles.columns:
+            profiles[col] = profiles[col].fillna(0)
     
     # Compute trade_recency (days since last transaction)
     now = pd.Timestamp.now()
-    profiles["trade_recency"] = (now - profiles["last_transaction_date"]).dt.days
-    profiles["trade_recency"].fillna(999, inplace=True)  # If no transactions
+    last_dt = pd.to_datetime(profiles["last_transaction_date"], errors="coerce")
+    profiles["trade_recency"] = (now - last_dt).dt.days
+    profiles["trade_recency"] = profiles["trade_recency"].fillna(999).astype(int)
     
     # Compute primary_product (most-traded HS code)
     primary_products = transactions.groupby("exporter_id")["hs_code"].agg(
@@ -123,12 +128,17 @@ def build_buyer_profiles(
     ).reset_index()
     
     profiles = profiles.merge(agg, on="buyer_id", how="left")
-    profiles.fillna(0, inplace=True)
+    
+    # Fill numeric cols only (avoid putting 0 in date column)
+    for col in ["total_import_volume", "avg_import_value", "num_imports", "num_unique_exporters"]:
+        if col in profiles.columns:
+            profiles[col] = profiles[col].fillna(0)
     
     # Compute import_recency
     now = pd.Timestamp.now()
-    profiles["import_recency"] = (now - profiles["last_import_date"]).dt.days
-    profiles["import_recency"].fillna(999, inplace=True)
+    last_dt = pd.to_datetime(profiles["last_import_date"], errors="coerce")
+    profiles["import_recency"] = (now - last_dt).dt.days
+    profiles["import_recency"] = profiles["import_recency"].fillna(999).astype(int)
     
     # Compute preferred_hs (most-imported product code)
     preferred_products = transactions.groupby("buyer_id")["hs_code"].agg(

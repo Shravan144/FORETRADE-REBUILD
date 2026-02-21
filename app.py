@@ -66,15 +66,23 @@ from utils.constants import SCORING_WEIGHTS, PRODUCT_CATEGORIES
 # ==========================================================================
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
+# Max transactions to load (keeps app fast; 334k+ rows was freezing)
+MAX_TRANSACTIONS = 40_000
+
 @st.cache_data
 def load_data():
     """
     Load CSVs from the data/ folder and apply cleaning pipeline.
+    Samples transactions if too large so the app doesn't hang.
     """
     try:
         exporters    = pd.read_csv(os.path.join(DATA_DIR, "exporters.csv"))
         buyers       = pd.read_csv(os.path.join(DATA_DIR, "buyers.csv"))
         transactions = pd.read_csv(os.path.join(DATA_DIR, "transactions.csv"))
+        
+        # Sample if too many rows (otherwise load_data() hangs on 300k+ rows)
+        if len(transactions) > MAX_TRANSACTIONS:
+            transactions = transactions.sample(n=MAX_TRANSACTIONS, random_state=42).reset_index(drop=True)
         
         # Apply cleaning pipeline
         transactions = clean_transactions(transactions)
@@ -145,6 +153,11 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
         options=list(exporter_options.keys()),
     )
     selected_id = exporter_options.get(selected_label, "E001")
+    
+    # Show "Viewing as" (exporter dashboard feel — no login needed)
+    exp_name = exporters[exporters["exporter_id"] == selected_id]["company_name"]
+    if not exp_name.empty:
+        st.sidebar.success(f"**Viewing as:** {exp_name.iloc[0]}")
     
     st.sidebar.divider()
     
@@ -222,7 +235,7 @@ def page_swipe(exporter_id: str, exporters: pd.DataFrame, buyers: pd.DataFrame,
         exporter_id, exp_profile, buyer_profiles, graph, weights
     )
     
-    # Add explanations and card text to matches
+    # Add explanations, card text, and full importer details to matches
     for match in matches:
         buyer_profile = buyer_profiles[buyer_profiles["buyer_id"] == match["buyer_id"]]
         if not buyer_profile.empty:
@@ -231,6 +244,16 @@ def page_swipe(exporter_id: str, exporters: pd.DataFrame, buyers: pd.DataFrame,
                 exp_profile.to_dict(), buyer_profile.to_dict(), 
                 match["score"], match["breakdown"]
             )
+            
+            # Full importer details for the card (industry, channel, intent, etc.)
+            match["importer_details"] = {
+                "industry": buyer_profile.get("industry", "—"),
+                "country": match.get("buyer_country", "—"),
+                "preferred_channel": buyer_profile.get("preferred_channel", "Email"),
+                "intent_score": buyer_profile.get("intent_score"),
+                "revenue_usd": buyer_profile.get("revenue_size_usd"),
+                "team_size": buyer_profile.get("team_size"),
+            }
             
             # Find top signal
             top_signal = max(match["breakdown"].items(), key=lambda x: x[1]["contribution"])[0]

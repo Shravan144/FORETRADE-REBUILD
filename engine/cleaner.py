@@ -55,11 +55,11 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
 
     # Step 2: Fill missing trade_value with median
     median_val = df["trade_value"].median()
-    df["trade_value"].fillna(median_val, inplace=True)
+    df["trade_value"] = df["trade_value"].fillna(median_val)
 
     # Step 3: Fill missing quantity with median
     median_qty = df["quantity"].median()
-    df["quantity"].fillna(median_qty, inplace=True)
+    df["quantity"] = df["quantity"].fillna(median_qty)
 
     # Step 4: Convert date to datetime
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -97,7 +97,7 @@ def clean_exporters(df: pd.DataFrame) -> pd.DataFrame:
     # Step 2: Fill missing employees with median
     if "employees" in df.columns:
         median_employees = df["employees"].median()
-        df["employees"].fillna(median_employees, inplace=True)
+        df["employees"] = df["employees"].fillna(median_employees)
     
     # Step 3: Normalize annual_volume
     if "annual_volume" in df.columns:

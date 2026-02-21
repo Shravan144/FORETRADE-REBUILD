@@ -81,11 +81,10 @@ def render_swipe_card(match: dict) -> Optional[str]:
         </div>
         """, unsafe_allow_html=True)
         
-        # Explanation expander
+        # Why this match (explanation + breakdown)
         with st.expander("🔍 Why this match?"):
             st.write(match.get("explanation", "Explanation not available"))
             
-            # Show score breakdown
             if match.get("breakdown"):
                 breakdown = match["breakdown"]
                 st.markdown("**Score Breakdown:**")
@@ -95,6 +94,25 @@ def render_swipe_card(match: dict) -> Optional[str]:
                         data["raw"], 
                         text=f"{signal_name}: {data['contribution']:.1f}% (weight: {data['weight']:.2f})"
                     )
+        
+        # Full importer details (all data in one place)
+        details = match.get("importer_details") or {}
+        with st.expander("📋 Importer details"):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"**Industry**  \n{details.get('industry', '—')}")
+                st.markdown(f"**Country**  \n{details.get('country', '—')}")
+                ch = details.get("preferred_channel", "—")
+                st.markdown(f"**Preferred contact**  \n{ch}")
+            with c2:
+                intent = details.get("intent_score")
+                intent_txt = f"{int(100 * intent)}%" if isinstance(intent, (int, float)) else "—"
+                st.markdown(f"**Intent score**  \n{intent_txt}")
+                rev = details.get("revenue_usd")
+                rev_txt = f"{rev:,}" if isinstance(rev, (int, float)) else "—"
+                st.markdown(f"**Revenue (USD)**  \n{rev_txt}")
+                team = details.get("team_size")
+                st.markdown(f"**Team size**  \n{team if team is not None else '—'}")
         
         # Swipe buttons
         col1, col2 = st.columns(2)

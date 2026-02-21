@@ -25,9 +25,7 @@ SCORING_WEIGHTS = {
 }
 
 # ---------------------------------------------------------------------------
-# PRODUCT CATEGORIES  (simplified HS code mapping)
-# Real HS codes have 6-10 digits. We use 2-digit chapter codes for the MVP.
-# TODO (HOUR 1-2): Add more categories relevant to your demo story
+# PRODUCT CATEGORIES  (HS codes + EXIM dataset industry names)
 # ---------------------------------------------------------------------------
 PRODUCT_CATEGORIES = {
     "61": "Knitted Apparel",
@@ -45,6 +43,17 @@ PRODUCT_CATEGORIES = {
     "94": "Furniture",
     "73": "Iron/Steel Articles",
     "90": "Optical & Medical Instruments",
+    # EXIM dataset industries (for display)
+    "Textiles": "Textiles",
+    "Solar": "Solar",
+    "Chemicals": "Chemicals",
+    "Electronics": "Electronics",
+    "Engineering": "Engineering",
+    "IT Software": "IT Software",
+    "Machinery": "Machinery",
+    "Medical Devices": "Medical Devices",
+    "Pharmaceuticals": "Pharmaceuticals",
+    "Auto Parts": "Auto Parts",
 }
 
 # ---------------------------------------------------------------------------
@@ -53,13 +62,14 @@ PRODUCT_CATEGORIES = {
 # ---------------------------------------------------------------------------
 TRADE_REGIONS = {
     "South Asia":       ["India", "Bangladesh", "Sri Lanka", "Pakistan", "Nepal"],
-    "Southeast Asia":   ["Vietnam", "Thailand", "Indonesia", "Malaysia", "Philippines"],
+    "Southeast Asia":   ["Vietnam", "Thailand", "Indonesia", "Malaysia", "Philippines", "Singapore"],
     "East Asia":        ["China", "Japan", "South Korea", "Taiwan"],
     "Middle East":      ["UAE", "Saudi Arabia", "Qatar", "Oman", "Kuwait"],
     "Europe":           ["Germany", "UK", "France", "Netherlands", "Italy", "Spain"],
     "North America":    ["USA", "Canada", "Mexico"],
     "Africa":           ["Nigeria", "Kenya", "South Africa", "Egypt", "Ethiopia"],
     "South America":    ["Brazil", "Argentina", "Chile", "Colombia"],
+    "Oceania":          ["Australia"],
 }
 
 # Flat lookup: country -> region
