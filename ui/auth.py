@@ -2,16 +2,21 @@
 =============================================================================
 AUTH UI COMPONENT — ForeTrade
 =============================================================================
-Polished login / sign-up page using Streamlit session state.
-No external database needed — credentials stored in session for demo.
+Login/sign-up: uses SQLite DB when available, else session-only (no crash).
 =============================================================================
 """
 
 import streamlit as st
 import hashlib
-import time
 
-# Demo accounts (expandable — add DB later)
+# Optional DB: use when available so we get user_id for persistence
+try:
+    from db import verify_user as db_verify_user, create_user as db_create_user
+except Exception:
+    db_verify_user = None
+    db_create_user = None
+
+# Demo accounts (fallback when DB unavailable or for in-session signups)
 DEMO_ACCOUNTS = {
     "shravan@foretrade.ai": {
         "password_hash": hashlib.sha256("shravan123".encode()).hexdigest(),
@@ -202,14 +207,36 @@ def _render_signin():
             st.error("Please enter both email and password.")
             return
 
-        # Check against demo accounts + runtime signups
-        all_accounts = {**DEMO_ACCOUNTS, **st.session_state.get("user_accounts", {})}
-        account = all_accounts.get(email.lower().strip())
+        email = email.strip().lower()
 
+        # 1) Try DB first (so we get user_id for swipe/lead persistence)
+        if db_verify_user:
+            try:
+                user = db_verify_user(email, password)
+                if user:
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_id"] = user["id"]
+                    st.session_state["user"] = {
+                        "email": user["email"],
+                        "first_name": user["first_name"],
+                        "last_name": user["last_name"],
+                        "role": user["role"],
+                        "company": user.get("company", ""),
+                        "industry": user.get("industry", ""),
+                        "phone": user.get("phone", ""),
+                    }
+                    st.rerun()
+                    return
+            except Exception:
+                pass  # fall back to session accounts
+
+        # 2) Fallback: demo accounts + runtime signups
+        all_accounts = {**DEMO_ACCOUNTS, **st.session_state.get("user_accounts", {})}
+        account = all_accounts.get(email)
         if account and account["password_hash"] == _hash(password):
             st.session_state["authenticated"] = True
             st.session_state["user"] = {
-                "email": email.lower().strip(),
+                "email": email,
                 "first_name": account["first_name"],
                 "last_name": account["last_name"],
                 "role": account["role"],
@@ -217,6 +244,9 @@ def _render_signin():
                 "industry": account.get("industry", ""),
                 "phone": account.get("phone", ""),
             }
+            # No user_id when using session-only auth
+            if "user_id" in st.session_state:
+                del st.session_state["user_id"]
             st.rerun()
         else:
             st.error("Invalid email or password. Please try again.")
@@ -232,6 +262,8 @@ def _render_signup():
 
         email = st.text_input("Email", placeholder="you@company.com", key="signup_email")
         company = st.text_input("Company Name", placeholder="Your Export Company")
+        industry = st.text_input("Industry", placeholder="e.g. Engineering, IT Software, Electronics", key="signup_industry")
+        phone = st.text_input("Phone", placeholder="e.g. +91 98765 43210", key="signup_phone")
         password = st.text_input("Password", type="password", placeholder="Min 6 characters", key="signup_pw")
         password2 = st.text_input("Confirm Password", type="password", placeholder="Repeat password", key="signup_pw2")
         submitted = st.form_submit_button("Create Account", type="primary", width="stretch")
@@ -247,33 +279,56 @@ def _render_signup():
             st.error("Password must be at least 6 characters.")
             return
 
+        email = email.strip().lower()
+
+        # 1) Try DB first
+        if db_create_user:
+            try:
+                db_create_user(
+                    email, password,
+                    first_name=first_name or "",
+                    last_name=last_name or "",
+                    company=company or "",
+                    industry=(industry or "").strip(),
+                    phone=(phone or "").strip(),
+                )
+                st.markdown("""<div class="signup-success">
+✅ Account created successfully! Switch to the <strong>Sign In</strong> tab to log in.
+</div>""", unsafe_allow_html=True)
+                return
+            except ValueError as e:
+                if "already exists" in str(e).lower():
+                    st.error("An account with this email already exists.")
+                    return
+                st.error(str(e))
+                return
+            except Exception:
+                pass  # fall back to session
+
+        # 2) Fallback: session-only signup
         all_accounts = {**DEMO_ACCOUNTS, **st.session_state.get("user_accounts", {})}
-        if email.lower().strip() in all_accounts:
+        if email in all_accounts:
             st.error("An account with this email already exists.")
             return
-
-        # Create account in session state
         if "user_accounts" not in st.session_state:
             st.session_state["user_accounts"] = {}
-
-        st.session_state["user_accounts"][email.lower().strip()] = {
+        st.session_state["user_accounts"][email] = {
             "password_hash": _hash(password),
             "first_name": first_name,
             "last_name": last_name,
             "role": "Export Manager",
             "company": company,
-            "industry": "",
-            "email": email.lower().strip(),
-            "phone": "",
+            "industry": (industry or "").strip(),
+            "email": email,
+            "phone": (phone or "").strip(),
         }
-
         st.markdown("""<div class="signup-success">
 ✅ Account created successfully! Switch to the <strong>Sign In</strong> tab to log in.
 </div>""", unsafe_allow_html=True)
 
 
 def logout():
-    """Clear auth state."""
-    for key in ["authenticated", "user"]:
+    """Clear auth state (session + DB user_id). So next login loads approved leads from DB again."""
+    for key in ["authenticated", "user", "user_id", "_connected_loaded_from_db"]:
         if key in st.session_state:
             del st.session_state[key]

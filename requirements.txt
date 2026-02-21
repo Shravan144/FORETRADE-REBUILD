@@ -12,6 +12,7 @@ faker>=20.0.0          # For synthetic data generation
 streamlit-card>=1.0.0  # For swipe-style card UI (optional)
 python-dotenv>=1.0.0   # For .env file loading
 google-genai>=1.0.0    # Gemini AI for conversations
+sqlalchemy>=2.0.0      # SQLite ORM for user/leads/conversations/weights
 
 # ── ML / AI upgrades ─────────────────────────────────────
 lightgbm>=4.0.0        # LambdaRank Learning-to-Rank

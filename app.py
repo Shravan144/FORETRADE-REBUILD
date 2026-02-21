@@ -55,6 +55,18 @@ from ui.pages import (
     render_profile_page,
 )
 from utils.constants import SCORING_WEIGHTS, PRODUCT_CATEGORIES
+from engine.user_profile import build_user_exporter_profile
+
+# Sentinel for real exporters (no dataset mapping — profile from user data)
+USER_SELF_EXPORTER_ID = "USER_SELF"
+
+
+def _get_demo_emails() -> set:
+    """Demo accounts from config — no hardcoding. Comma-separated in .env."""
+    raw = os.environ.get("FORETRADE_DEMO_EMAILS", "").strip()
+    if not raw:
+        return set()
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
 
 
 # ==========================================================================
@@ -417,9 +429,23 @@ NAV_PAGES = [
     "👤 Profile",
 ]
 
+def _is_exporter_self_view() -> bool:
+    """True if the logged-in user is an exporter viewing their own data (hide exporter dropdown)."""
+    user = st.session_state.get("user", {})
+    email = (user.get("email") or "").strip().lower()
+    demo_emails = _get_demo_emails()
+    return bool(email and email not in demo_emails)
+
+
+def _exporter_id_for_user(exporters: pd.DataFrame) -> str:
+    """For real exporters: return USER_SELF so we use their profile. Demo accounts use sidebar picker."""
+    if _is_exporter_self_view():
+        return USER_SELF_EXPORTER_ID
+    return exporters["exporter_id"].iloc[0] if len(exporters) else "E001"
+
 
 def render_sidebar(exporters: pd.DataFrame) -> dict:
-    """Sidebar with logo, navigation, exporter picker, weight sliders."""
+    """Sidebar with logo, navigation, exporter picker (only for demo accounts), weight sliders."""
     # Logo
     st.sidebar.markdown("""<div style="display:flex;align-items:center;gap:12px;padding:12px 4px 20px;">
 <div style="width:40px;height:40px;background:linear-gradient(135deg,#0ea5e9,#22c55e);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2em;box-shadow:0 2px 8px rgba(14,165,233,0.3);">
@@ -435,20 +461,33 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
 
     st.sidebar.divider()
 
-    # Exporter selector
-    st.sidebar.markdown("##### Select Exporter")
-    exporter_options = dict(
-        zip(
-            exporters["exporter_id"] + " — " + exporters["company_name"],
-            exporters["exporter_id"],
+    # Exporter: show dropdown only for demo accounts; for signed-up exporters, use their profile
+    if _is_exporter_self_view():
+        selected_id = _exporter_id_for_user(exporters)
+        st.sidebar.markdown("##### Your export profile")
+        user = st.session_state.get("user", {})
+        display_name = (user.get("company") or "").strip() or (user.get("first_name") or "").strip()
+        if not display_name:
+            exp_name = exporters[exporters["exporter_id"] == selected_id]["company_name"]
+            display_name = exp_name.iloc[0] if not exp_name.empty else "Your company"
+        st.sidebar.success(f"**Viewing as:** {display_name}")
+    else:
+        st.sidebar.markdown("##### Select Exporter")
+        exporter_options = dict(
+            zip(
+                exporters["exporter_id"] + " — " + exporters["company_name"],
+                exporters["exporter_id"],
+            )
         )
-    )
-    selected_label = st.sidebar.selectbox(
-        "Choose an exporter:", options=list(exporter_options.keys()), label_visibility="collapsed",
-    )
-    selected_id = exporter_options.get(selected_label, "E001")
+        selected_label = st.sidebar.selectbox(
+            "Choose an exporter:", options=list(exporter_options.keys()), label_visibility="collapsed",
+        )
+        selected_id = exporter_options.get(selected_label, exporters["exporter_id"].iloc[0] if len(exporters) else "E001")
+        exp_name = exporters[exporters["exporter_id"] == selected_id]["company_name"]
+        if not exp_name.empty:
+            st.sidebar.success(f"**Viewing as:** {exp_name.iloc[0]}")
 
-    # Reset swipe state on exporter change
+    # Reset swipe/matches on exporter change (keep connected — filter by exporter when displaying)
     prev = st.session_state.get("selected_exporter")
     if prev is None:
         st.session_state.selected_exporter = selected_id
@@ -456,16 +495,10 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
         st.session_state.selected_exporter = selected_id
         st.session_state.card_index = 0
         st.session_state.swipe_history = []
-        st.session_state.connected = []
         st.session_state.current_matches = []
-        # Clear raw signal cache for the old exporter
         for k in list(st.session_state.keys()):
             if k.startswith("_raw_cache_"):
                 del st.session_state[k]
-
-    exp_name = exporters[exporters["exporter_id"] == selected_id]["company_name"]
-    if not exp_name.empty:
-        st.sidebar.success(f"**Viewing as:** {exp_name.iloc[0]}")
 
     st.sidebar.divider()
 
@@ -502,20 +535,31 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
 # ==========================================================================
 def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.DataFrame,
                        transactions: pd.DataFrame, weights: dict):
-    """Swipe-to-approve matchmaking page."""
+    """Swipe-to-approve matchmaking page. Uses user profile for real exporters (model-driven)."""
     st.title("Approve Leads")
     st.caption("Review AI-curated leads. Approve, reject, or skip for later.")
 
-    exp = exporters[exporters["exporter_id"] == exporter_id]
-    if exp.empty:
-        st.error("Exporter not found")
-        return
-    exp = exp.iloc[0]
+    is_user_self = exporter_id == USER_SELF_EXPORTER_ID
+    if is_user_self:
+        user = st.session_state.get("user", {})
+        exp_profile = build_user_exporter_profile(user)
+        exp = exp_profile  # For header display
+    else:
+        exp = exporters[exporters["exporter_id"] == exporter_id]
+        if exp.empty:
+            st.error("Exporter not found")
+            return
+        exp = exp.iloc[0]
+        exp_profile = None  # Built below from exporter_profiles
 
     # KPI row
     matches_list = st.session_state.get("current_matches", [])
     total_leads = len(matches_list) if matches_list else "..."
-    approved_ct = len(st.session_state.get("connected", []))
+    all_connected = st.session_state.get("connected", [])
+    approved_ct = len([
+        c for c in all_connected
+        if (c.get("exporter_id") or c.get("_exporter_id") or "") == exporter_id
+    ])
     rejected_ct = len([h for h in st.session_state.get("swipe_history", []) if h.get("direction") == "left"])
 
     k_cols = st.columns(4)
@@ -534,43 +578,55 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Exporter info header
-    _cert = exp.get('certification', '')
-    _cert_str = f" | 🏅 {_cert}" if _cert and str(_cert).lower() not in ('', 'nan', 'none') else ''
-    _hire = exp.get('hiring_signal', 0)
-    _hire_str = ' | 🚀 Hiring' if _hire == 1 else ''
-    _pay = exp.get('good_payment_terms', 0)
-    _pay_str = ' | ✅ Trusted Payer' if _pay == 1 else ''
-    _emp = exp.get('employees', 'N/A')
-    _rev = exp.get('annual_volume', None)
-    try:
-        _rev_str = f"${float(_rev):,.0f}" if _rev is not None and float(_rev) == float(_rev) else 'N/A'
-    except (ValueError, TypeError):
-        _rev_str = 'N/A'
-    _state = exp.get('state', '')
-    _state_str = f", {_state}" if _state and str(_state).lower() not in ('', 'nan') else ''
+    # Exporter info header — use YOUR company name when in "exporter self" view
+    user = st.session_state.get("user", {})
+    if _is_exporter_self_view():
+        display_company = (user.get("company") or "").strip() or (user.get("first_name") or "").strip()
+        if not display_company:
+            display_company = exp["company_name"]
+        industry_display = (user.get("industry") or exp.get("primary_hs") or "Trade").strip()
+        header_subtitle = f"📍 Your industry: {industry_display} — AI-matched buyers below"
+    else:
+        display_company = exp["company_name"]
+        _cert = exp.get('certification', '')
+        _cert_str = f" | 🏅 {_cert}" if _cert and str(_cert).lower() not in ('', 'nan', 'none') else ''
+        _hire = exp.get('hiring_signal', 0)
+        _hire_str = ' | 🚀 Hiring' if _hire == 1 else ''
+        _pay = exp.get('good_payment_terms', 0)
+        _pay_str = ' | ✅ Trusted Payer' if _pay == 1 else ''
+        _emp = exp.get('employees', 'N/A')
+        _rev = exp.get('annual_volume', None)
+        try:
+            _rev_str = f"${float(_rev):,.0f}" if _rev is not None and float(_rev) == float(_rev) else 'N/A'
+        except (ValueError, TypeError):
+            _rev_str = 'N/A'
+        _state = exp.get('state', '')
+        _state_str = f", {_state}" if _state and str(_state).lower() not in ('', 'nan') else ''
+        header_subtitle = f"""📍 {exp['country']}{_state_str} &nbsp;·&nbsp;
+🏭 {PRODUCT_CATEGORIES.get(str(exp.get('primary_hs', '')), exp.get('primary_hs', 'Unknown'))} &nbsp;·&nbsp;
+👥 {_emp} &nbsp;·&nbsp; 💰 {_rev_str}{_cert_str}{_hire_str}{_pay_str}"""
 
     st.markdown(f"""<div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);padding:20px 24px;border-radius:14px;color:white;margin-bottom:12px;box-shadow:0 4px 16px rgba(15,23,42,0.25);position:relative;overflow:hidden;">
 <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(14,165,233,0.08);border-radius:50%;"></div>
-<h4 style="margin:0;color:#f1f5f9;font-size:1.15em;font-weight:700;">{exp['company_name']}</h4>
+<h4 style="margin:0;color:#f1f5f9;font-size:1.15em;font-weight:700;">{display_company}</h4>
 <p style="margin:5px 0 0;color:#94a3b8;font-size:0.85em;line-height:1.5;">
-📍 {exp['country']}{_state_str} &nbsp;·&nbsp;
-🏭 {PRODUCT_CATEGORIES.get(str(exp.get('primary_hs', '')), exp.get('primary_hs', 'Unknown'))} &nbsp;·&nbsp;
-👥 {_emp} &nbsp;·&nbsp; 💰 {_rev_str}{_cert_str}{_hire_str}{_pay_str}
+{header_subtitle}
 </p>
 </div>""", unsafe_allow_html=True)
 
     # Build profiles & generate matches
     exporter_profiles, buyer_profiles, graph = build_profiles_and_graph(exporters, buyers, transactions)
-    exp_profile = exporter_profiles[exporter_profiles["exporter_id"] == exporter_id]
-    if exp_profile.empty:
-        st.error("Exporter profile not found")
-        return
-    exp_profile = exp_profile.iloc[0]
+    if not is_user_self:
+        exp_profile = exporter_profiles[exporter_profiles["exporter_id"] == exporter_id]
+        if exp_profile.empty:
+            st.error("Exporter profile not found")
+            return
+        exp_profile = exp_profile.iloc[0]
+    # exp_profile already set from build_user_exporter_profile when is_user_self
 
     news_df = load_news_data()
 
-    # Cache raw signals so weight changes don't re-compute everything
+    # Cache raw signals (user profile is stable per session — cache by USER_SELF)
     cache_key = f"_raw_cache_{exporter_id}"
     if cache_key not in st.session_state:
         st.session_state[cache_key] = _compute_raw_signals(
@@ -629,7 +685,7 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
     st.session_state.current_matches = matches
 
     if matches:
-        render_swipe_interface(matches)
+        render_swipe_interface(matches, exporter_id=exporter_id)
 
         # Learning banner
         st.markdown("""<div style="background:rgba(14,165,233,0.1);border-left:4px solid #0ea5e9;border-radius:10px;padding:14px 18px;margin-top:12px;display:flex;align-items:center;gap:12px;">
@@ -660,7 +716,12 @@ def page_algorithm():
 
 def page_outreach():
     st.title("📧 Outreach Center")
-    connected = st.session_state.get("connected", [])
+    eid = st.session_state.get("selected_exporter", "")
+    all_connected = st.session_state.get("connected", [])
+    connected = [
+        c for c in all_connected
+        if (c.get("exporter_id") or c.get("_exporter_id") or "") == eid
+    ]
     render_outreach_panel(connected)
 
 
@@ -1134,6 +1195,16 @@ The weight-sum signal weights are also adjusted via gradient feedback.<br>
 # MAIN ENTRY POINT
 # ==========================================================================
 def main():
+    # ── DB init (optional: app works without DB) ───────────────────────
+    if "_db_ready" not in st.session_state:
+        try:
+            from db import init_db, init_demo_accounts
+            init_db()
+            init_demo_accounts()
+            st.session_state["_db_ready"] = True
+        except Exception:
+            st.session_state["_db_ready"] = False
+
     # ── Auth gate ─────────────────────────────────────────────────────
     if not st.session_state.get("authenticated"):
         render_login_page()
@@ -1142,6 +1213,32 @@ def main():
     # ── Authenticated — load app ──────────────────────────────────────
     inject_global_css()
     inject_card_css()
+
+    # Load approved leads from DB for this user (persist across logout/login)
+    uid = st.session_state.get("user_id")
+    if uid and not st.session_state.get("_connected_loaded_from_db"):
+        try:
+            from db import get_user_approved_leads
+            leads = get_user_approved_leads(uid)
+            hydrated = []
+            for lead in leads:
+                bd = lead.get("buyer_details") or {}
+                ma = lead.get("match_analysis") or {}
+                importer_details = {k: v for k, v in bd.items() if k not in ("buyer_name", "buyer_country")}
+                hydrated.append({
+                    "buyer_id": lead["buyer_id"],
+                    "buyer_name": bd.get("buyer_name") or lead["buyer_id"],
+                    "buyer_country": bd.get("buyer_country") or "—",
+                    "score": ma.get("score") or 0,
+                    "breakdown": ma.get("breakdown") or {},
+                    "importer_details": importer_details,
+                    "lead_id": lead["id"],
+                    "exporter_id": lead.get("exporter_id", ""),
+                })
+            st.session_state["connected"] = hydrated
+            st.session_state["_connected_loaded_from_db"] = True
+        except Exception:
+            st.session_state["_connected_loaded_from_db"] = True  # avoid retry loop on DB error
 
     exporters, buyers, transactions = load_data()
 
@@ -1209,13 +1306,30 @@ def main():
                 st.session_state["ml_nlp"] = nlp_result
                 save_cache("ml_nlp", nlp_result)
 
+    # ── RLHF: If swipe buffer is full, retrain LTR from human feedback ───
+    from engine.ltr_ranker import get_feedback_stats, maybe_retrain_from_feedback
+    fb = get_feedback_stats()
+    if fb["buffer_size"] >= fb["retrain_threshold"]:
+        rlhf_result = maybe_retrain_from_feedback(
+            exporter_profiles, buyer_profiles, transactions, graph, news_df
+        )
+        if rlhf_result and "error" not in rlhf_result:
+            st.session_state["ml_ltr"] = rlhf_result
+            save_cache("ml_ltr", rlhf_result)
+
     config = render_sidebar(exporters)
     page = config["page"]
 
     if page == "🏠 Dashboard":
+        eid = config["exporter_id"]
+        all_connected = st.session_state.get("connected", [])
+        connected_for_exporter = [
+            c for c in all_connected
+            if (c.get("exporter_id") or c.get("_exporter_id") or "") == eid
+        ]
         render_dashboard_page(
             st.session_state.get("current_matches", []),
-            st.session_state.get("connected", []),
+            connected_for_exporter,
             st.session_state.get("swipe_history", []),
         )
 
@@ -1223,12 +1337,28 @@ def main():
         page_approve_leads(config["exporter_id"], exporters, buyers, transactions, config["weights"])
 
     elif page == "✅ Approved Leads":
-        render_approved_leads_page(st.session_state.get("connected", []))
+        eid = config["exporter_id"]
+        all_connected = st.session_state.get("connected", [])
+        connected_for_exporter = [
+            c for c in all_connected
+            if (c.get("exporter_id") or c.get("_exporter_id") or "") == eid
+        ]
+        render_approved_leads_page(connected_for_exporter)
 
     elif page == "💬 Conversations":
-        exp_name = exporters[exporters["exporter_id"] == config["exporter_id"]]["company_name"]
-        company = exp_name.iloc[0] if not exp_name.empty else "Your Company"
-        render_conversations_page(st.session_state.get("connected", []), company)
+        eid = config["exporter_id"]
+        all_connected = st.session_state.get("connected", [])
+        connected_for_exporter = [
+            c for c in all_connected
+            if (c.get("exporter_id") or c.get("_exporter_id") or "") == eid
+        ]
+        if eid == USER_SELF_EXPORTER_ID:
+            user = st.session_state.get("user", {})
+            company = (user.get("company") or "").strip() or (user.get("first_name") or "").strip() or "Your Company"
+        else:
+            exp_name = exporters[exporters["exporter_id"] == eid]["company_name"]
+            company = exp_name.iloc[0] if not exp_name.empty else "Your Company"
+        render_conversations_page(connected_for_exporter, company)
 
     elif page == "📊 Analytics":
         page_analytics()

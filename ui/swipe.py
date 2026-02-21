@@ -374,17 +374,45 @@ def render_simulation_widget(matches: List[dict], news_engine) -> None:
             st.info(f"No leads in **{industry}** — try a different industry.")
 
 
-def render_swipe_interface(matches: List[dict]) -> None:
+def render_swipe_interface(matches: List[dict], exporter_id: Optional[str] = None) -> None:
     """
     Render the full swipe interface with navigation.
-    
-    Uses st.session_state to track:
-        - current_card_index: which match card is shown
-        - swipe_history: list of {buyer_id, direction} for feedback
-        - connected_buyers: list of buyer_ids the user swiped right on
+    When DB is available and user is logged in via DB, swipes and approved leads are persisted.
     """
     from engine.scorer import update_weights_from_swipe
-    
+
+    # Optional: persist to DB when user has user_id (logged in via DB)
+    def _persist_swipe(direction: str, current: dict) -> None:
+        uid = st.session_state.get("user_id")
+        if not uid or not exporter_id:
+            return
+        try:
+            from db import save_swipe, save_approved_lead
+            save_swipe(
+                user_id=uid,
+                exporter_id=exporter_id,
+                buyer_id=current["buyer_id"],
+                direction=direction,
+                match_score=current.get("score"),
+                breakdown=current.get("breakdown"),
+            )
+            if direction == "right":
+                # Include buyer_name and buyer_country so we can restore session from DB on next login
+                buyer_details = dict(current.get("importer_details") or {})
+                buyer_details["buyer_name"] = current.get("buyer_name", "")
+                buyer_details["buyer_country"] = current.get("buyer_country", "")
+                lead = save_approved_lead(
+                    user_id=uid,
+                    exporter_id=exporter_id,
+                    buyer_id=current["buyer_id"],
+                    buyer_details=buyer_details,
+                    match_analysis={"score": current.get("score"), "breakdown": current.get("breakdown")},
+                    pipeline_status="pending",
+                )
+                current["lead_id"] = lead["id"]
+        except Exception:
+            pass  # don't crash app if DB fails
+
     # Initialize session state
     if "card_index" not in st.session_state:
         st.session_state.card_index = 0
@@ -392,18 +420,21 @@ def render_swipe_interface(matches: List[dict]) -> None:
         st.session_state.swipe_history = []
     if "connected" not in st.session_state:
         st.session_state.connected = []
-    
+
     if not matches:
         st.warning("No matches found for this exporter. Try adjusting the scoring weights or selecting a different exporter.")
         return
-    
+
     # Show current match
     if st.session_state.card_index < len(matches):
         current = matches[st.session_state.card_index]
         action = render_swipe_card(current)
-        
+
         if action == "right":
-            st.session_state.connected.append(current)
+            _persist_swipe("right", current)
+            lead_item = dict(current)
+            lead_item["exporter_id"] = lead_item.get("_exporter_id") or exporter_id
+            st.session_state.connected.append(lead_item)
             st.session_state.swipe_history.append({
                 "buyer_id": current["buyer_id"],
                 "direction": "right"
@@ -412,6 +443,7 @@ def render_swipe_interface(matches: List[dict]) -> None:
             st.session_state.card_index += 1
             st.rerun()
         elif action == "left":
+            _persist_swipe("left", current)
             st.session_state.swipe_history.append({
                 "buyer_id": current["buyer_id"],
                 "direction": "left"
@@ -420,7 +452,7 @@ def render_swipe_interface(matches: List[dict]) -> None:
             st.session_state.card_index += 1
             st.rerun()
         elif action == "skip":
-            # Neutral skip — advance card without adjusting weights
+            _persist_swipe("skip", current)
             st.session_state.swipe_history.append({
                 "buyer_id": current["buyer_id"],
                 "direction": "skip"
