@@ -85,25 +85,18 @@ def compute_match_score(
     return round(total, 1), breakdown
 
 
-def rank_matches_for_exporter(
+def _compute_raw_signals(
     exporter_id: str,
     exporter_profile: pd.Series,
     buyer_profiles: pd.DataFrame,
-    graph,  # NetworkX Graph
-    weights: Optional[dict] = None,
-    top_k: int = TOP_K_MATCHES,
+    graph,
     news_df: Optional[pd.DataFrame] = None,
 ) -> List[dict]:
-    """
-    Generate ranked match suggestions for a given exporter.
-    
-    This is what powers the swipe UI — it returns the ordered list
-    of buyers the exporter should see.
-    """
+    """Pre-compute raw compatibility signals for ALL buyers (expensive, cached)."""
     from engine.features import compute_compatibility
     from engine.graph import compute_graph_affinity
 
-    # Pre-compute news sentiment per buyer country (avoids redundant work)
+    # Pre-compute news sentiment per buyer country
     news_cache: dict = {}
     if news_df is not None and len(news_df) > 0:
         from engine.news import compute_news_score
@@ -114,13 +107,17 @@ def rank_matches_for_exporter(
         for country in buyer_profiles["country"].dropna().unique():
             news_cache[country] = compute_news_score(news_df, industry, country)
 
-    matches = []
-    
+    raw_list = []
+
     for _, buyer in buyer_profiles.iterrows():
         compat = compute_compatibility(exporter_profile, buyer)
+
+        # Quick pre-filter: skip buyers with very low product compatibility
+        if compat.get("product_compatibility", 0) < 0.1:
+            continue
+
         g_score = compute_graph_affinity(graph, exporter_id, buyer["buyer_id"])
 
-        # Inject live news sentiment into the signal vector
         buyer_country = buyer.get("country", "")
         news_result = news_cache.get(
             buyer_country,
@@ -128,22 +125,85 @@ def rank_matches_for_exporter(
         )
         compat["news_sentiment"] = news_result["news_sentiment"]
 
-        score, breakdown = compute_match_score(compat, g_score, weights)
-        
+        raw_list.append({
+            "buyer_id": buyer["buyer_id"],
+            "buyer_name": buyer["company_name"],
+            "buyer_country": buyer_country,
+            "buyer_type": buyer.get("buyer_type", "Unknown"),
+            "compat": compat,
+            "graph_affinity": g_score,
+            "news_result": news_result,
+        })
+
+    return raw_list
+
+
+def rank_matches_for_exporter(
+    exporter_id: str,
+    exporter_profile: pd.Series,
+    buyer_profiles: pd.DataFrame,
+    graph,  # NetworkX Graph
+    weights: Optional[dict] = None,
+    top_k: int = TOP_K_MATCHES,
+    news_df: Optional[pd.DataFrame] = None,
+    _raw_cache: Optional[List[dict]] = None,
+) -> List[dict]:
+    """
+    Generate ranked match suggestions for a given exporter.
+    
+    This is what powers the swipe UI — it returns the ordered list
+    of buyers the exporter should see.
+    
+    Pass _raw_cache (from _compute_raw_signals) to skip the expensive
+    compatibility computation when only weights changed.
+    """
+    # Use cached raw signals if provided, else compute fresh
+    raw_list = _raw_cache if _raw_cache is not None else _compute_raw_signals(
+        exporter_id, exporter_profile, buyer_profiles, graph, news_df
+    )
+
+    # Score all candidates with the weighted-sum formula first
+    scored = []
+    for entry in raw_list:
+        score, breakdown = compute_match_score(
+            entry["compat"], entry["graph_affinity"], weights
+        )
         if score >= MIN_MATCH_SCORE * 100:
-            matches.append({
-                "buyer_id": buyer["buyer_id"],
-                "buyer_name": buyer["company_name"],
-                "buyer_country": buyer["country"],
-                "buyer_type": buyer.get("buyer_type", "Unknown"),
-                "score": score,
-                "breakdown": breakdown,
-                "news_flags": {
-                    "risk": news_result.get("risk_flags", []),
-                    "opportunity": news_result.get("opportunity_flags", []),
-                    "sentiment": news_result.get("news_sentiment", 0.5),
-                },
-            })
+            scored.append((entry, score, breakdown))
+
+    # Batch ML prediction (vectorised — ~100x faster than per-match calls)
+    try:
+        from engine.ml_models import predict_match_batch
+        signal_list = [e["compat"] for e, _, _ in scored]
+        ga_list = [e["graph_affinity"] for e, _, _ in scored]
+        ml_preds = predict_match_batch(signal_list, ga_list)
+    except Exception:
+        import numpy as _np
+        ml_preds = _np.full(len(scored), 0.5)
+
+    matches = []
+    for (entry, score, breakdown), ml_conf in zip(scored, ml_preds):
+        nr = entry["news_result"]
+        ml_conf = float(ml_conf)
+
+        # Blend: 85% weighted-sum + 15% ML quality
+        blended = round(0.85 * score + 0.15 * (ml_conf * 100), 1)
+
+        matches.append({
+            "buyer_id": entry["buyer_id"],
+            "buyer_name": entry["buyer_name"],
+            "buyer_country": entry["buyer_country"],
+            "buyer_type": entry["buyer_type"],
+            "score": blended,
+            "weighted_sum_score": score,
+            "ml_confidence": round(ml_conf, 3),
+            "breakdown": breakdown,
+            "news_flags": {
+                "risk": nr.get("risk_flags", []),
+                "opportunity": nr.get("opportunity_flags", []),
+                "sentiment": nr.get("news_sentiment", 0.5),
+            },
+        })
     
     matches.sort(key=lambda x: x["score"], reverse=True)
     return matches[:top_k]

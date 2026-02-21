@@ -75,6 +75,11 @@ def compute_news_score(
     now = pd.Timestamp.now()
     cutoff = now - pd.Timedelta(days=lookback_days)
 
+    # Ensure Date column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(news_df["Date"]):
+        news_df = news_df.copy()
+        news_df["Date"] = pd.to_datetime(news_df["Date"], errors="coerce")
+
     buyer_region = COUNTRY_TO_REGION.get(buyer_country, "Global")
     news_region = _REGION_TO_NEWS_REGION.get(buyer_region, buyer_region)
 
@@ -104,7 +109,13 @@ def compute_news_score(
         tariff   = float(row.get("Tariff_Change", 0) or 0)
         currency = float(row.get("Currency_Shift", 0) or 0)
 
-        event_score = base * level - tariff * 0.1 - currency * 0.05
+        # For Tariff Update events the base already accounts for tariff pain,
+        # so only apply the Tariff_Change column on OTHER event types to avoid
+        # double-counting.
+        if row["Event_Type"] == "Tariff Update":
+            event_score = base * level - currency * 0.05
+        else:
+            event_score = base * level - tariff * 0.1 - currency * 0.05
 
         # recency weighting
         days_ago = max((now - row["Date"]).days, 1)

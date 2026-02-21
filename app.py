@@ -20,6 +20,10 @@ import streamlit as st
 import pandas as pd
 import os
 from typing import Tuple
+from dotenv import load_dotenv
+
+# Load environment variables (.env for GEMINI_API_KEY etc.)
+load_dotenv()
 
 # --- Page Config (MUST be first Streamlit command) ---
 st.set_page_config(
@@ -33,7 +37,8 @@ st.set_page_config(
 from engine.cleaner import clean_transactions, clean_exporters, clean_buyers, detect_high_intent_buyers
 from engine.features import build_exporter_profiles, build_buyer_profiles
 from engine.graph import build_trade_graph, get_graph_stats
-from engine.scorer import rank_matches_for_exporter, get_adjusted_weights
+from engine.scorer import rank_matches_for_exporter, get_adjusted_weights, _compute_raw_signals
+from engine.ml_models import train_buyer_segments, train_match_predictor, get_segment_for_buyer, get_segment_label, get_ml_metrics
 from engine.explainer import generate_explanation, generate_match_card_text
 from ui.swipe import render_swipe_interface, inject_card_css
 from ui.dashboard import render_match_analytics, render_algorithm_workflow, render_outreach_panel
@@ -53,22 +58,33 @@ from utils.constants import SCORING_WEIGHTS, PRODUCT_CATEGORIES
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 EXIM_XLSX_BASENAME = "EXIM_DatasetAlgo_Hackathon.xlsx"
 EXIM_XLSX_PATH = os.path.join(DATA_DIR, EXIM_XLSX_BASENAME)
-MAX_TRANSACTIONS = 40_000
+MAX_TRANSACTIONS = 20_000
 
 
 @st.cache_data
 def load_data():
-    """Load organizer dataset and apply cleaning pipeline."""
+    """Load dataset — prefer pre-built CSVs (fast) over re-generating from Excel (slow)."""
     try:
-        if os.path.exists(EXIM_XLSX_PATH):
+        csv_exp = os.path.join(DATA_DIR, "exporters.csv")
+        csv_buy = os.path.join(DATA_DIR, "buyers.csv")
+        csv_txn = os.path.join(DATA_DIR, "transactions.csv")
+
+        csvs_exist = all(os.path.exists(p) for p in [csv_exp, csv_buy, csv_txn])
+
+        if csvs_exist and os.path.getsize(csv_txn) > 1000:
+            # Fast path: read pre-built CSVs (skips Excel + synthetic tx generation)
+            exporters = pd.read_csv(csv_exp)
+            buyers = pd.read_csv(csv_buy)
+            transactions = pd.read_csv(csv_txn)
+        elif os.path.exists(EXIM_XLSX_PATH):
+            # Slow path: generate from Excel (first run only)
             from data.load_exim_hackathon_dataset import run as load_exim_dataset
             exporters, buyers, transactions, _news = load_exim_dataset(
                 output_dir=DATA_DIR, excel_path=EXIM_XLSX_PATH, build_synthetic_txn=True,
             )
         else:
-            exporters = pd.read_csv(os.path.join(DATA_DIR, "exporters.csv"))
-            buyers = pd.read_csv(os.path.join(DATA_DIR, "buyers.csv"))
-            transactions = pd.read_csv(os.path.join(DATA_DIR, "transactions.csv"))
+            st.error("⚠️ No data found. Place 'EXIM_DatasetAlgo_Hackathon.xlsx' in data/")
+            st.stop()
 
         if len(transactions) > MAX_TRANSACTIONS:
             transactions = transactions.sample(n=MAX_TRANSACTIONS, random_state=42).reset_index(drop=True)
@@ -102,6 +118,17 @@ def build_profiles_and_graph(exporters, buyers, transactions):
     buyer_profiles = build_buyer_profiles(buyers, transactions)
     graph = build_trade_graph(transactions)
     return exporter_profiles, buyer_profiles, graph
+
+
+@st.cache_data
+def train_ml_models(_exporter_profiles, _buyer_profiles, _transactions, _graph, _news_df):
+    """Train buyer segmentation (K-Means) and match predictor (GB + RF ensemble)."""
+    seg_result = train_buyer_segments(_buyer_profiles)
+    gb_result = train_match_predictor(
+        _exporter_profiles, _buyer_profiles, _transactions, _graph, _news_df,
+        sample_size=800,
+    )
+    return seg_result, gb_result
 
 
 # ==========================================================================
@@ -150,7 +177,7 @@ span[class*="material"],
 }
 
 /* ── Body / Main Area ───────────────────────────────────── */
-.stApp { background: #f8fafc; }
+.stApp { background: #0f172a !important; }
 section.main > div { max-width: 1120px; margin: 0 auto; }
 
 /* ── Dark Sidebar ───────────────────────────────────────── */
@@ -219,8 +246,11 @@ section.main > div { max-width: 1120px; margin: 0 auto; }
 }
 
 /* Sidebar sliders */
-[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] div {
+[data-testid="stSidebar"] .stSlider [role="slider"] {
     background: #0ea5e9 !important;
+}
+[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] {
+    color: #e2e8f0 !important;
 }
 
 /* Sidebar expander */
@@ -296,23 +326,23 @@ section.main > div { max-width: 1120px; margin: 0 auto; }
 
 /* ── Expanders ──────────────────────────────────────────── */
 .streamlit-expanderHeader { font-weight: 600; font-size: 0.95em; }
-details { border: 1px solid #e2e8f0 !important; border-radius: 12px !important; }
+details { border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 12px !important; }
 
 /* ── Data tables ────────────────────────────────────────── */
 .stDataFrame { border-radius: 12px; overflow: hidden; }
 
 /* ── Metrics ────────────────────────────────────────────── */
 [data-testid="stMetric"] {
-    background: #fff;
+    background: rgba(255,255,255,0.05);
     padding: 14px 18px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 /* ── Text inputs ────────────────────────────────────────── */
 .stTextInput > div > div {
     border-radius: 10px !important;
-    border-color: #e2e8f0 !important;
+    border-color: rgba(255,255,255,0.15) !important;
 }
 .stTextInput > div > div:focus-within {
     border-color: #0ea5e9 !important;
@@ -412,6 +442,10 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
         st.session_state.swipe_history = []
         st.session_state.connected = []
         st.session_state.current_matches = []
+        # Clear raw signal cache for the old exporter
+        for k in list(st.session_state.keys()):
+            if k.startswith("_raw_cache_"):
+                del st.session_state[k]
 
     exp_name = exporters[exporters["exporter_id"] == selected_id]["company_name"]
     if not exp_name.empty:
@@ -476,10 +510,10 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
         ("Skipped", "0", "Review later", "#f59e0b"),
     ]
     for col, (label, val, sub, clr) in zip(k_cols, kpi_data):
-        col.markdown(f"""<div style="background:#fff;border-left:4px solid {clr};border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04);min-height:85px;">
-<div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">{label}</div>
-<div style="font-size:1.7em;font-weight:800;color:#0f172a;">{val}</div>
-<div style="font-size:0.75em;color:#94a3b8;">{sub}</div>
+        col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.15);min-height:85px;">
+<div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{label}</div>
+<div style="font-size:1.7em;font-weight:800;color:#f1f5f9;">{val}</div>
+<div style="font-size:0.75em;color:#64748b;">{sub}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -519,7 +553,19 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
     exp_profile = exp_profile.iloc[0]
 
     news_df = load_news_data()
-    matches = rank_matches_for_exporter(exporter_id, exp_profile, buyer_profiles, graph, weights, news_df=news_df)
+
+    # Cache raw signals so weight changes don't re-compute everything
+    cache_key = f"_raw_cache_{exporter_id}"
+    if cache_key not in st.session_state:
+        st.session_state[cache_key] = _compute_raw_signals(
+            exporter_id, exp_profile, buyer_profiles, graph, news_df
+        )
+    raw_cache = st.session_state[cache_key]
+
+    matches = rank_matches_for_exporter(
+        exporter_id, exp_profile, buyer_profiles, graph, weights,
+        news_df=news_df, _raw_cache=raw_cache,
+    )
 
     for match in matches:
         buyer_profile = buyer_profiles[buyer_profiles["buyer_id"] == match["buyer_id"]]
@@ -541,6 +587,13 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
                 "avg_order_tons":     buyer_profile.get("avg_order_tons"),
                 "prompt_response":    buyer_profile.get("prompt_response"),
             }
+
+            # Add ML segment label & confidence
+            seg_id = get_segment_for_buyer(buyer_profile)
+            seg_label, seg_color = get_segment_label(seg_id)
+            match["importer_details"]["segment"] = seg_label
+            match["importer_details"]["segment_color"] = seg_color
+            match["ml_confidence_display"] = match.get("ml_confidence", 0.5)
             top_signal = max(match["breakdown"].items(), key=lambda x: x[1]["contribution"])[0]
             match["card_text"] = generate_match_card_text(
                 match["buyer_name"], match["buyer_country"],
@@ -553,11 +606,11 @@ def page_approve_leads(exporter_id: str, exporters: pd.DataFrame, buyers: pd.Dat
         render_swipe_interface(matches)
 
         # Learning banner
-        st.markdown("""<div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border-left:4px solid #0ea5e9;border-radius:10px;padding:14px 18px;margin-top:12px;display:flex;align-items:center;gap:12px;">
+        st.markdown("""<div style="background:rgba(14,165,233,0.1);border-left:4px solid #0ea5e9;border-radius:10px;padding:14px 18px;margin-top:12px;display:flex;align-items:center;gap:12px;">
 <span style="font-size:1.3em;">🧠</span>
 <div>
-<div style="font-weight:700;font-size:0.9em;color:#0f172a;">Adaptive Learning Active</div>
-<div style="font-size:0.82em;color:#475569;">Each swipe adjusts the 9 signal weights in real-time — your ICP sharpens with every decision</div>
+<div style="font-weight:700;font-size:0.9em;color:#e2e8f0;">Adaptive Learning Active</div>
+<div style="font-size:0.82em;color:#94a3b8;">Each swipe adjusts the 9 signal weights in real-time — your ICP sharpens with every decision</div>
 </div>
 </div>""", unsafe_allow_html=True)
     else:
@@ -599,6 +652,18 @@ def main():
     inject_card_css()
 
     exporters, buyers, transactions = load_data()
+
+    # Build profiles & graph (cached)
+    exporter_profiles, buyer_profiles, graph = build_profiles_and_graph(exporters, buyers, transactions)
+    news_df = load_news_data()
+
+    # Train ML models once (spinner on first load only)
+    if "ml_seg" not in st.session_state:
+        with st.spinner("🤖 Training ML models (K-Means + Gradient Boosting ensemble)…"):
+            seg_result, gb_result = train_ml_models(exporter_profiles, buyer_profiles, transactions, graph, news_df)
+            st.session_state["ml_seg"] = seg_result
+            st.session_state["ml_gb"] = gb_result
+
     config = render_sidebar(exporters)
     page = config["page"]
 

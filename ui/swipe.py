@@ -24,10 +24,10 @@ DESIGN:
     └──────────────────────────────┘
 
 TODO CHECKLIST:
-    [ ] HOUR 8-10: Implement render_swipe_card()
-    [ ] HOUR 10:   Implement render_swipe_interface()
-    [ ] HOUR 10:   Wire up swipe callbacks to scorer.update_weights_from_swipe()
-    [ ] HOUR 15:   Polish card styling with custom CSS
+    [x] HOUR 8-10: Implement render_swipe_card()
+    [x] HOUR 10:   Implement render_swipe_interface()
+    [x] HOUR 10:   Wire up swipe callbacks to scorer.update_weights_from_swipe()
+    [x] HOUR 15:   Polish card styling with custom CSS
 =============================================================================
 """
 
@@ -95,6 +95,15 @@ def render_swipe_card(match: dict) -> Optional[str]:
     else:
         intent_badge = ''
 
+    # ML segment badge
+    seg_label = details.get("segment", "")
+    seg_color = details.get("segment_color", "#94a3b8")
+    seg_badge = f'<span style="background:rgba(255,255,255,0.08);color:{seg_color};padding:4px 12px;border-radius:20px;font-size:0.76em;font-weight:600;">{seg_label}</span>' if seg_label else ''
+
+    # ML confidence
+    ml_conf = match.get("ml_confidence_display", match.get("ml_confidence", 0.5))
+    ml_pct = int(float(ml_conf) * 100) if _is_num(ml_conf) else 50
+
     # Top signal
     bd = match.get("breakdown", {})
     top_signal = ""
@@ -104,8 +113,8 @@ def render_swipe_card(match: dict) -> Optional[str]:
 
     with st.container():
         # ── Main Card ────────────────────────────────────────────────
-        card_html = f"""<div style="border:1px solid #e2e8f0;border-radius:18px;padding:0;margin:8px 0;
-background:#ffffff;box-shadow:0 4px 20px rgba(0,0,0,0.06);overflow:hidden;">
+        card_html = f"""<div style="border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:0;margin:8px 0;
+background:rgba(255,255,255,0.03);box-shadow:0 4px 20px rgba(0,0,0,0.2);overflow:hidden;">
 
 <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:22px 26px 18px;position:relative;">
 <div style="position:absolute;top:16px;right:20px;background:{badge_bg};color:white;
@@ -118,19 +127,23 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
 🏭 {industry} &nbsp;&nbsp; 📍 {country}
 </p>
 <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-{news_badge} {intent_badge}
+{news_badge} {intent_badge} {seg_badge}
 </div>
 </div>
 
 <div style="padding:20px 26px 24px;">
 <div style="display:flex;gap:12px;margin-bottom:16px;">
-<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;padding:14px 16px;border-radius:12px;">
-<div style="font-size:0.75em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Preferred Channel</div>
-<div style="font-weight:700;color:#0f172a;margin-top:3px;">{details.get('preferred_channel','Email')}</div>
+<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
+<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Preferred Channel</div>
+<div style="font-weight:700;color:#f1f5f9;margin-top:3px;">{details.get('preferred_channel','Email')}</div>
 </div>
-<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;padding:14px 16px;border-radius:12px;">
-<div style="font-size:0.75em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Top Signal</div>
+<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
+<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Top Signal</div>
 <div style="font-weight:700;color:#0ea5e9;margin-top:3px;">{top_signal}</div>
+</div>
+<div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:14px 16px;border-radius:12px;">
+<div style="font-size:0.75em;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">ML Confidence</div>
+<div style="font-weight:700;color:#8b5cf6;margin-top:3px;">{ml_pct}%</div>
 </div>
 </div>
 
@@ -209,7 +222,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
         with col2:
             if st.button("⏭ Skip", key=f"skip_{match['buyer_id']}",
                           width="stretch", type="secondary"):
-                return "left"  # treat skip as left for now
+                return "skip"  # neutral — advance without penalising
         with col3:
             if st.button("✔ Approve", key=f"approve_{match['buyer_id']}",
                           type="primary", width="stretch"):
@@ -263,9 +276,17 @@ def render_swipe_interface(matches: List[dict]) -> None:
             update_weights_from_swipe(current, "left")
             st.session_state.card_index += 1
             st.rerun()
+        elif action == "skip":
+            # Neutral skip — advance card without adjusting weights
+            st.session_state.swipe_history.append({
+                "buyer_id": current["buyer_id"],
+                "direction": "skip"
+            })
+            st.session_state.card_index += 1
+            st.rerun()
         
         # Show progress
-        reviewed = st.session_state.card_index + 1
+        reviewed = min(st.session_state.card_index + 1, len(matches))
         total = len(matches)
         progress = reviewed / total
         st.markdown(f"""<div style="text-align:center;font-size:0.88em;color:#6b7280;margin-top:8px;">
@@ -316,15 +337,15 @@ div[data-testid="stHorizontalBlock"] > div:last-child .stButton > button:hover {
 }
 /* Skip button — neutral with hover */
 div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stButton > button {
-    border: 1px solid #d1d5db !important;
-    color: #64748b !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    color: #94a3b8 !important;
     background: transparent !important;
     border-radius: 12px !important;
     transition: all 0.2s !important;
 }
 div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stButton > button:hover {
-    background: #f1f5f9 !important;
-    color: #334155 !important;
+    background: rgba(255,255,255,0.08) !important;
+    color: #e2e8f0 !important;
 }
 </style>
 """, unsafe_allow_html=True)

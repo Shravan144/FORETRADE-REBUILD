@@ -88,19 +88,29 @@ def build_exporter_profiles(
     primary_products.columns = ["exporter_id", "primary_product"]
     profiles = profiles.merge(primary_products, on="exporter_id", how="left")
     
-    # Compute growth_trend (simplified: compare last 2 quarters)
-    profiles["growth_trend"] = 0.0
-    for exp_id in profiles["exporter_id"]:
-        exp_txns = transactions[transactions["exporter_id"] == exp_id].copy()
-        if len(exp_txns) >= 2:
-            exp_txns = exp_txns.sort_values("date")
-            mid_point = exp_txns["date"].quantile(0.5)
-            q1_volume = exp_txns[exp_txns["date"] < mid_point]["trade_value"].sum()
-            q2_volume = exp_txns[exp_txns["date"] >= mid_point]["trade_value"].sum()
-            if q1_volume > 0:
-                growth = (q2_volume - q1_volume) / q1_volume
-                profiles.loc[profiles["exporter_id"] == exp_id, "growth_trend"] = growth
-    
+    # Compute growth_trend — vectorised (compare first-half vs second-half volume)
+    txn_sorted = transactions.sort_values(["exporter_id", "date"])
+    txn_sorted["_rank"] = txn_sorted.groupby("exporter_id").cumcount()
+    txn_sorted["_half"] = txn_sorted.groupby("exporter_id")["_rank"].transform(
+        lambda r: (r >= r.max() / 2).astype(int)
+    )
+    half_vol = (
+        txn_sorted.groupby(["exporter_id", "_half"])["trade_value"]
+        .sum()
+        .unstack(fill_value=0)
+    )
+    if 0 in half_vol.columns and 1 in half_vol.columns:
+        half_vol["growth"] = half_vol.apply(
+            lambda r: (r[1] - r[0]) / r[0] if r[0] > 0 else 0.0, axis=1
+        )
+    else:
+        half_vol["growth"] = 0.0
+    profiles = profiles.merge(
+        half_vol[["growth"]].rename(columns={"growth": "growth_trend"}),
+        left_on="exporter_id", right_index=True, how="left",
+    )
+    profiles["growth_trend"] = profiles["growth_trend"].fillna(0.0)
+
     return profiles
 
 

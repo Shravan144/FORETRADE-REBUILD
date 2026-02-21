@@ -17,10 +17,10 @@ ARCHITECTURE:
                    compute_graph_affinity(exporter, buyer) → affinity score
 
 TODO CHECKLIST:
-    [ ] HOUR 4-5: Implement build_trade_graph()
-    [ ] HOUR 5:   Implement compute_graph_affinity()
-    [ ] HOUR 6:   (Optional) Add graph visualization with Plotly
-    [ ] HOUR 14:  (Optional) Add community detection for clusters
+    [x] HOUR 4-5: Implement build_trade_graph()
+    [x] HOUR 5:   Implement compute_graph_affinity()
+    [x] HOUR 6:   Add graph visualization with Plotly
+    [x] HOUR 14:  Add community detection for clusters
 =============================================================================
 """
 
@@ -97,22 +97,11 @@ def compute_graph_affinity(
     if G.has_edge(exporter_id, buyer_id):
         return 0.9
     
-    # Use Jaccard coefficient (scaled up since values are typically small)
-    try:
-        preds = nx.jaccard_coefficient(G, [(exporter_id, buyer_id)])
-        for u, v, score in preds:
-            # Scale up: Jaccard is usually 0-0.1, we want 0-1
-            return min(score * 10, 1.0)
-    except:
-        pass
-    
-    # Fallback: shortest path score
-    try:
-        if nx.has_path(G, exporter_id, buyer_id):
-            path_length = nx.shortest_path_length(G, exporter_id, buyer_id)
-            return 1.0 / (1.0 + path_length)
-    except:
-        pass
+    # Common neighbors score (fast O(degree) — no expensive path search)
+    common = len(list(nx.common_neighbors(G, exporter_id, buyer_id)))
+    if common > 0:
+        max_possible = min(G.degree(exporter_id), G.degree(buyer_id))
+        return min(common / max(max_possible, 1) * 2, 1.0)
     
     return 0.0
 
@@ -144,8 +133,9 @@ def visualize_graph_plotly(
     highlight_buyer: Optional[str] = None
 ):
     """
-    Create a Plotly figure of the trade graph.
-    
+    Create a Plotly figure of the trade graph (sub-graph around the
+    highlighted exporter/buyer for readability).
+
     Features:
         - Exporter nodes in blue, buyer nodes in green
         - Highlighted exporter/buyer in red/orange
@@ -153,14 +143,89 @@ def visualize_graph_plotly(
     
     Returns:
         Plotly figure object (display in Streamlit with st.plotly_chart)
-    
-    TODO (HOUR 14-15): Implement for the dashboard
-    
-    HINT:
-        - Use nx.spring_layout(G) for positions
-        - Create Plotly scatter + line traces
-        - See: https://plotly.com/python/network-graphs/
     """
-    # TODO: Implement graph visualization
-    # This is a polish feature, skip if running low on time.
-    pass
+    import plotly.graph_objects as go
+
+    # Build a manageable sub-graph: exporter's neighbours + their neighbours
+    if highlight_exporter and highlight_exporter in G:
+        seed = highlight_exporter
+    elif highlight_buyer and highlight_buyer in G:
+        seed = highlight_buyer
+    else:
+        # Fall back to highest-degree node
+        if G.number_of_nodes() == 0:
+            return None
+        seed = max(G.nodes(), key=lambda n: G.degree(n))
+
+    # 2-hop ego graph (capped at 80 nodes for clarity)
+    sub_nodes = {seed}
+    for nb in G.neighbors(seed):
+        sub_nodes.add(nb)
+        if len(sub_nodes) > 80:
+            break
+        for nb2 in G.neighbors(nb):
+            sub_nodes.add(nb2)
+            if len(sub_nodes) > 80:
+                break
+    subG = G.subgraph(sub_nodes)
+
+    pos = nx.spring_layout(subG, seed=42, k=0.35, iterations=50)
+
+    # ── Edges ────────────────────────────────────────────────────
+    edge_x, edge_y = [], []
+    for u, v in subG.edges():
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_x += [x0, x1, None]
+        edge_y += [y0, y1, None]
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        mode="lines",
+        line=dict(width=0.5, color="rgba(150,150,150,0.3)"),
+        hoverinfo="none",
+    )
+
+    # ── Nodes ────────────────────────────────────────────────────
+    node_x, node_y, node_color, node_size, node_text = [], [], [], [], []
+    for node in subG.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        is_exporter = str(node).startswith("E")
+        degree = subG.degree(node)
+
+        if node == highlight_exporter:
+            node_color.append("#ef4444")   # red
+            node_size.append(18)
+        elif node == highlight_buyer:
+            node_color.append("#f97316")   # orange
+            node_size.append(16)
+        elif is_exporter:
+            node_color.append("#3b82f6")   # blue
+            node_size.append(8 + min(degree, 12))
+        else:
+            node_color.append("#22c55e")   # green
+            node_size.append(6 + min(degree, 10))
+
+        node_text.append(f"{node}<br>Degree: {degree}")
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode="markers",
+        marker=dict(size=node_size, color=node_color, line=dict(width=0.5, color="#1e293b")),
+        text=node_text,
+        hoverinfo="text",
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace])
+    fig.update_layout(
+        showlegend=False,
+        height=420,
+        margin=dict(t=10, b=10, l=10, r=10),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    )
+    return fig

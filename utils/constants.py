@@ -85,21 +85,53 @@ for region, countries in TRADE_REGIONS.items():
 # ---------------------------------------------------------------------------
 # TRADE CORRIDOR STRENGTH (region-pair affinity, 0-1)
 # Higher = more natural trade flow between regions.
-# This is a simplification — in real life you'd compute from data.
-# TODO (HOUR 5-6): Make this data-driven from your synthetic dataset
+# Covers all 36 unique region pairs (9 regions) + same-region = 1.0.
 # ---------------------------------------------------------------------------
 CORRIDOR_STRENGTH = {
-    ("South Asia", "Middle East"):     0.9,
-    ("South Asia", "Southeast Asia"):  0.8,
-    ("South Asia", "Europe"):          0.75,
-    ("South Asia", "North America"):   0.7,
-    ("South Asia", "Africa"):          0.65,
-    ("East Asia", "North America"):    0.9,
-    ("East Asia", "Europe"):           0.85,
-    ("Southeast Asia", "East Asia"):   0.85,
-    ("Europe", "North America"):       0.8,
-    ("South America", "North America"):0.75,
-    ("Africa", "Europe"):              0.7,
+    # South Asia outbound
+    ("South Asia", "Middle East"):       0.90,
+    ("South Asia", "Southeast Asia"):    0.80,
+    ("South Asia", "Europe"):            0.75,
+    ("South Asia", "North America"):     0.70,
+    ("South Asia", "Africa"):            0.65,
+    ("South Asia", "East Asia"):         0.70,
+    ("South Asia", "South America"):     0.45,
+    ("South Asia", "Oceania"):           0.55,
+    # East Asia outbound (remaining)
+    ("East Asia", "North America"):      0.90,
+    ("East Asia", "Europe"):             0.85,
+    ("East Asia", "Southeast Asia"):     0.85,
+    ("East Asia", "Middle East"):        0.65,
+    ("East Asia", "Africa"):             0.50,
+    ("East Asia", "South America"):      0.55,
+    ("East Asia", "Oceania"):            0.70,
+    # Southeast Asia outbound (remaining)
+    ("Southeast Asia", "Europe"):        0.65,
+    ("Southeast Asia", "North America"): 0.60,
+    ("Southeast Asia", "Middle East"):   0.60,
+    ("Southeast Asia", "Africa"):        0.45,
+    ("Southeast Asia", "South America"): 0.40,
+    ("Southeast Asia", "Oceania"):       0.70,
+    # Europe outbound (remaining)
+    ("Europe", "North America"):         0.80,
+    ("Europe", "Middle East"):           0.70,
+    ("Europe", "Africa"):                0.70,
+    ("Europe", "South America"):         0.60,
+    ("Europe", "Oceania"):               0.60,
+    # North America outbound (remaining)
+    ("North America", "South America"):  0.75,
+    ("North America", "Middle East"):    0.55,
+    ("North America", "Africa"):         0.45,
+    ("North America", "Oceania"):        0.65,
+    # Middle East outbound (remaining)
+    ("Middle East", "Africa"):           0.65,
+    ("Middle East", "South America"):    0.35,
+    ("Middle East", "Oceania"):          0.40,
+    # Africa outbound (remaining)
+    ("Africa", "South America"):         0.35,
+    ("Africa", "Oceania"):               0.30,
+    # South America outbound (remaining)
+    ("South America", "Oceania"):        0.35,
 }
 # Make symmetric (A->B == B->A) + default
 def get_corridor_strength(region_a: str, region_b: str) -> float:

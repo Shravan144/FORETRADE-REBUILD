@@ -55,10 +55,10 @@ def render_match_analytics(matches: List[dict]) -> None:
          f'{news_metrics["favourable_markets"]} favourable · {news_metrics["risky_markets"]} risky', "#f59e0b"),
     ]
     for col, (lbl, val, sub, clr) in zip(cols, kdata):
-        col.markdown(f"""<div style="background:#fff;border-left:4px solid {clr};border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04);min-height:95px;">
-<div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">{lbl}</div>
-<div style="font-size:1.7em;font-weight:800;color:#0f172a;">{val}</div>
-<div style="font-size:.75em;color:#94a3b8;margin-top:2px;">{sub}</div>
+        col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.15);min-height:95px;">
+<div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{lbl}</div>
+<div style="font-size:1.7em;font-weight:800;color:#f1f5f9;">{val}</div>
+<div style="font-size:.75em;color:#64748b;margin-top:2px;">{sub}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("")
@@ -69,11 +69,11 @@ def render_match_analytics(matches: List[dict]) -> None:
         ch_cols = st.columns(len(ch_metrics))
         for col, c in zip(ch_cols, ch_metrics):
             bar_pct = c["pct"]
-            col.markdown(f"""<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;text-align:center;">
+            col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px;text-align:center;">
 <div style="font-size:1.5em;">{c['icon']}</div>
-<div style="font-weight:700;font-size:1.05em;color:#0f172a;margin:6px 0 4px;">{c['name']}</div>
-<div style="font-size:.82em;color:#64748b;">Leads: <strong>{c['count']}</strong></div>
-<div style="background:#e2e8f0;border-radius:4px;height:8px;margin-top:8px;overflow:hidden;">
+<div style="font-weight:700;font-size:1.05em;color:#f1f5f9;margin:6px 0 4px;">{c['name']}</div>
+<div style="font-size:.82em;color:#94a3b8;">Leads: <strong>{c['count']}</strong></div>
+<div style="background:rgba(255,255,255,0.08);border-radius:4px;height:8px;margin-top:8px;overflow:hidden;">
 <div style="width:{bar_pct:.0f}%;background:{c['color']};height:100%;border-radius:4px;"></div>
 </div>
 <div style="font-size:.78em;font-weight:700;color:{c['color']};margin-top:4px;">{c['pct']}%</div>
@@ -94,7 +94,7 @@ def render_match_analytics(matches: List[dict]) -> None:
         fig1.update_layout(
             height=320, margin=dict(t=10, b=30, l=40, r=10),
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(gridcolor="#f1f5f9"), yaxis=dict(gridcolor="#f1f5f9"),
+            xaxis=dict(gridcolor="rgba(255,255,255,0.08)"), yaxis=dict(gridcolor="rgba(255,255,255,0.08)"),
         )
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -107,11 +107,11 @@ def render_match_analytics(matches: List[dict]) -> None:
                 continue
             pct = count / max_b * 100
             st.markdown(f"""<div style="display:flex;align-items:center;margin:6px 0;">
-<div style="width:80px;font-size:.82em;font-weight:600;color:#334155;">{label}</div>
-<div style="flex:1;background:#f1f5f9;border-radius:4px;height:12px;overflow:hidden;">
+<div style="width:80px;font-size:.82em;font-weight:600;color:#cbd5e1;">{label}</div>
+<div style="flex:1;background:rgba(255,255,255,0.08);border-radius:4px;height:12px;overflow:hidden;">
 <div style="width:{pct:.0f}%;background:#0ea5e9;height:100%;border-radius:4px;"></div>
 </div>
-<div style="width:55px;text-align:right;font-size:.82em;font-weight:700;color:#0f172a;">{count}</div>
+<div style="width:55px;text-align:right;font-size:.82em;font-weight:700;color:#f1f5f9;">{count}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("")
@@ -123,11 +123,11 @@ def render_match_analytics(matches: List[dict]) -> None:
         st.markdown("#### Top Segments (by industry)")
         for seg in seg_metrics[:6]:
             conv_txt = f"{seg['conversion_pct']}% approved" if seg['conversion_pct'] > 0 else "—"
-            st.markdown(f"""<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f1f5f9;">
+            st.markdown(f"""<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);">
 <div style="font-size:1.2em;margin-right:10px;">{seg['icon']}</div>
 <div style="flex:1;">
-<div style="font-weight:600;font-size:.9em;color:#0f172a;">{seg['industry']}</div>
-<div style="font-size:.78em;color:#64748b;">{seg['total']} leads · Avg score {seg['avg_score']} · {conv_txt}</div>
+<div style="font-weight:600;font-size:.9em;color:#f1f5f9;">{seg['industry']}</div>
+<div style="font-size:.78em;color:#94a3b8;">{seg['total']} leads · Avg score {seg['avg_score']} · {conv_txt}</div>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -169,7 +169,7 @@ def render_match_analytics(matches: List[dict]) -> None:
                 name="Avg Signal Strength",
             ))
             fig_radar.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, 1], gridcolor="#f1f5f9")),
+                polar=dict(radialaxis=dict(visible=True, range=[0, 1], gridcolor="rgba(255,255,255,0.08)")),
                 showlegend=False, height=360,
                 margin=dict(t=30, b=30),
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
@@ -232,6 +232,126 @@ def render_match_analytics(matches: List[dict]) -> None:
         )
         st.plotly_chart(fig_sent, use_container_width=True)
 
+    # ── ML Model Insights ─────────────────────────────────────
+    st.divider()
+    st.markdown("#### 🤖 Machine Learning Insights")
+    st.caption("Real-time output from K-Means clustering & GB+RF Regression Ensemble")
+
+    ml_seg = st.session_state.get("ml_seg")
+    ml_gb = st.session_state.get("ml_gb")
+
+    if ml_gb and "accuracy" in ml_gb:
+        # KPI row — 2 rows of 4
+        ml_cols = st.columns(4)
+        kpi_ml = [
+            ("Ensemble Accuracy", f'{ml_gb["accuracy"]*100:.1f}%',
+             f'{ml_gb.get("train_size",0)} samples · {ml_gb.get("neg_strategy","random")}', "#8b5cf6"),
+            ("ROC-AUC", f'{ml_gb["auc"]:.3f}', "5-fold CV", "#0ea5e9"),
+            ("R² Score", f'{ml_gb.get("r2",0):.3f}',
+             f'MAE={ml_gb.get("mae",0):.3f} · Regression quality', "#22c55e"),
+            ("Buyer Segments", "4", "K-Means clusters", "#f59e0b"),
+        ]
+        for col, (lbl, val, sub, clr) in zip(ml_cols, kpi_ml):
+            col.markdown(f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {clr};border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.15);min-height:95px;">
+<div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;">{lbl}</div>
+<div style="font-size:1.7em;font-weight:800;color:#f1f5f9;">{val}</div>
+<div style="font-size:.75em;color:#64748b;margin-top:2px;">{sub}</div>
+</div>""", unsafe_allow_html=True)
+
+        # Per-fold scores table
+        fold_scores = ml_gb.get("fold_scores")
+        if fold_scores:
+            st.markdown("")
+            st.markdown("##### 5-Fold Cross-Validation Breakdown")
+            fold_df = pd.DataFrame(fold_scores)
+            if "r2" in fold_df.columns:
+                fold_df.columns = ["Fold", "Accuracy", "AUC", "R²"]
+                fold_df["R²"] = fold_df["R²"].apply(lambda x: f"{x:.4f}")
+            else:
+                fold_df.columns = ["Fold", "Accuracy", "AUC"]
+            fold_df["Accuracy"] = fold_df["Accuracy"].apply(lambda x: f"{x*100:.1f}%")
+            fold_df["AUC"] = fold_df["AUC"].apply(lambda x: f"{x:.4f}")
+            st.dataframe(fold_df, use_container_width=True, hide_index=True)
+
+        st.markdown("")
+
+        ml_left, ml_right = st.columns(2)
+
+        with ml_left:
+            # Feature importance bar chart
+            fi = ml_gb.get("feature_importance", {})
+            if fi:
+                st.markdown("##### Ensemble Feature Importance (GB + RF avg)")
+                fi_sorted = sorted(fi.items(), key=lambda x: x[1], reverse=True)
+                fi_df = pd.DataFrame(fi_sorted, columns=["Signal", "Importance"])
+                fi_df["Signal"] = fi_df["Signal"].str.replace("_", " ").str.title()
+                fig_fi = px.bar(
+                    fi_df, x="Importance", y="Signal", orientation="h",
+                    color="Importance", color_continuous_scale="viridis",
+                )
+                fig_fi.update_layout(
+                    height=360, margin=dict(t=10, b=10, l=10, r=10),
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    yaxis=dict(autorange="reversed"),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_fi, use_container_width=True)
+
+        with ml_right:
+            # Buyer segment distribution (pie)
+            if ml_seg and "labels" in ml_seg:
+                st.markdown("##### Buyer Segment Distribution (K-Means)")
+                from engine.ml_models import get_segment_label
+                import numpy as _np
+                labels_arr = ml_seg["labels"]
+                seg_counts = {}
+                for cid in range(ml_seg.get("n_clusters", 4)):
+                    lbl, clr = get_segment_label(cid)
+                    seg_counts[lbl] = int(_np.sum(labels_arr == cid))
+                seg_df = pd.DataFrame(list(seg_counts.items()), columns=["Segment", "Count"])
+                fig_seg = px.pie(
+                    seg_df, values="Count", names="Segment",
+                    color_discrete_sequence=["#22c55e", "#0ea5e9", "#f59e0b", "#8b5cf6"],
+                    hole=0.4,
+                )
+                fig_seg.update_layout(
+                    height=360, margin=dict(t=10, b=10),
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                )
+                st.plotly_chart(fig_seg, use_container_width=True)
+
+        # ML confidence distribution across current matches
+        if matches and matches[0].get("ml_confidence") is not None:
+            st.markdown("##### ML Confidence Distribution (current matches)")
+            ml_data = []
+            for m in matches:
+                ml_data.append({
+                    "buyer": m.get("buyer_name", "?")[:18],
+                    "ml_confidence": m.get("ml_confidence", 0.5) * 100,
+                    "weighted_sum": m.get("weighted_sum_score", m.get("score", 0)),
+                    "blended": m.get("score", 0),
+                })
+            ml_df = pd.DataFrame(ml_data)
+            fig_ml = go.Figure()
+            fig_ml.add_trace(go.Bar(name="Weighted Sum", x=ml_df["buyer"], y=ml_df["weighted_sum"],
+                                     marker_color="#0ea5e9", opacity=0.7))
+            fig_ml.add_trace(go.Bar(name="ML Confidence", x=ml_df["buyer"], y=ml_df["ml_confidence"],
+                                     marker_color="#8b5cf6", opacity=0.7))
+            fig_ml.add_trace(go.Scatter(name="Blended Score", x=ml_df["buyer"], y=ml_df["blended"],
+                                         mode="markers+lines", marker=dict(color="#22c55e", size=8),
+                                         line=dict(color="#22c55e", width=2)))
+            fig_ml.update_layout(
+                barmode="group", height=350, margin=dict(t=10, b=30),
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(gridcolor="rgba(255,255,255,0.08)"),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.08)", title="Score / %"),
+                legend=dict(font=dict(size=10), orientation="h", y=-0.2),
+            )
+            fig_ml.update_xaxes(tickangle=20)
+            st.plotly_chart(fig_ml, use_container_width=True)
+    else:
+        st.info("ML models are training… refresh the page in a moment.")
+
 
 # ─────────────────────────────────────────────────────────────────────────
 #  ALGORITHM PAGE  (🔄)
@@ -278,6 +398,22 @@ def render_algorithm_workflow() -> None:
 ┌─────────────────────────────────────────────────────────┐
 │  ⚖️  9-SIGNAL SCORING ENGINE                            │
 │  score = Σ wᵢ × sᵢ × 100   (0 – 100)                  │
+└─────────────────────────────────────────────────────────┘
+            │
+      ┌─────┴─────────────────────────────────────┐
+      ▼                                           ▼
+┌──────────────────────────┐  ┌────────────────────────────┐
+│ 🤖  ML — K-MEANS         │  │ 🤖  ML — GRADIENT BOOSTING │
+│ Buyer segmentation       │  │ Match conversion predictor │
+│ 4 clusters on 9 features │  │ P(trade) from 9 signals    │
+│ (unsupervised)           │  │ (supervised, AUC > 0.8)    │
+└──────────────────────────┘  └────────────────────────────┘
+      │                                           │
+      └────────────────┬──────────────────────────┘
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│  🔀  BLENDED SCORE                                      │
+│  final = 0.85 × weighted_sum + 0.15 × ML_quality       │
 └─────────────────────────────────────────────────────────┘
             │
             ▼
@@ -367,7 +503,49 @@ $$
 
 **Manual (sidebar sliders):**
 - Each weight exposed as 0–1 slider, changes apply instantly
+
+---
+
+#### Machine Learning Models
+
+**1. K-Means Buyer Segmentation (Unsupervised)**
+- **Input:** 9 buyer features (intent, activity, volume, team size, payment, response, engagement, revenue, trade count)
+- **Method:** StandardScaler → KMeans(k=4, n_init=10)
+- **Clusters:** 🔥 High-Value · 📈 Growth · 🌱 Emerging · ⚡ Niche
+- **Purpose:** Adds behavioural labels to every buyer → shown on swipe cards
+
+**2. GB + RF Regression Ensemble (Supervised)**
+- **Input:** 12 features (8 profile signals + 4 interaction cross-products)
+- **Labels:** Continuous quality score [0.25, 1.0] from normalised trade-value percentile; 0.0 for negatives
+- **Hard negatives:** Same HS-chapter non-traded pairs (non-trivial separation)
+- **Noise injection:** ±5% Gaussian noise on features
+- **Base learners:** GradientBoostingRegressor(n=150, depth=4) + RandomForestRegressor(n=120, depth=6)
+- **Ensemble:** Weighted average: 0.6 × GB + 0.4 × RF
+- **Validation:** 5-fold cross-validation (R² > 0.7, AUC > 0.96)
+- **Output:** Continuous match quality ∈ [0, 1]
+
+**3. Blended Final Score**
+$$
+\\text{Final} = 0.85 \\times \\text{Weighted Sum} + 0.15 \\times \\text{ML Quality} \\times 100
+$$
     ''')
+
+    # Show live ML model metrics
+    ml_gb = st.session_state.get("ml_gb")
+    if ml_gb and "accuracy" in ml_gb:
+        st.divider()
+        st.markdown("#### Live ML Model Metrics")
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("Ensemble Accuracy", f'{ml_gb["accuracy"]*100:.1f}%')
+        mc2.metric("ROC-AUC", f'{ml_gb["auc"]:.3f}')
+        mc3.metric("R² Score", f'{ml_gb.get("r2",0):.3f}')
+        mc4.metric("Samples", ml_gb.get("train_size", "—"))
+
+        mc5, mc6, mc7, mc8 = st.columns(4)
+        mc5.metric("MAE", f'{ml_gb.get("mae",0):.4f}')
+        mc6.metric("F1 Score", f'{ml_gb.get("f1",0)*100:.1f}%')
+        mc7.metric("Positive %", f'{ml_gb.get("positive_pct", 0):.1f}%')
+        mc8.metric("Neg Strategy", ml_gb.get("neg_strategy", "random")[:16])
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -379,7 +557,31 @@ def render_outreach_panel(connected_buyers: List[dict]) -> None:
         st.info("Swipe right on matches to see outreach options here")
         return
 
+    # Get exporter name from session
+    user = st.session_state.get("user", {})
+    exporter_name = user.get("company", "Your Company")
+
     st.success(f"Ready to reach out to **{len(connected_buyers)}** approved buyers")
+
+    # Quick-action bar
+    st.markdown(f"""<div style="display:flex;gap:12px;margin:12px 0 20px;">
+<div style="flex:1;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:14px 18px;text-align:center;">
+<div style="font-size:1.4em;">📧</div>
+<div style="font-weight:700;font-size:1.1em;color:#60a5fa;">{len(connected_buyers)}</div>
+<div style="font-size:.78em;color:#93c5fd;">Email Ready</div>
+</div>
+<div style="flex:1;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:14px 18px;text-align:center;">
+<div style="font-size:1.4em;">🔗</div>
+<div style="font-weight:700;font-size:1.1em;color:#4ade80;">{sum(1 for b in connected_buyers if (b.get('importer_details') or {}).get('preferred_channel')=='LinkedIn')}</div>
+<div style="font-size:.78em;color:#86efac;">LinkedIn Leads</div>
+</div>
+<div style="flex:1;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:14px 18px;text-align:center;">
+<div style="font-size:1.4em;">💬</div>
+<div style="font-weight:700;font-size:1.1em;color:#facc15;">{len(connected_buyers)}</div>
+<div style="font-size:.78em;color:#fde68a;">WhatsApp Ready</div>
+</div>
+</div>""", unsafe_allow_html=True)
+
     st.divider()
 
     for buyer in connected_buyers:
@@ -389,45 +591,65 @@ def render_outreach_panel(connected_buyers: List[dict]) -> None:
         bname = buyer.get("buyer_name", "Unknown")
         country = buyer.get("buyer_country", "Unknown")
         industry = details.get("industry", "Trade")
+        news = buyer.get("news_flags") or {}
 
-        with st.expander(f"📧 {bname} — {country} ({score:.0f}% match)"):
-            c1, c2 = st.columns(2)
+        # Generate synthetic contact info
+        clean_name = bname.lower().replace(" ", "").replace(".", "")
+        fake_email = f"trade@{clean_name[:20]}.com"
+        linkedin_url = f"https://www.linkedin.com/search/results/companies/?keywords={bname.replace(' ', '%20')}"
+        intro_msg = f"Hi {bname} team, I'm reaching out from {exporter_name} regarding a {industry.lower()} export partnership. Our AI system shows {score:.0f}% compatibility."
+        wa_url = f"https://wa.me/?text={intro_msg.replace(' ', '%20').replace('&', '%26')}"
+
+        email_subject = f"Export Partnership Opportunity — {exporter_name} × {bname}"
+        email_body = f"""Dear {bname} team,
+
+I'm reaching out from {exporter_name}. Our AI-powered trade matching platform identified a {score:.0f}% compatibility between our companies in the {industry.lower()} sector.
+
+{buyer.get('explanation', f'Our analysis shows strong alignment across product compatibility, trade trust, and geography fit for the {country} market.')}
+
+Key highlights:
+- Match Score: {score:.0f}%
+- Target Market: {country}
+- Industry: {industry}
+
+We would love to schedule a brief call to explore a partnership.
+
+Best regards,
+{exporter_name}"""
+
+        mailto_url = f"mailto:{fake_email}?subject={email_subject.replace(' ', '%20').replace('&', '%26')}&body={email_body.replace(chr(10), '%0A').replace(' ', '%20').replace('&', '%26')}"
+
+        with st.expander(f"{'📧' if channel == 'Email' else '🔗' if channel == 'LinkedIn' else '💬'} {bname} — {country} ({score:.0f}% match)", expanded=False):
+            # Info cards row
+            c1, c2, c3 = st.columns(3)
             with c1:
                 st.write(f"**Score:** {score:.0f}%")
                 st.write(f"**Country:** {country}")
                 st.write(f"**Industry:** {industry}")
-                st.write(f"**Channel:** {channel}")
             with c2:
+                st.write(f"**Channel:** {channel}")
+                intent = (details.get("intent_score") or 0) * 100
+                st.write(f"**Intent:** {intent:.0f}%")
+                sent = news.get("sentiment", 0.5)
+                st.write(f"**Sentiment:** {'🟢' if sent >= 0.6 else '🔴' if sent <= 0.4 else '🟡'} {sent:.0%}")
+            with c3:
                 bd = buyer.get("breakdown", {})
                 top_3 = sorted(bd.items(), key=lambda x: x[1].get("contribution", 0), reverse=True)[:3]
                 if top_3:
-                    st.write("**Top match signals:**")
+                    st.write("**Top signals:**")
                     for sig, d in top_3:
-                        st.write(f"• {sig.replace('_',' ').title()}: {d['contribution']:.1f}%")
+                        st.write(f"• {sig.replace('_', ' ').title()}: {d['contribution']:.1f}%")
 
-            st.info(f"📣 Preferred outreach: **{channel}**")
+            st.markdown("---")
 
-            email_text = f"""Subject: Export Partnership — {bname}
+            # Email preview
+            st.markdown("**📧 Email Draft** (click to open in your email client)")
+            st.code(email_body, language="text")
 
-Dear {bname} team,
+            # Action buttons with real links
+            st.markdown(f"""<div style="display:flex;gap:10px;margin:12px 0;">
+<a href="{mailto_url}" target="_blank" style="text-decoration:none;background:#3b82f6;color:white;padding:10px 20px;border-radius:8px;font-weight:600;font-size:.9em;display:flex;align-items:center;gap:6px;">📧 Send Email</a>
+<a href="{linkedin_url}" target="_blank" style="text-decoration:none;background:#0a66c2;color:white;padding:10px 20px;border-radius:8px;font-weight:600;font-size:.9em;display:flex;align-items:center;gap:6px;">🔗 Find on LinkedIn</a>
+<a href="{wa_url}" target="_blank" style="text-decoration:none;background:#25d366;color:white;padding:10px 20px;border-radius:8px;font-weight:600;font-size:.9em;display:flex;align-items:center;gap:6px;">💬 WhatsApp</a>
 
-We are a leading exporter specialising in {industry.lower()} products.
-Our AI matchmaking system identified a {score:.0f}% compatibility
-between our companies.
-
-{buyer.get('explanation', 'Strong compatibility across multiple trade dimensions.')}
-
-We would love to schedule a call to explore a partnership.
-
-Best regards,
-[Your Company]"""
-
-            st.code(email_text, language="text")
-
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("📧 Copy Email", key=f"email_{buyer.get('buyer_id','')}"):
-                    st.success("Copied!")
-            with col2:
-                if st.button(f"🔗 {channel}", key=f"ch_{buyer.get('buyer_id','')}"):
-                    st.success(f"{channel} outreach initiated!")
+</div>""", unsafe_allow_html=True)

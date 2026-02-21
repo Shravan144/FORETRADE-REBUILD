@@ -13,14 +13,14 @@ import time
 
 # Demo accounts (expandable — add DB later)
 DEMO_ACCOUNTS = {
-    "demo@foretrade.ai": {
-        "password_hash": hashlib.sha256("Demo123!".encode()).hexdigest(),
-        "first_name": "Arjun",
-        "last_name": "Mehta",
+    "shravan@foretrade.ai": {
+        "password_hash": hashlib.sha256("shravan123".encode()).hexdigest(),
+        "first_name": "Shravan",
+        "last_name": "",
         "role": "Export Manager",
         "company": "Precision Manufacturing Co.",
         "industry": "Engineering",
-        "email": "demo@foretrade.ai",
+        "email": "shravan@foretrade.ai",
         "phone": "+91 98765 43210",
     },
     "admin@foretrade.ai": {
@@ -184,8 +184,8 @@ def render_login_page() -> bool:
     # Demo credentials hint
     st.markdown("""<div class="login-hint">
 <strong>Demo credentials:</strong><br>
-Email: <code>demo@foretrade.ai</code><br>
-Password: <code>Demo123!</code>
+Email: <code>shravan@foretrade.ai</code><br>
+Password: <code>shravan123</code>
 </div>""", unsafe_allow_html=True)
 
     return st.session_state.get("authenticated", False)
@@ -193,7 +193,7 @@ Password: <code>Demo123!</code>
 
 def _render_signin():
     with st.form("login_form", clear_on_submit=False):
-        email = st.text_input("Email / Username", placeholder="demo@foretrade.ai")
+        email = st.text_input("Email / Username", placeholder="shravan@foretrade.ai")
         password = st.text_input("Password", type="password", placeholder="Enter your password")
         submitted = st.form_submit_button("Sign In", type="primary", width="stretch")
 

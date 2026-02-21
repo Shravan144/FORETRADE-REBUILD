@@ -17,11 +17,11 @@ PIPELINE FLOW:
                         Cleaned DataFrames ready for feature engineering
 
 TODO CHECKLIST:
-    [ ] HOUR 3: Implement fill_missing_values() — basic median/mode fill
-    [ ] HOUR 3: Implement normalize_trade_values() — StandardScaler or MinMax
-    [ ] HOUR 4: Implement detect_high_intent_buyers() — recency + frequency
-    [ ] HOUR 5: (Optional) Add outlier detection
-    [ ] HOUR 5: (Optional) Add HS code validation/correction
+    [x] HOUR 3: Implement fill_missing_values() — basic median/mode fill
+    [x] HOUR 3: Implement normalize_trade_values() — StandardScaler or MinMax
+    [x] HOUR 4: Implement detect_high_intent_buyers() — recency + frequency
+    [x] HOUR 5: Add outlier detection
+    [x] HOUR 5: Add HS code validation/correction
 =============================================================================
 """
 
@@ -165,7 +165,9 @@ def detect_high_intent_buyers(
         transactions = transactions.copy()
         transactions["date"] = pd.to_datetime(transactions["date"], errors="coerce")
     
-    now = pd.Timestamp.now()
+    # Use the dataset's latest date as the reference point (not wall-clock now)
+    # so that recency scores are meaningful even when the data is historical.
+    now = transactions["date"].max()
     six_months_ago = now - pd.Timedelta(days=180)
     ninety_days_ago = now - pd.Timedelta(days=90)
     

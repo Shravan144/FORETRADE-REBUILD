@@ -8,7 +8,9 @@ Zero hardcoded percentages.
 """
 
 import streamlit as st
+import os
 import pandas as pd
+from datetime import datetime
 from engine.metrics import (
     compute_session_metrics,
     compute_channel_metrics,
@@ -18,6 +20,7 @@ from engine.metrics import (
     compute_pipeline_state,
     generate_conversation,
 )
+from engine.llm import get_llm_reply
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -25,22 +28,22 @@ from engine.metrics import (
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _kpi(label, value, sub="", accent="#0ea5e9"):
-    """Minimal KPI card — accent left border."""
-    return f"""<div style="background:#fff;border-left:4px solid {accent};border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.05);min-height:100px;">
-<div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;">{label}</div>
-<div style="font-size:1.8em;font-weight:800;color:#0f172a;line-height:1.1;">{value}</div>
-<div style="font-size:.78em;color:#94a3b8;margin-top:4px;">{sub}</div>
+    """Minimal KPI card — accent left border, dark-theme aware."""
+    return f"""<div style="background:rgba(255,255,255,0.05);border-left:4px solid {accent};border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.15);min-height:100px;">
+<div style="font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:6px;">{label}</div>
+<div style="font-size:1.8em;font-weight:800;color:#f1f5f9;line-height:1.1;">{value}</div>
+<div style="font-size:.78em;color:#64748b;margin-top:4px;">{sub}</div>
 </div>"""
 
 
 def _status_pill(status):
     colors = {
-        "New":              ("#e0f2fe", "#0369a1"),
-        "Contacted":        ("#fef9c3", "#a16207"),
-        "Responded":        ("#dcfce7", "#15803d"),
-        "Meeting Scheduled":("#dbeafe", "#1d4ed8"),
+        "New":              ("rgba(14,165,233,0.15)", "#38bdf8"),
+        "Contacted":        ("rgba(234,179,8,0.15)", "#facc15"),
+        "Responded":        ("rgba(34,197,94,0.15)", "#4ade80"),
+        "Meeting Scheduled":("rgba(99,102,241,0.15)", "#818cf8"),
     }
-    bg, fg = colors.get(status, ("#f1f5f9", "#475569"))
+    bg, fg = colors.get(status, ("rgba(255,255,255,0.1)", "#94a3b8"))
     return f'<span style="background:{bg};color:{fg};padding:3px 12px;border-radius:20px;font-size:.8em;font-weight:600;">{status}</span>'
 
 
@@ -99,10 +102,10 @@ def render_dashboard_page(matches, connected, swipe_history):
         for stage_name, val, color in stages:
             pct = min(val / max_v, 1.0) * 100
             st.markdown(f"""<div style="display:flex;align-items:center;margin:8px 0;">
-<div style="width:200px;font-size:.85em;font-weight:600;color:#334155;">{stage_name}</div>
-<div style="flex:1;background:#f1f5f9;border-radius:6px;height:22px;overflow:hidden;position:relative;">
+<div style="width:200px;font-size:.85em;font-weight:600;color:#cbd5e1;">{stage_name}</div>
+<div style="flex:1;background:rgba(255,255,255,0.08);border-radius:6px;height:22px;overflow:hidden;position:relative;">
 <div style="width:{pct:.0f}%;background:{color};height:100%;border-radius:6px;transition:width .4s;"></div>
-<span style="position:absolute;right:8px;top:2px;font-size:.75em;font-weight:700;color:#334155;">{val}</span>
+<span style="position:absolute;right:8px;top:2px;font-size:.75em;font-weight:700;color:#e2e8f0;">{val}</span>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -114,8 +117,8 @@ def render_dashboard_page(matches, connected, swipe_history):
             for col, c in zip(ch_cols, ch):
                 col.markdown(f"""<div style="text-align:center;padding:12px 4px;">
 {_progress_ring(c['pct'], c['color'])}
-<div style="font-weight:700;font-size:.9em;color:#0f172a;margin-top:6px;">{c['icon']} {c['name']}</div>
-<div style="font-size:.75em;color:#64748b;">{c['count']} leads ({c['pct']}%)</div>
+<div style="font-weight:700;font-size:.9em;color:#e2e8f0;margin-top:6px;">{c['icon']} {c['name']}</div>
+<div style="font-size:.75em;color:#94a3b8;">{c['count']} leads ({c['pct']}%)</div>
 </div>""", unsafe_allow_html=True)
         else:
             st.info("Run scoring to see channel distribution")
@@ -130,11 +133,11 @@ def render_dashboard_page(matches, connected, swipe_history):
                 ch_name = details.get("preferred_channel", "Email")
                 intent_val = details.get("intent_score", 0)
                 icon = "🟢" if intent_val > 0.6 else "🔵" if intent_val > 0.3 else "⚪"
-                st.markdown(f"""<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                st.markdown(f"""<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
 <div style="font-size:1.2em;margin-right:10px;">{icon}</div>
 <div style="flex:1;">
-<div style="font-weight:600;font-size:.88em;color:#0f172a;">{bname}</div>
-<div style="font-size:.78em;color:#64748b;">Score {score_val:.0f}% · {ch_name} · Intent {intent_val*100:.0f}%</div>
+<div style="font-weight:600;font-size:.88em;color:#f1f5f9;">{bname}</div>
+<div style="font-size:.78em;color:#94a3b8;">Score {score_val:.0f}% · {ch_name} · Intent {intent_val*100:.0f}%</div>
 </div>
 </div>""", unsafe_allow_html=True)
         else:
@@ -223,14 +226,14 @@ def render_approved_leads_page(connected):
         pr = lead.get("_prompt_response", 0)
         channel = lead.get("_channel", "Email")
 
-        st.markdown(f"""<div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f1f5f9;">
+        st.markdown(f"""<div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);">
 <div style="flex:1;">
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-<span style="font-weight:700;color:#0f172a;">{name}</span>
+<span style="font-weight:700;color:#f1f5f9;">{name}</span>
 {_status_pill(lead['_status'])}
 <span style="color:#0ea5e9;font-size:.82em;font-weight:600;">{score:.0f}% match</span>
 </div>
-<div style="font-size:.82em;color:#64748b;margin-top:3px;">
+<div style="font-size:.82em;color:#94a3b8;margin-top:3px;">
 📍 {country} · 🏭 {industry} · {channel}
 · Intent: {intent*100:.0f}% · Response: {pr*100:.0f}%
 </div>
@@ -244,16 +247,55 @@ def render_approved_leads_page(connected):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  3.  CONVERSATIONS
+#  3.  CONVERSATIONS  (Interactive AI Chat — Gemini-powered)
 # ═══════════════════════════════════════════════════════════════════════════
 
+def _render_chat_bubble(msg, channel="Email"):
+    """Render a single chat message bubble."""
+    role = msg.get("role", "ai")
+    text = msg.get("text", "")
+    time_str = msg.get("time", "")
+    source = msg.get("source", "")
+
+    if role in ("ai", "assistant"):
+        source_badge = ""
+        if source == "gemini":
+            source_badge = ' · <span style="color:#a78bfa;">✨ Gemini</span>'
+        elif source == "smart-template":
+            source_badge = ' · <span style="color:#fb923c;">⚡ Smart AI</span>'
+        st.markdown(f"""<div style="display:flex;justify-content:flex-end;margin:10px 0;">
+<div style="max-width:72%;background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;padding:14px 18px;border-radius:16px 16px 4px 16px;font-size:.9em;line-height:1.55;">
+{text}
+<div style="font-size:.72em;color:#94a3b8;margin-top:5px;">{time_str} · via {msg.get('channel', channel)}{source_badge}</div>
+</div>
+</div>""", unsafe_allow_html=True)
+    elif role == "user":
+        st.markdown(f"""<div style="display:flex;justify-content:flex-end;margin:10px 0;">
+<div style="max-width:72%;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:14px 18px;border-radius:16px 16px 4px 16px;font-size:.9em;line-height:1.55;">
+{text}
+<div style="font-size:.72em;color:#bfdbfe;margin-top:5px;">{time_str} · You</div>
+</div>
+</div>""", unsafe_allow_html=True)
+    else:  # buyer
+        st.markdown(f"""<div style="display:flex;justify-content:flex-start;margin:10px 0;">
+<div style="max-width:72%;background:rgba(255,255,255,0.08);color:#e2e8f0;padding:14px 18px;border-radius:16px 16px 16px 4px;font-size:.9em;line-height:1.55;">
+{text}
+<div style="font-size:.72em;color:#94a3b8;margin-top:5px;">{time_str}</div>
+</div>
+</div>""", unsafe_allow_html=True)
+
+
 def render_conversations_page(connected, exporter_name="Your Company"):
-    st.markdown("## Conversations")
-    st.caption("AI-generated outreach — messages tailored to each buyer's profile and signals")
+    st.markdown("## 💬 Conversations")
+    st.caption("Real-time AI outreach — type to take over or let the AI handle it")
 
     if not connected:
         st.info("No conversations yet. **Approve leads** to start AI outreach.")
         return
+
+    # Initialize conversation store in session
+    if "conversations" not in st.session_state:
+        st.session_state["conversations"] = {}
 
     left_col, right_col = st.columns([1, 2.5])
 
@@ -261,6 +303,7 @@ def render_conversations_page(connected, exporter_name="Your Company"):
         st.session_state["selected_conversation"] = 0
 
     with left_col:
+        st.markdown("""<div style="font-size:.75em;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;font-weight:600;">Active Chats</div>""", unsafe_allow_html=True)
         for i, buyer in enumerate(connected):
             bname = buyer.get("buyer_name", "Unknown")
             score_val = buyer.get("score", 0)
@@ -268,13 +311,18 @@ def render_conversations_page(connected, exporter_name="Your Company"):
             channel = details.get("preferred_channel", "Email")
             is_selected = (i == st.session_state["selected_conversation"])
 
-            if st.button(bname, key=f"conv_{i}", width="stretch",
+            # Count messages
+            buyer_id = buyer.get("buyer_id", f"b_{i}")
+            msg_count = len(st.session_state["conversations"].get(buyer_id, []))
+            unread = " 🔵" if msg_count == 0 else ""
+
+            if st.button(f"{bname}{unread}", key=f"conv_{i}", use_container_width=True,
                          type="primary" if is_selected else "secondary"):
                 st.session_state["selected_conversation"] = i
                 st.rerun()
 
             st.markdown(f"""<div style="font-size:.75em;color:#94a3b8;margin-top:-6px;margin-bottom:10px;padding-left:4px;">
-{score_val:.0f}% match · {channel}
+{score_val:.0f}% match · {channel} · {msg_count} msgs
 </div>""", unsafe_allow_html=True)
 
     with right_col:
@@ -283,59 +331,92 @@ def render_conversations_page(connected, exporter_name="Your Company"):
             sel = connected[idx]
             bname = sel.get("buyer_name", "Unknown")
             bcountry = sel.get("buyer_country", "")
+            buyer_id = sel.get("buyer_id", f"b_{idx}")
             details = sel.get("importer_details") or {}
             industry = details.get("industry", "Trade") if details else "Trade"
             channel = details.get("preferred_channel", "Email") if details else "Email"
             score_val = sel.get("score", 0)
             news = sel.get("news_flags") or {}
 
-            # Header
+            # Header with action buttons
             sent_val = news.get("sentiment", 0.5)
             sent_clr = "#22c55e" if sent_val >= 0.6 else "#ef4444" if sent_val <= 0.4 else "#f59e0b"
             sent_lbl = "Favourable" if sent_val >= 0.6 else "Risk" if sent_val <= 0.4 else "Neutral"
 
-            st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid #f1f5f9;">
+            # Generate synthetic contact links
+            clean_name = bname.lower().replace(" ", "").replace(".", "")
+            fake_email = f"trade@{clean_name[:20]}.com"
+            linkedin_url = f"https://www.linkedin.com/search/results/companies/?keywords={bname.replace(' ', '%20')}"
+            whatsapp_msg = f"Hi {bname} team, I'm reaching out from {exporter_name} regarding a {industry} export partnership."
+            wa_url = f"https://wa.me/?text={whatsapp_msg.replace(' ', '%20')}"
+            mailto_url = f"mailto:{fake_email}?subject=Export%20Partnership%20—%20{bname.replace(' ', '%20')}&body={whatsapp_msg.replace(' ', '%20')}"
+
+            st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;margin-bottom:8px;border-bottom:2px solid rgba(255,255,255,0.1);">
 <div>
-<div style="font-weight:700;font-size:1.15em;color:#0f172a;">{bname}</div>
+<div style="font-weight:700;font-size:1.15em;color:#f1f5f9;">{bname}</div>
 <div style="font-size:.85em;color:#64748b;">{industry} · {bcountry} · {score_val:.0f}% match</div>
 </div>
-<div style="display:flex;gap:6px;">
+<div style="display:flex;gap:6px;align-items:center;">
 <span style="background:{sent_clr}18;color:{sent_clr};padding:3px 10px;border-radius:16px;font-size:.78em;font-weight:600;">Market: {sent_lbl}</span>
-<span style="background:#e0f2fe;color:#0369a1;padding:3px 10px;border-radius:16px;font-size:.78em;font-weight:600;">via {channel}</span>
+<a href="{mailto_url}" target="_blank" style="text-decoration:none;background:#3b82f6;color:white;padding:5px 10px;border-radius:8px;font-size:.75em;font-weight:600;">📧 Email</a>
+<a href="{linkedin_url}" target="_blank" style="text-decoration:none;background:#0a66c2;color:white;padding:5px 10px;border-radius:8px;font-size:.75em;font-weight:600;">🔗 LinkedIn</a>
+<a href="{wa_url}" target="_blank" style="text-decoration:none;background:#25d366;color:white;padding:5px 10px;border-radius:8px;font-size:.75em;font-weight:600;">💬 WhatsApp</a>
 </div>
 </div>""", unsafe_allow_html=True)
 
-            # Real context-aware messages
-            messages = generate_conversation(sel, exporter_name)
+            # Initialize conversation if needed (AI starter messages)
+            if buyer_id not in st.session_state["conversations"]:
+                starter = generate_conversation(sel, exporter_name)
+                st.session_state["conversations"][buyer_id] = starter
 
+            # Render all messages
+            messages = st.session_state["conversations"][buyer_id]
             for msg in messages:
-                is_ai = msg["role"] == "ai"
-                if is_ai:
-                    st.markdown(f"""<div style="display:flex;justify-content:flex-end;margin:10px 0;">
-<div style="max-width:72%;background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;padding:14px 18px;border-radius:16px 16px 4px 16px;font-size:.9em;line-height:1.55;">
-{msg['text']}
-<div style="font-size:.72em;color:#94a3b8;margin-top:5px;">{msg['time']} · via {msg.get('channel', channel)}</div>
-</div>
-</div>""", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""<div style="display:flex;justify-content:flex-start;margin:10px 0;">
-<div style="max-width:72%;background:#f1f5f9;color:#0f172a;padding:14px 18px;border-radius:16px 16px 16px 4px;font-size:.9em;line-height:1.55;">
-{msg['text']}
-<div style="font-size:.72em;color:#94a3b8;margin-top:5px;">{msg['time']}</div>
-</div>
-</div>""", unsafe_allow_html=True)
+                _render_chat_bubble(msg, channel)
 
-            # AI status banner
-            st.markdown(f"""<div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-top:18px;display:flex;align-items:center;gap:10px;">
-<span style="font-size:1.2em;">🤖</span>
+            # LLM status indicator
+            has_gemini = bool(os.environ.get("GEMINI_API_KEY", ""))
+            engine_label = "🟢 Gemini AI connected" if has_gemini else "🟡 Smart templates (no API key)"
+            st.markdown(f"""<div style="background:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-top:12px;display:flex;align-items:center;gap:10px;">
+<span style="font-size:1.1em;">🤖</span>
 <div>
-<div style="font-weight:600;font-size:.88em;color:#92400e;">AI is managing this outreach via {channel}</div>
-<div style="font-size:.8em;color:#a16207;">Auto-responds based on buyer signals: intent {(details.get('intent_score') or 0)*100:.0f}%, response rate {(details.get('prompt_response') or 0)*100:.0f}%</div>
+<div style="font-weight:600;font-size:.85em;color:#fbbf24;">AI Outreach Active · {engine_label}</div>
+<div style="font-size:.78em;color:#d97706;">Type below to take over the conversation. The AI will generate contextual replies.</div>
 </div>
 </div>""", unsafe_allow_html=True)
 
-            st.text_input("Take over conversation...", placeholder="Type a message to take over...",
-                          label_visibility="collapsed", key="conv_input")
+            # ─── Interactive chat input ─────────────────────────────────
+            user_input = st.chat_input(
+                f"Message {bname}... (AI will reply in context)",
+                key=f"chat_input_{buyer_id}",
+            )
+
+            if user_input:
+                now_str = datetime.now().strftime("%I:%M %p")
+
+                # Add user message
+                st.session_state["conversations"][buyer_id].append({
+                    "role": "user",
+                    "text": user_input,
+                    "time": now_str,
+                })
+
+                # Get AI reply
+                reply_text, source = get_llm_reply(
+                    user_input, sel, exporter_name,
+                    history=st.session_state["conversations"][buyer_id],
+                )
+
+                # Add AI reply
+                st.session_state["conversations"][buyer_id].append({
+                    "role": "ai",
+                    "text": reply_text,
+                    "time": now_str,
+                    "channel": channel,
+                    "source": source,
+                })
+
+                st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -357,20 +438,20 @@ def render_profile_page(exporter_row=None):
         total_leads = len(matches)
         approved_ct = len(connected)
 
-        st.markdown(f"""<div style="text-align:center;padding:28px;background:#fff;border-radius:14px;border:1px solid #e2e8f0;">
-<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;font-size:1.6em;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">{initials}</div>
-<div style="font-weight:700;font-size:1.1em;color:#0f172a;">{user.get('first_name','')} {user.get('last_name','')}</div>
-<div style="font-size:.85em;color:#64748b;">{user.get('role','')}</div>
-<div style="font-size:.82em;color:#94a3b8;">{user.get('email','')}</div>
-<hr style="margin:16px 0;border-color:#f1f5f9;">
-<div style="display:flex;justify-content:space-between;font-size:.85em;color:#64748b;">
-<span>Leads Scored</span><span style="font-weight:600;color:#0f172a;">{total_leads}</span>
+        st.markdown(f"""<div style="text-align:center;padding:28px;background:rgba(255,255,255,0.05);border-radius:14px;border:1px solid rgba(255,255,255,0.1);">
+<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#3b82f6);color:white;font-size:1.6em;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">{initials}</div>
+<div style="font-weight:700;font-size:1.1em;color:#f1f5f9;">{user.get('first_name','')} {user.get('last_name','')}</div>
+<div style="font-size:.85em;color:#94a3b8;">{user.get('role','')}</div>
+<div style="font-size:.82em;color:#64748b;">{user.get('email','')}</div>
+<hr style="margin:16px 0;border-color:rgba(255,255,255,0.1);">
+<div style="display:flex;justify-content:space-between;font-size:.85em;color:#94a3b8;">
+<span>Leads Scored</span><span style="font-weight:600;color:#0ea5e9;">{total_leads}</span>
 </div>
-<div style="display:flex;justify-content:space-between;font-size:.85em;color:#64748b;margin-top:6px;">
+<div style="display:flex;justify-content:space-between;font-size:.85em;color:#94a3b8;margin-top:6px;">
 <span>Leads Approved</span><span style="font-weight:600;color:#22c55e;">{approved_ct}</span>
 </div>
-<div style="display:flex;justify-content:space-between;font-size:.85em;color:#64748b;margin-top:6px;">
-<span>Company</span><span style="font-weight:600;color:#0f172a;">{user.get('company','—')}</span>
+<div style="display:flex;justify-content:space-between;font-size:.85em;color:#94a3b8;margin-top:6px;">
+<span>Company</span><span style="font-weight:600;color:#f1f5f9;">{user.get('company','—')}</span>
 </div>
 </div>""", unsafe_allow_html=True)
 
