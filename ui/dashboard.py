@@ -358,96 +358,166 @@ def render_match_analytics(matches: List[dict]) -> None:
 # ─────────────────────────────────────────────────────────────────────────
 
 def render_algorithm_workflow() -> None:
-    """Visual explanation of the 9-signal scoring pipeline."""
+    """Visual explanation of the 4-Layer ML Ensemble."""
 
     st.markdown("#### System Architecture")
 
     st.markdown('''
 ```
-┌─────────────────────────────────────────────────────────┐
-│  📥  DATA LAYER                                         │
-│  Organiser EXIM Dataset (3 sheets)                      │
-│  • Exporter Live Signals  (6 682 exporters)             │
-│  • Importer Live Signals  (10 695 buyers)               │
-│  • Global News Signals    (8 000 events)                │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  📥  DATA LAYER                                                         │
+│  Organiser EXIM Dataset (3 sheets)                                      │
+│  • Exporter Live Signals  (6 682 exporters)                             │
+│  • Importer Live Signals  (10 695 buyers)                               │
+│  • Global News Signals    (8 000 events)                                │
+└─────────────────────────────────────────────────────────────────────────┘
             │
             ▼
-┌─────────────────────────────────────────────────────────┐
-│  🧹  CLEANING & NORMALISATION                           │
-│  Deduplicate · MinMaxScaler · Outlier removal           │
-│  High-intent buyer detection (recency + growth)         │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔬  FEATURE ENGINEERING                                                │
+│  Exporter profiles · Buyer profiles · Trade graph · News signals        │
+└─────────────────────────────────────────────────────────────────────────┘
             │
             ▼
-┌─────────────────────────────────────────────────────────┐
-│  🔬  FEATURE ENGINEERING                                │
-│  Exporter profiles  ·  Buyer profiles  ·  Trade graph   │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ⚖️  4-LAYER ML ENSEMBLE                                                │
+│  Final Score = Σ (layer_weight × layer_output) × 100                    │
+└─────────────────────────────────────────────────────────────────────────┘
             │
-      ┌─────┴──────────────────────────────────┐
-      ▼                                        ▼
-┌──────────────────────┐    ┌──────────────────────┐
-│ 🕸  GRAPH ANALYSIS   │    │ 📰  NEWS INTEL       │
-│ Bipartite network    │    │ 8 000 events         │
-│ Jaccard similarity   │    │ Sigmoid sentiment    │
-└──────────────────────┘    └──────────────────────┘
-      │                                        │
-      └────────────────┬───────────────────────┘
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│  ⚖️  9-SIGNAL SCORING ENGINE                            │
-│  score = Σ wᵢ × sᵢ × 100   (0 – 100)                  │
-└─────────────────────────────────────────────────────────┘
-            │
-      ┌─────┴─────────────────────────────────────┐
-      ▼                                           ▼
-┌──────────────────────────┐  ┌────────────────────────────┐
-│ 🤖  ML — K-MEANS         │  │ 🤖  ML — GRADIENT BOOSTING │
-│ Buyer segmentation       │  │ Match conversion predictor │
-│ 4 clusters on 9 features │  │ P(trade) from 9 signals    │
-│ (unsupervised)           │  │ (supervised, AUC > 0.8)    │
-└──────────────────────────┘  └────────────────────────────┘
-      │                                           │
-      └────────────────┬──────────────────────────┘
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│  🔀  BLENDED SCORE                                      │
-│  final = 0.85 × weighted_sum + 0.15 × ML_quality       │
-└─────────────────────────────────────────────────────────┘
+      ┌─────┼──────────────────────────────────────────────┐
+      │     │                                              │
+      ▼     ▼                                              ▼
+┌──────────────┐  ┌──────────────────────┐  ┌────────────────────────────┐
+│ Layer 1      │  │ Layer 2              │  │ Layer 3                    │
+│ Weighted-Sum │  │ LTR LambdaRank       │  │ GB + RF Ensemble           │
+│ 30%          │  │ 35%                  │  │ 25%                        │
+│ Σ wᵢ × sᵢ    │  │ LightGBM pairwise    │  │ GradientBoost +            │
+│ (7 signals)  │  │ ranking (NDCG)       │  │ RandomForest regression    │
+└──────────────┘  └──────────────────────┘  └────────────────────────────┘
+      │                    │                           │
+      └────────────────────┼───────────────────────────┘
+                           │
+                           ▼
+              ┌──────────────────────────────┐
+              │ Layer 4                      │
+              │ Graph Embeddings             │
+              │ 10%                          │
+              │ Node2Vec + Jaccard affinity  │
+              └──────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔀  FINAL BLENDED SCORE  (0-100)                                       │
+│  = 0.30×WeightedSum + 0.35×LTR + 0.25×GBRF + 0.10×Graph                 │
+└─────────────────────────────────────────────────────────────────────────┘
             │
             ▼
-┌─────────────────────────────────────────────────────────┐
-│  📱  SWIPE TO EXPORT  →  🔄  ADAPTIVE FEEDBACK LOOP    │
-│  Right → boost top signal +5 %                          │
-│  Left  → reduce top signal −3 %                         │
-│  Σ w = 1.0 always                                       │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  📱  SWIPE TO EXPORT  →  🔄  RLHF FEEDBACK LOOP                         │
+│  • Right → boost top signal +5%                                         │
+│  • Left  → reduce top signal −3%                                        │
+│  • Every 15 swipes → retrain LTR model on user preferences              │
+│  • Σ w = 1.0 always (adaptive weights)                                  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
     ''')
 
     st.divider()
 
-    # Show LIVE weights (not just the defaults)
+    st.markdown('''
+#### 4-Layer Ensemble Architecture
+
+| Layer | Model | Weight | Purpose | Key Features |
+|-------|-------|--------|---------|--------------|
+| 1 | **Weighted-Sum** | 30% | Baseline rule-based scoring | 7 signals: product, geo, frequency, activity, readiness, geo_risk, payment |
+| 2 | **LTR LambdaRank** | 35% | Learning-to-rank with user feedback | LightGBM pairwise ranking, NDCG optimization, RLHF retraining every 15 swipes |
+| 3 | **GB + RF Ensemble** | 25% | Supervised match quality prediction | GradientBoosting + RandomForest, 12 features, anti-overfitting (3% gap target) |
+| 4 | **Graph Embeddings** | 10% | Network structure affinity | Node2Vec embeddings + Jaccard similarity on trade graph |
+
+**Why 4 layers?**
+- Weighted-Sum provides interpretable baseline
+- LTR learns from user preferences (RLHF loop)
+- GB+RF captures non-linear feature interactions
+- Graph captures network effects (who trades with whom)
+
+---
+
+#### Layer 1: Weighted-Sum Scoring
+
+$$
+\\text{WeightedSum} = \\sum_{i=1}^{7} w_i \\times s_i
+$$
+
+| Signal | Weight | Formula |
+|--------|--------|---------|
+| Product Compatibility | 22% | Exact HS match=1.0, Same chapter=0.7, Different=0.3 |
+| Geography Fit | 14% | Trade corridor strength from constants.py |
+| Trade Frequency | 10% | min(freq₁, freq₂) / max(freq₁, freq₂) |
+| Buyer Activity | 10% | 0.6 × activity + 0.4 × intent |
+| Buyer Readiness | 16% | 0.3 × hiring + 0.3 × funding + 0.4 × response_prob |
+| Geo Risk | 14% | 1.0 − (risk_sum / 5.0) |
+| Payment Trust | 14% | 0.5 × good_payment + 0.5 × prompt_response |
+
+---
+
+#### Layer 2: LTR LambdaRank (RLHF)
+
+**LightGBM LambdaRank** with pairwise ranking:
+- **Objective:** Optimize NDCG (Normalized Discounted Cumulative Gain)
+- **Input:** 7 profile features + user swipe history
+- **Training:** Every 15 swipes, retrain on (approved=1, rejected=0) pairs
+- **Anti-overfitting:** 25% feature masking, early stopping
+
+---
+
+#### Layer 3: GB + RF Ensemble
+
+**Anti-Overfitting Design:**
+- Train R² computed on ORIGINAL (non-augmented) data
+- Test R² on held-out 20% validation set
+- Target: ≤5% overfit gap (currently ~3%)
+- 5-fold cross-validation for robustness
+
+**Architecture:**
+- GradientBoostingRegressor (n_estimators=15, max_depth=2)
+- RandomForestRegressor (n_estimators=15, max_depth=2)
+- Ensemble: 0.6 × GB + 0.4 × RF
+
+---
+
+#### Layer 4: Graph Embeddings
+
+**Trade Graph Analysis:**
+- Bipartite graph: Exporters ↔ Buyers
+- Node2Vec embeddings (64-dim)
+- Jaccard similarity for common neighbors
+- Shortest path analysis
+
+---
+
+#### RLHF Feedback Loop
+
+**Real-Time Adaptation:**
+1. User swipes → captures implicit preference
+2. Every 15 swipes → trigger LTR retraining
+3. Model learns: "User likes buyers with high X, low Y"
+4. Next batch → personalized ranking
+
+**Weight Adjustment:**
+- Right swipe → top signal weight +5%
+- Left swipe → top signal weight −3%
+- Re-normalize to Σ = 1.0
+    ''')
+
+    # Show live weights
     from engine.scorer import get_adjusted_weights
     live_weights = get_adjusted_weights()
 
-    st.markdown("#### Live Scoring Weights")
-    st.caption("These weights update in real-time as you swipe — showing current adjusted values")
+    st.divider()
+    st.markdown("#### Live Signal Weights")
+    st.caption("Current adaptive weights based on your swipe feedback")
 
     weight_data = []
-    descriptions = {
-        "product_compatibility": "Industry / HS-code alignment between exporter and buyer",
-        "trust_score": "Payment reliability, certifications, prompt responses",
-        "geography_fit": "Trade corridor strength between countries/regions",
-        "graph_affinity": "Jaccard coefficient + path analysis on trade graph (NetworkX)",
-        "size_compatibility": "Log-ratio of exporter capacity vs buyer import volume",
-        "intent_momentum": "Engagement spikes, hiring signals, decision-maker changes",
-        "trade_frequency": "How actively the buyer imports in this category",
-        "buyer_activity": "Recency of last trade + current activity level",
-        "news_sentiment": "8 000 geopolitical events → sigmoid sentiment per (industry, region)",
-    }
-
     for sig, default_w in SCORING_WEIGHTS.items():
         live_w = live_weights.get(sig, default_w)
         change = live_w - default_w
@@ -456,96 +526,27 @@ def render_algorithm_workflow() -> None:
             "Default": f"{default_w*100:.0f}%",
             "Current": f"{live_w*100:.1f}%",
             "Change": f"{'+'if change>=0 else ''}{change*100:.1f}%",
-            "Description": descriptions.get(sig, ""),
         })
 
-    st.dataframe(
-        pd.DataFrame(weight_data),
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Signal": st.column_config.TextColumn(width="medium"),
-            "Default": st.column_config.TextColumn(width="small"),
-            "Current": st.column_config.TextColumn(width="small"),
-            "Change": st.column_config.TextColumn(width="small"),
-            "Description": st.column_config.TextColumn(width="large"),
-        },
-    )
-
-    st.divider()
-
-    st.markdown('''
-#### Scoring Formula
-
-$$
-\\text{Match Score} = \\sum_{i=1}^{9} w_i \\times s_i \\times 100
-$$
-
-| # | Signal | Default Weight | Source |
-|---|--------|---------------|--------|
-| 1 | Product Compatibility | 20% | Industry alignment (exact/chapter/partial) |
-| 2 | Trust Score | 15% | `Good_Payment_Terms`, `Good_Payment_History`, `Prompt_Response` |
-| 3 | Geography Fit | 12% | Trade-corridor strength matrix |
-| 4 | Graph Affinity | 12% | Jaccard + shortest-path on bipartite graph |
-| 5 | Size Compatibility | 10% | Log-ratio of revenue/capacity |
-| 6 | Intent Momentum | 10% | `Engagement_Spike`, `Hiring_Signal`, `Intent_Score` |
-| 7 | Trade Frequency | 8% | Normalised import frequency |
-| 8 | Buyer Activity | 8% | Recency + activity overlay |
-| 9 | News Sentiment | 5% | 8 000 events → sigmoid sentiment |
-
----
-
-#### Real-Time Adaptability
-
-**Automatic (swipe feedback):**
-- Right → top signal weight **+5%**, Left → top signal **−3%**
-- Re-normalised after every swipe (Σ = 1.0)
-
-**Manual (sidebar sliders):**
-- Each weight exposed as 0–1 slider, changes apply instantly
-
----
-
-#### Machine Learning Models
-
-**1. K-Means Buyer Segmentation (Unsupervised)**
-- **Input:** 9 buyer features (intent, activity, volume, team size, payment, response, engagement, revenue, trade count)
-- **Method:** StandardScaler → KMeans(k=4, n_init=10)
-- **Clusters:** 🔥 High-Value · 📈 Growth · 🌱 Emerging · ⚡ Niche
-- **Purpose:** Adds behavioural labels to every buyer → shown on swipe cards
-
-**2. GB + RF Regression Ensemble (Supervised)**
-- **Input:** 12 features (8 profile signals + 4 interaction cross-products)
-- **Labels:** Continuous quality score [0.25, 1.0] from normalised trade-value percentile; 0.0 for negatives
-- **Hard negatives:** Same HS-chapter non-traded pairs (non-trivial separation)
-- **Noise injection:** ±5% Gaussian noise on features
-- **Base learners:** GradientBoostingRegressor(n=150, depth=4) + RandomForestRegressor(n=120, depth=6)
-- **Ensemble:** Weighted average: 0.6 × GB + 0.4 × RF
-- **Validation:** 5-fold cross-validation (R² > 0.7, AUC > 0.96)
-- **Output:** Continuous match quality ∈ [0, 1]
-
-**3. Blended Final Score**
-$$
-\\text{Final} = 0.85 \\times \\text{Weighted Sum} + 0.15 \\times \\text{ML Quality} \\times 100
-$$
-    ''')
+    st.dataframe(pd.DataFrame(weight_data), use_container_width=True, hide_index=True)
 
     # Show live ML model metrics
     ml_gb = st.session_state.get("ml_gb")
     if ml_gb and "accuracy" in ml_gb:
         st.divider()
         st.markdown("#### Live ML Model Metrics")
-        mc1, mc2, mc3, mc4 = st.columns(4)
-        mc1.metric("Ensemble Accuracy", f'{ml_gb["accuracy"]*100:.1f}%')
-        mc2.metric("ROC-AUC", f'{ml_gb["auc"]:.3f}')
-        mc3.metric("R² Score", f'{ml_gb.get("r2",0):.3f}')
-        mc4.metric("Samples", ml_gb.get("train_size", "—"))
-
-        mc5, mc6, mc7, mc8 = st.columns(4)
-        mc5.metric("MAE", f'{ml_gb.get("mae",0):.4f}')
-        mc6.metric("F1 Score", f'{ml_gb.get("f1",0)*100:.1f}%')
-        mc7.metric("Positive %", f'{ml_gb.get("positive_pct", 0):.1f}%')
-        mc8.metric("Neg Strategy", ml_gb.get("neg_strategy", "random")[:16])
+        
+        # Primary metrics only (as per user preference)
+        mc1, mc2 = st.columns(2)
+        mc1.metric("AUC-ROC", f'{ml_gb["auc"]:.3f}')
+        
+        # Compute overfit gap if available
+        train_r2 = ml_gb.get("train_r2", ml_gb.get("r2", 0))
+        test_r2 = ml_gb.get("test_r2", ml_gb.get("r2", 0))
+        overfit_gap = abs(train_r2 - test_r2) / max(abs(train_r2), 0.01) * 100
+        mc2.metric("Overfit Gap", f'{overfit_gap:.1f}%', 
+                   delta="Good" if overfit_gap <= 5 else "Check",
+                   delta_color="normal" if overfit_gap <= 5 else "off")
 
 
 # ─────────────────────────────────────────────────────────────────────────

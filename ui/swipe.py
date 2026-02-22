@@ -180,17 +180,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.2);">
                 _f = "✅" if funding else "—"
                 _r = f"{float(resp_prob):.0%}" if _is_num(resp_prob) else "N/A"
                 st.markdown(f"Hiring Growth: {_h}  \nFunding Event: {_f}  \nResponse Prob: {_r}")
-            with r_col2:
-                st.markdown("**Geo Risk Flags**")
-                _flags = []
-                if tariff: _flags.append("📋 Tariff Change")
-                if shock:  _flags.append("📉 Stock Shock")
-                if war:    _flags.append("⚔️ Conflict")
-                if calamity: _flags.append("🌊 Natural Calamity")
-                fx = details.get("currency_fluctuation", 0)
-                if _is_num(fx) and abs(float(fx)) > 0.3:
-                    _flags.append(f"💱 FX Shift ({float(fx):+.0%})")
-                st.markdown("  \n".join(_flags) if _flags else "✅ No risk flags")
+
 
         # ── 3 Action Buttons: Reject / Skip / Approve ───────────────
         col1, col2, col3 = st.columns(3)
