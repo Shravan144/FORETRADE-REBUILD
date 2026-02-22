@@ -165,6 +165,39 @@ def render_login_page() -> bool:
     if st.session_state.get("authenticated"):
         return True
 
+    # Try to restore session from localStorage (survives page reloads)
+    if not st.session_state.get("_auth_check_done"):
+        st.markdown("""
+        <script>
+        // Check localStorage for saved session
+        const saved = localStorage.getItem('foretrade_session');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // Send back to Streamlit via query params trick
+                const params = new URLSearchParams(window.location.search);
+                params.set('auto_auth', JSON.stringify(data));
+                window.history.replaceState({}, '', '?' + params.toString());
+            } catch(e) {}
+        }
+        </script>
+        """, unsafe_allow_html=True)
+        
+        # Check for auto-auth data in query params
+        params = st.query_params
+        if "auto_auth" in params:
+            try:
+                import json
+                auth_data = json.loads(params.get("auto_auth"))
+                st.session_state["authenticated"] = True
+                st.session_state["user_id"] = auth_data.get("user_id")
+                st.session_state["user"] = auth_data.get("user")
+                st.session_state["_auth_check_done"] = True
+                st.rerun()
+            except Exception:
+                pass
+        st.session_state["_auth_check_done"] = True
+
     # Logo
     st.markdown("""<div class="login-logo">
 <div style="font-size:2.4em;margin-bottom:4px;">🌍</div>
@@ -225,6 +258,17 @@ def _render_signin():
                         "industry": user.get("industry", ""),
                         "phone": user.get("phone", ""),
                     }
+                    # Save to localStorage for reload persistence
+                    import json
+                    session_data = json.dumps({
+                        "user_id": user["id"],
+                        "user": st.session_state["user"]
+                    })
+                    st.markdown(f"""
+                    <script>
+                    localStorage.setItem('foretrade_session', '{session_data}');
+                    </script>
+                    """, unsafe_allow_html=True)
                     st.rerun()
                     return
             except Exception:
@@ -247,12 +291,45 @@ def _render_signin():
             # No user_id when using session-only auth
             if "user_id" in st.session_state:
                 del st.session_state["user_id"]
+            # Save to localStorage for reload persistence
+            import json
+            session_data = json.dumps({
+                "user_id": None,
+                "user": st.session_state["user"]
+            })
+            st.markdown(f"""
+            <script>
+            localStorage.setItem('foretrade_session', '{session_data}');
+            </script>
+            """, unsafe_allow_html=True)
             st.rerun()
         else:
             st.error("Invalid email or password. Please try again.")
 
 
 def _render_signup():
+    # Industry options for dropdown
+    INDUSTRY_OPTIONS = [
+        "Engineering",
+        "IT Software",
+        "Electronics",
+        "Textiles",
+        "Pharmaceuticals",
+        "Agriculture",
+        "Chemicals",
+        "Automotive",
+        "Food & Beverages",
+        "Handicrafts",
+        "Leather Goods",
+        "Jewelry & Gems",
+        "Plastics",
+        "Metals",
+        "Machinery",
+        "Medical Devices",
+        "Renewable Energy",
+        "Other"
+    ]
+    
     with st.form("signup_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -262,7 +339,7 @@ def _render_signup():
 
         email = st.text_input("Email", placeholder="you@company.com", key="signup_email")
         company = st.text_input("Company Name", placeholder="Your Export Company")
-        industry = st.text_input("Industry", placeholder="e.g. Engineering, IT Software, Electronics", key="signup_industry")
+        industry = st.selectbox("Industry", options=INDUSTRY_OPTIONS, index=0, key="signup_industry")
         phone = st.text_input("Phone", placeholder="e.g. +91 98765 43210", key="signup_phone")
         password = st.text_input("Password", type="password", placeholder="Min 6 characters", key="signup_pw")
         password2 = st.text_input("Confirm Password", type="password", placeholder="Repeat password", key="signup_pw2")
@@ -329,6 +406,12 @@ def _render_signup():
 
 def logout():
     """Clear auth state (session + DB user_id). So next login loads approved leads from DB again."""
-    for key in ["authenticated", "user", "user_id", "_connected_loaded_from_db"]:
+    for key in ["authenticated", "user", "user_id", "_connected_loaded_from_db", "connected", "swipe_history", "card_index", "current_matches", "_auth_check_done"]:
         if key in st.session_state:
             del st.session_state[key]
+    # Clear browser localStorage
+    st.markdown("""
+    <script>
+    localStorage.removeItem('foretrade_session');
+    </script>
+    """, unsafe_allow_html=True)

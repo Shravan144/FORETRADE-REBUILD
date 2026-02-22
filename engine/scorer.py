@@ -15,12 +15,6 @@ PIPELINE:
     Exporter Profile + Buyer Profile + Graph Affinity 
         → compute_match_score() 
         → Match Score (0-100) + Breakdown
-
-TODO CHECKLIST:
-    [ ] HOUR 5-6: Implement compute_match_score()
-    [ ] HOUR 6:   Implement rank_matches_for_exporter()
-    [ ] HOUR 8:   Implement update_weights_from_swipe() (adaptability!)
-    [ ] HOUR 14:  Test with different weight configurations
 =============================================================================
 """
 

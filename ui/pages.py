@@ -175,6 +175,18 @@ def render_approved_leads_page(connected):
         st.info("No approved leads yet. Head to **Approve Leads** to start swiping.")
         return
 
+    # Deduplicate by buyer_id (safety check)
+    seen = set()
+    unique_connected = []
+    for lead in connected:
+        bid = lead.get("buyer_id")
+        if bid and bid not in seen:
+            seen.add(bid)
+            unique_connected.append(lead)
+        elif not bid:
+            unique_connected.append(lead)
+    connected = unique_connected
+
     # Compute real pipeline state
     pipeline = compute_pipeline_state(connected)
 

@@ -11,12 +11,6 @@ PIPELINE:
     Cleaned Data  →  build_exporter_profiles()  →  Exporter features
                   →  build_buyer_profiles()      →  Buyer features
                   →  compute_compatibility()     →  Pairwise match features
-
-TODO CHECKLIST:
-    [ ] HOUR 4: Implement build_exporter_profiles()
-    [ ] HOUR 4: Implement build_buyer_profiles()
-    [ ] HOUR 5: Implement compute_compatibility()
-    [ ] HOUR 6: (Optional) Add temporal features (trend detection)
 =============================================================================
 """
 

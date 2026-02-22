@@ -60,7 +60,6 @@ PRODUCT_CATEGORIES = {
 
 # ---------------------------------------------------------------------------
 # COUNTRIES & REGIONS  (for geography scoring)
-# TODO (HOUR 1-2): Expand with more trade corridors
 # ---------------------------------------------------------------------------
 TRADE_REGIONS = {
     "South Asia":       ["India", "Bangladesh", "Sri Lanka", "Pakistan", "Nepal"],

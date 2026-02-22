@@ -496,6 +496,7 @@ def render_sidebar(exporters: pd.DataFrame) -> dict:
         st.session_state.card_index = 0
         st.session_state.swipe_history = []
         st.session_state.current_matches = []
+        st.session_state.matches_to_show = 10  # Reset to initial batch
         for k in list(st.session_state.keys()):
             if k.startswith("_raw_cache_"):
                 del st.session_state[k]
@@ -1220,14 +1221,21 @@ def main():
         try:
             from db import get_user_approved_leads
             leads = get_user_approved_leads(uid)
+            # Start fresh to avoid duplicates with any existing session data
             hydrated = []
+            seen_buyer_ids = set()
             for lead in leads:
+                buyer_id = lead["buyer_id"]
+                # Skip duplicates (safety check)
+                if buyer_id in seen_buyer_ids:
+                    continue
+                seen_buyer_ids.add(buyer_id)
                 bd = lead.get("buyer_details") or {}
                 ma = lead.get("match_analysis") or {}
                 importer_details = {k: v for k, v in bd.items() if k not in ("buyer_name", "buyer_country")}
                 hydrated.append({
-                    "buyer_id": lead["buyer_id"],
-                    "buyer_name": bd.get("buyer_name") or lead["buyer_id"],
+                    "buyer_id": buyer_id,
+                    "buyer_name": bd.get("buyer_name") or buyer_id,
                     "buyer_country": bd.get("buyer_country") or "—",
                     "score": ma.get("score") or 0,
                     "breakdown": ma.get("breakdown") or {},
@@ -1240,10 +1248,14 @@ def main():
         except Exception:
             st.session_state["_connected_loaded_from_db"] = True  # avoid retry loop on DB error
 
-    exporters, buyers, transactions = load_data()
+    # Load data with user-friendly progress indicator
+    with st.spinner("📊 Loading trade data… (one-time setup)"):
+        exporters, buyers, transactions = load_data()
 
     # Build profiles & graph (cached)
-    exporter_profiles, buyer_profiles, graph = build_profiles_and_graph(exporters, buyers, transactions)
+    with st.spinner("🔗 Building trade network graph…"):
+        exporter_profiles, buyer_profiles, graph = build_profiles_and_graph(exporters, buyers, transactions)
+    
     news_df = load_news_data()
 
     # ── ML Model Loading (disk-cached for instant restarts) ────────────

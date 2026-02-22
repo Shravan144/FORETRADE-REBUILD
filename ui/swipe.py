@@ -22,12 +22,6 @@ DESIGN:
     │  │  ✖ Skip  │  │ ✔ Connect│ │
     │  └─────────┘  └───────────┘ │
     └──────────────────────────────┘
-
-TODO CHECKLIST:
-    [x] HOUR 8-10: Implement render_swipe_card()
-    [x] HOUR 10:   Implement render_swipe_interface()
-    [x] HOUR 10:   Wire up swipe callbacks to scorer.update_weights_from_swipe()
-    [x] HOUR 15:   Polish card styling with custom CSS
 =============================================================================
 """
 
@@ -420,21 +414,29 @@ def render_swipe_interface(matches: List[dict], exporter_id: Optional[str] = Non
         st.session_state.swipe_history = []
     if "connected" not in st.session_state:
         st.session_state.connected = []
+    if "matches_to_show" not in st.session_state:
+        st.session_state.matches_to_show = 10  # Start with 10, can load more
 
     if not matches:
         st.warning("No matches found for this exporter. Try adjusting the scoring weights or selecting a different exporter.")
         return
 
+    # Limit matches based on user preference
+    visible_matches = matches[:st.session_state.matches_to_show]
+
     # Show current match
-    if st.session_state.card_index < len(matches):
-        current = matches[st.session_state.card_index]
+    if st.session_state.card_index < len(visible_matches):
+        current = visible_matches[st.session_state.card_index]
         action = render_swipe_card(current)
 
         if action == "right":
             _persist_swipe("right", current)
             lead_item = dict(current)
             lead_item["exporter_id"] = lead_item.get("_exporter_id") or exporter_id
-            st.session_state.connected.append(lead_item)
+            # Avoid duplicates in session state
+            existing_ids = {c.get("buyer_id") for c in st.session_state.connected}
+            if lead_item["buyer_id"] not in existing_ids:
+                st.session_state.connected.append(lead_item)
             st.session_state.swipe_history.append({
                 "buyer_id": current["buyer_id"],
                 "direction": "right"
@@ -461,21 +463,32 @@ def render_swipe_interface(matches: List[dict], exporter_id: Optional[str] = Non
             st.rerun()
         
         # Show progress
-        reviewed = min(st.session_state.card_index + 1, len(matches))
-        total = len(matches)
+        reviewed = min(st.session_state.card_index + 1, len(visible_matches))
+        total = len(visible_matches)
         progress = reviewed / total
         st.markdown(f"""<div style="text-align:center;font-size:0.88em;color:#6b7280;margin-top:8px;">
 {reviewed} of {total} leads reviewed
 </div>""", unsafe_allow_html=True)
         st.progress(progress)
     else:
-        st.success("🎉 You've reviewed all matches!")
+        # Finished current batch
+        st.success(f"🎉 You've reviewed all {len(visible_matches)} matches!")
         st.write(f"✅ Approved {len(st.session_state.connected)} buyers")
-        st.write(f"Go to **Approved Leads** to manage your pipeline, or **Conversations** to see AI outreach.")
         
-        if st.button("🔄 Review Again"):
-            st.session_state.card_index = 0
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Review Again", use_container_width=True):
+                st.session_state.card_index = 0
+                st.rerun()
+        with col2:
+            # Show Load More if there are more matches available
+            if st.session_state.matches_to_show < len(matches):
+                remaining = len(matches) - st.session_state.matches_to_show
+                if st.button(f"➕ Load More ({remaining} remaining)", type="primary", use_container_width=True):
+                    st.session_state.matches_to_show += 10  # Load 10 more
+                    st.rerun()
+            else:
+                st.info("No more matches available. Try adjusting weights for different results.")
 
 
 def inject_card_css() -> None:
