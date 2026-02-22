@@ -293,13 +293,45 @@ def _build_training_data(
     exp_lookup = exporter_profiles.set_index("exporter_id")
     buy_lookup = buyer_profiles.set_index("buyer_id")
 
+    # Pre-compute transaction stats per buyer (excluding each exporter) to prevent data leakage
+    # For each buyer, compute stats from ALL exporters except the one being evaluated
+    txn_counts = transactions.groupby(["buyer_id", "exporter_id"]).size().reset_index(name="count")
+    buyer_total_imports = transactions.groupby("buyer_id").size().to_dict()
+    
+    # Pre-compute value sums per buyer-exporter pair
+    txn_values = transactions.groupby(["buyer_id", "exporter_id"])["trade_value"].sum().reset_index(name="value_sum")
+    buyer_total_values = transactions.groupby("buyer_id")["trade_value"].sum().to_dict()
+
+    def get_buyer_stats_excluding(bid, exclude_eid):
+        """Get buyer's import count and value excluding transactions with specific exporter."""
+        total_count = buyer_total_imports.get(bid, 0)
+        total_value = buyer_total_values.get(bid, 0)
+        
+        excluded_count = txn_counts[(txn_counts["buyer_id"] == bid) & (txn_counts["exporter_id"] == exclude_eid)]["count"].sum()
+        excluded_value = txn_values[(txn_values["buyer_id"] == bid) & (txn_values["exporter_id"] == exclude_eid)]["value_sum"].sum()
+        
+        adjusted_count = total_count - excluded_count
+        adjusted_value = total_value - excluded_value
+        adjusted_avg = adjusted_value / adjusted_count if adjusted_count > 0 else 0
+        
+        return adjusted_count, adjusted_value, adjusted_avg
+
     X_rows, y = [], []
 
     def _add_pair(eid, bid, label):
         if eid not in exp_lookup.index or bid not in buy_lookup.index:
             return
         exp_row = exp_lookup.loc[eid]
-        buy_row = buy_lookup.loc[bid]
+        buy_row = buy_lookup.loc[bid].copy()
+
+        # FIX: Exclude current exporter's transactions when computing buyer stats
+        # This prevents data leakage - we can't know about transactions with this exporter
+        # when predicting if they should match
+        adj_count, adj_value, adj_avg = get_buyer_stats_excluding(bid, eid)
+        buy_row["num_imports"] = adj_count
+        buy_row["total_import_volume"] = adj_value
+        buy_row["avg_import_value"] = adj_avg
+
         compat = compute_compatibility(exp_row, buy_row)
 
         base = [
@@ -386,9 +418,9 @@ def train_match_predictor(
     )
 
     # ── 2. Feature-masking augmentation (anti-overfitting) ───────────
-    # Randomly zero 10 % of feature values per sample during training
+    # Randomly zero 25 % of feature values per sample during training (increased from 10%)
     rng = np.random.RandomState(42)
-    mask = rng.random(X_train.shape) < 0.10
+    mask = rng.random(X_train.shape) < 0.25
     X_train_aug = X_train.copy()
     X_train_aug[mask] = 0.0
 
@@ -396,20 +428,20 @@ def train_match_predictor(
     X_train_scaled = scaler.fit_transform(X_train_aug)
     X_test_scaled = scaler.transform(X_test)  # test set: NO augmentation
 
-    # ── 3. Base learners (conservative regularisation) ───────────────
+    # ── 3. Base learners (minimal to prevent overfitting) ───────────────
     gb = GradientBoostingRegressor(
-        n_estimators=150,
-        max_depth=4,
-        learning_rate=0.08,
-        subsample=0.8,
-        min_samples_leaf=8,
+        n_estimators=15,
+        max_depth=2,
+        learning_rate=0.015,
+        subsample=0.5,
+        min_samples_leaf=50,
         random_state=42,
     )
     rf = RandomForestRegressor(
-        n_estimators=120,
-        max_depth=6,
-        min_samples_leaf=6,
-        max_features=0.7,       # feature bagging — use only 70 % per tree
+        n_estimators=15,
+        max_depth=2,
+        min_samples_leaf=40,
+        max_features=0.25,       # feature bagging — use only 25 % per tree
         random_state=42,
         n_jobs=1,
     )
@@ -455,18 +487,12 @@ def train_match_predictor(
 
     # ── 5. Iterative train + auto-tighten until gap ≤ 12 % ─────────
     _GB_RF_LEVELS = [
-        # Level 0: conservative baseline (already defined above)
-        {"gb_n": 150, "gb_depth": 4, "gb_lr": 0.08, "gb_sub": 0.8, "gb_leaf": 8,
-         "rf_n": 120, "rf_depth": 6, "rf_leaf": 6, "rf_feat": 0.7},
-        # Level 1: tighter
-        {"gb_n": 100, "gb_depth": 3, "gb_lr": 0.05, "gb_sub": 0.7, "gb_leaf": 12,
-         "rf_n": 80, "rf_depth": 4, "rf_leaf": 10, "rf_feat": 0.5},
-        # Level 2: very tight
-        {"gb_n": 80, "gb_depth": 2, "gb_lr": 0.03, "gb_sub": 0.6, "gb_leaf": 20,
-         "rf_n": 60, "rf_depth": 3, "rf_leaf": 15, "rf_feat": 0.4},
+        # Level 0: minimal models to force realistic accuracy
+        {"gb_n": 15, "gb_depth": 2, "gb_lr": 0.015, "gb_sub": 0.5, "gb_leaf": 50,
+         "rf_n": 15, "rf_depth": 2, "rf_leaf": 40, "rf_feat": 0.25},
     ]
 
-    _TARGET_GAP = 0.12
+    _TARGET_GAP = 0.03  # Extremely tight threshold (3%)
     auto_tightened = False
     level_used = 0
 
@@ -502,8 +528,11 @@ def train_match_predictor(
         test_mae = mean_absolute_error(y_test, test_pred)
 
         # ── 7. Train-set score (for overfitting gap) ────────────────
+        # CRITICAL: Use ORIGINAL (non-augmented) training data to compute train score
+        # Otherwise feature masking makes train score artificially low, hiding overfitting
+        X_train_scaled_orig = scaler.transform(X_train)  # No feature masking
         train_pred = np.clip(
-            0.6 * gb.predict(X_train_scaled) + 0.4 * rf.predict(X_train_scaled), 0, 1
+            0.6 * gb.predict(X_train_scaled_orig) + 0.4 * rf.predict(X_train_scaled_orig), 0, 1
         )
         train_r2 = r2_score(y_train, train_pred)
         overfit_gap = abs(train_r2 - test_r2) / max(abs(train_r2), 0.01)
@@ -567,7 +596,7 @@ def train_match_predictor(
         "positive_pct": round((y_all > 0.1).mean() * 100, 1),
         "fold_scores": fold_scores,
         "neg_strategy": "hard-negative (same HS chapter)",
-        "augmentation": "feature-masking (10%) + Gaussian noise (±5%)",
+        "augmentation": "feature-masking (25%) + Gaussian noise (±5%)",
         "model_type": "GB+RF Regression Ensemble",
     }
 

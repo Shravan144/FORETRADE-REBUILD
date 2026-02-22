@@ -194,37 +194,40 @@ def render_login_page() -> bool:
                 st.session_state["user"] = auth_data.get("user")
                 st.session_state["_auth_check_done"] = True
                 st.rerun()
+                return True
             except Exception:
                 pass
         st.session_state["_auth_check_done"] = True
 
-    # Logo
-    st.markdown("""<div class="login-logo">
-<div style="font-size:2.4em;margin-bottom:4px;">🌍</div>
-<h1>ForeTrade</h1>
-<p>AI Export Engine</p>
-</div>""", unsafe_allow_html=True)
+    # Wrap login in container to prevent duplication
+    with st.container():
+        # Logo
+        st.markdown("""<div class="login-logo">
+        <div style="font-size:2.4em;margin-bottom:4px;">🌍</div>
+        <h1>ForeTrade</h1>
+        <p>AI Export Engine</p>
+        </div>""", unsafe_allow_html=True)
 
-    st.markdown("""<div class="login-subtitle">
-<h2>Welcome Back</h2>
-<p style="color:#94a3b8;font-size:.92em;">Sign in to your AI-powered export dashboard</p>
-</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="login-subtitle">
+        <h2>Welcome Back</h2>
+        <p style="color:#94a3b8;font-size:.92em;">Sign in to your AI-powered export dashboard</p>
+        </div>""", unsafe_allow_html=True)
 
-    # Tab toggle for login / signup
-    tab_login, tab_signup = st.tabs(["Sign In", "Create Account"])
+        # Tab toggle for login / signup
+        tab_login, tab_signup = st.tabs(["Sign In", "Create Account"])
 
-    with tab_login:
-        _render_signin()
+        with tab_login:
+            _render_signin()
 
-    with tab_signup:
-        _render_signup()
+        with tab_signup:
+            _render_signup()
 
-    # Demo credentials hint
-    st.markdown("""<div class="login-hint">
-<strong>Demo credentials:</strong><br>
-Email: <code>shravan@foretrade.ai</code><br>
-Password: <code>shravan123</code>
-</div>""", unsafe_allow_html=True)
+        # Demo credentials hint
+        st.markdown("""<div class="login-hint">
+    <strong>Demo credentials:</strong><br>
+    Email: <code>shravan@foretrade.ai</code><br>
+    Password: <code>shravan123</code>
+    </div>""", unsafe_allow_html=True)
 
     return st.session_state.get("authenticated", False)
 
