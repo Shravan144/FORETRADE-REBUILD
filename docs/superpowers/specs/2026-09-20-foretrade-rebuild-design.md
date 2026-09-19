@@ -72,6 +72,9 @@ Uses a dedicated, read-only seeded demo workspace. No demo action changes shared
 ### 4.1 Authentication and workspaces
 
 - Email/password authentication using Argon2id hashes and server-managed secure, HTTP-only session cookies.
+- Optional Google sign-in/sign-up through OpenID Connect with authorization-code flow and PKCE. FastAPI verifies the provider response, finds or creates the account using the verified email, and creates the same ForeTrade session used by password login.
+- Google OAuth requests only `openid`, `email`, and `profile`. It does not request Gmail, Drive, contacts, or other Google data. Google client credentials are optional local environment configuration; password login remains fully functional when they are absent.
+- Existing accounts can link Google identity only after a verified-email match while authenticated, or after explicit account-verification flow. A provider-supplied email alone must not silently attach an identity to an existing account.
 - CSRF protection for state-changing cookie-authenticated requests.
 - No client-controlled identity, local-storage authentication token, hard-coded demo password, or URL-based login shortcut.
 - Every domain record belongs to a workspace. Every API query checks workspace membership before reading or writing data.
