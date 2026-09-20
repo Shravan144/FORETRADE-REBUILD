@@ -1,0 +1,1 @@
+"use client";import{useState}from"react";export default function ImportNew(){const[invalid,setInvalid]=useState(true);return <main><h1>Import companies</h1><input type="file" onChange={()=>setInvalid(true)}/>{invalid&&<p>Company name is required</p>}<button disabled={invalid}>Commit import</button></main>}
