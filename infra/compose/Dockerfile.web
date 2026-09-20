@@ -1,0 +1,6 @@
+FROM node:24.14-alpine
+WORKDIR /app/apps/web
+COPY apps/web/package.json ./
+RUN npm install --no-audit --no-fund
+COPY apps/web ./
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]

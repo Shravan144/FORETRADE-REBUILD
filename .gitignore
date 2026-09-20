@@ -1,32 +1,6 @@
-# Python
 .venv/
-venv/
-env/
+node_modules/
+.next/
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-.eggs/
-dist/
-build/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Optional: ignore large data if you prefer (uncomment if CSVs are huge)
-# data/*.csv
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Secrets
+.pytest_cache/
 .env
