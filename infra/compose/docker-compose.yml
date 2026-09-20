@@ -10,7 +10,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    ports: ["5432:5432"]
+    ports: ["5433:5432"]
   redis:
     image: redis:7-alpine
     healthcheck:
@@ -42,5 +42,6 @@ services:
     build: { context: ../.., dockerfile: infra/compose/Dockerfile.web }
     ports: ["3000:3000"]
     depends_on: [api]
+
 
 
