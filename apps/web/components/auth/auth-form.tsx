@@ -1,0 +1,3 @@
+"use client";
+import {useState} from "react";
+export function AuthForm({mode}:{mode:"register"|"sign-in"}){const[email,setEmail]=useState("");const[password,setPassword]=useState("");return <form onSubmit={async e=>{e.preventDefault();await fetch(`/api/v1/auth/${mode==="register"?"register":"login"}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})})}}><label>Email<input aria-label="Email" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input aria-label="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button>{mode==="register"?"Create account":"Sign in"}</button><button type="button" disabled>Continue with Google</button></form>}
