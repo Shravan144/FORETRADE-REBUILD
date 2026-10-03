@@ -1,0 +1,1 @@
+export function MarketScoreCard({score,confidence,sourcePeriod}:{score:number;confidence:string;sourcePeriod:string}){return <article><strong>{score}</strong><p>Confidence: {confidence}</p><p>Source period: {sourcePeriod}</p></article>}

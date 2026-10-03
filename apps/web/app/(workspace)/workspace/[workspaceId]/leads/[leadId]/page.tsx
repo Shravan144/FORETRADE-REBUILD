@@ -1,0 +1,1 @@
+"use client";import{useState}from"react";export default function Lead(){const[m,setM]=useState('');return <main><h1>Lead</h1><button onClick={()=>setM('Record a reply received event first.')}>Change stage</button><button onClick={()=>setM('Draft exported. It has not been sent.')}>Export draft</button><p>{m}</p></main>}

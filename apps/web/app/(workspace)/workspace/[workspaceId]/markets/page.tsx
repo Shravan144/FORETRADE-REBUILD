@@ -1,0 +1,1 @@
+import {MarketScoreCard} from "../../../../../components/markets/market-score-card";export default function Markets(){return <main><h1>Market Explorer</h1><MarketScoreCard score={72} confidence="low" sourcePeriod="2025"/></main>}
