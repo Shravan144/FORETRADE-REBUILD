@@ -29,12 +29,12 @@ services:
   api:
     build: { context: ../.., dockerfile: infra/compose/Dockerfile.api }
     ports: ["8000:8000"]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-  worker:
-    build: { context: ../.., dockerfile: infra/compose/Dockerfile.api }
-    command: python -c "import time; time.sleep(3600)"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-foretrade}:${POSTGRES_PASSWORD:-foretrade-local-only}@postgres:5432/${POSTGRES_DB:-foretrade}
+      COOKIE_SECURE: "false"
+      UPLOAD_DIR: /data/uploads
+      CORS_ORIGINS: http://localhost:3000
+    volumes: ["uploads:/data/uploads"]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -42,6 +42,9 @@ services:
     build: { context: ../.., dockerfile: infra/compose/Dockerfile.web }
     ports: ["3000:3000"]
     depends_on: [api]
+
+volumes:
+  uploads:
 
 
 

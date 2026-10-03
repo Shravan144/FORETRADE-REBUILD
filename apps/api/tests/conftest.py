@@ -1,15 +1,19 @@
 import os
+import tempfile
+
+os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["COOKIE_SECURE"] = "false"
+os.environ["UPLOAD_DIR"] = os.path.join(tempfile.gettempdir(), "foretrade-api-tests")
+
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+from app.db.base import Base
+from app.db.session import engine
+from app.models import audit_event, domain, exporter_profile, session, user, workspace  # noqa: F401
 
 
-@pytest.fixture(scope="session")
-def postgres_engine() -> Engine:
-    url = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg://foretrade:foretrade-local-only@localhost:5433/foretrade")
-    engine = create_engine(url)
-    try:
-        yield engine
-    finally:
-        engine.dispose()
-
+@pytest.fixture(autouse=True)
+def fresh_database():
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    yield
+    Base.metadata.drop_all(engine)
