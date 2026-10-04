@@ -1,0 +1,112 @@
+[
+  {
+    "country_code": "US",
+    "country_name": "United States",
+    "political_stability_score": 0.45,
+    "rule_of_law_score": 1.48,
+    "regulatory_quality_score": 1.55,
+    "composite_risk_score": 12.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "USD",
+    "fx_volatility_pct": 1.5
+  },
+  {
+    "country_code": "DE",
+    "country_name": "Germany",
+    "political_stability_score": 0.72,
+    "rule_of_law_score": 1.62,
+    "regulatory_quality_score": 1.68,
+    "composite_risk_score": 9.5,
+    "risk_tier": "Low Risk",
+    "currency_code": "EUR",
+    "fx_volatility_pct": 2.1
+  },
+  {
+    "country_code": "GB",
+    "country_name": "United Kingdom",
+    "political_stability_score": 0.51,
+    "rule_of_law_score": 1.42,
+    "regulatory_quality_score": 1.58,
+    "composite_risk_score": 14.2,
+    "risk_tier": "Low Risk",
+    "currency_code": "GBP",
+    "fx_volatility_pct": 2.8
+  },
+  {
+    "country_code": "AE",
+    "country_name": "United Arab Emirates",
+    "political_stability_score": 0.65,
+    "rule_of_law_score": 0.92,
+    "regulatory_quality_score": 1.15,
+    "composite_risk_score": 21.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "AED",
+    "fx_volatility_pct": 0.2
+  },
+  {
+    "country_code": "JP",
+    "country_name": "Japan",
+    "political_stability_score": 0.98,
+    "rule_of_law_score": 1.58,
+    "regulatory_quality_score": 1.45,
+    "composite_risk_score": 10.5,
+    "risk_tier": "Low Risk",
+    "currency_code": "JPY",
+    "fx_volatility_pct": 4.5
+  },
+  {
+    "country_code": "AU",
+    "country_name": "Australia",
+    "political_stability_score": 0.88,
+    "rule_of_law_score": 1.65,
+    "regulatory_quality_score": 1.72,
+    "composite_risk_score": 8.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "AUD",
+    "fx_volatility_pct": 3.2
+  },
+  {
+    "country_code": "SG",
+    "country_name": "Singapore",
+    "political_stability_score": 1.25,
+    "rule_of_law_score": 1.82,
+    "regulatory_quality_score": 2.1,
+    "composite_risk_score": 5.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "SGD",
+    "fx_volatility_pct": 1.8
+  },
+  {
+    "country_code": "NL",
+    "country_name": "Netherlands",
+    "political_stability_score": 0.81,
+    "rule_of_law_score": 1.71,
+    "regulatory_quality_score": 1.79,
+    "composite_risk_score": 8.5,
+    "risk_tier": "Low Risk",
+    "currency_code": "EUR",
+    "fx_volatility_pct": 2.1
+  },
+  {
+    "country_code": "FR",
+    "country_name": "France",
+    "political_stability_score": 0.28,
+    "rule_of_law_score": 1.35,
+    "regulatory_quality_score": 1.4,
+    "composite_risk_score": 18.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "EUR",
+    "fx_volatility_pct": 2.1
+  },
+  {
+    "country_code": "CA",
+    "country_name": "Canada",
+    "political_stability_score": 0.85,
+    "rule_of_law_score": 1.6,
+    "regulatory_quality_score": 1.65,
+    "composite_risk_score": 9.0,
+    "risk_tier": "Low Risk",
+    "currency_code": "CAD",
+    "fx_volatility_pct": 2.4
+  }
+]

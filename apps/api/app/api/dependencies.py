@@ -1,5 +1,4 @@
-"""Shared request dependencies for authenticated, workspace-scoped endpoints."""
-
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import Depends, HTTPException, Request
@@ -32,8 +31,26 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = db.get(User, session.user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="authentication_required")
-    session.last_seen_at = now
-    db.commit()
+    if not session.last_seen_at or (now - _as_utc(session.last_seen_at)).total_seconds() > 300:
+        session.last_seen_at = now
+        db.commit()
+    return user
+
+
+def get_optional_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    token = request.cookies.get(settings.session_cookie_name)
+    if not token:
+        return None
+    session = db.scalar(select(SessionToken).where(SessionToken.token_hash == hash_token(token)))
+    now = datetime.now(timezone.utc)
+    if not session or session.revoked_at or _as_utc(session.expires_at) <= now:
+        return None
+    user = db.get(User, session.user_id)
+    if not user or not user.is_active:
+        return None
+    if not session.last_seen_at or (now - _as_utc(session.last_seen_at)).total_seconds() > 300:
+        session.last_seen_at = now
+        db.commit()
     return user
 
 
@@ -41,7 +58,7 @@ def require_csrf(request: Request, user: User = Depends(get_current_user), db: S
     token = request.cookies.get(settings.session_cookie_name)
     session = db.scalar(select(SessionToken).where(SessionToken.token_hash == hash_token(token)))
     supplied = request.headers.get("X-CSRF-Token")
-    if not session or not supplied or supplied != session.csrf_token:
+    if not session or not supplied or not secrets.compare_digest(supplied, session.csrf_token):
         raise HTTPException(status_code=403, detail="csrf_validation_failed")
     return user
 

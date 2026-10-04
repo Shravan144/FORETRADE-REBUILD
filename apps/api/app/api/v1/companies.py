@@ -47,3 +47,29 @@ def calculate_score(workspace_id: str, company_id: str, user: User = Depends(req
     snapshot = ScoreSnapshot(workspace_id=workspace_id, company_id=company.id, profile_version=profile.version if profile else None, score=result.score, tier=result.tier, reason_codes=result.reasons, feature_values=result.features, algorithm_version=ALGORITHM_VERSION)
     db.add(snapshot); db.commit(); db.refresh(snapshot)
     return {"id": snapshot.id, "company_id": company.id, "score": snapshot.score, "tier": snapshot.tier, "reason_codes": snapshot.reason_codes, "feature_values": snapshot.feature_values, "algorithm_version": snapshot.algorithm_version}
+
+
+@router.get("/{workspace_id}/companies/{company_id}/scores")
+def get_company_scores(workspace_id: str, company_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    require_workspace_role(workspace_id, user, db, "viewer")
+    snapshots = db.scalars(
+        select(ScoreSnapshot)
+        .where(ScoreSnapshot.workspace_id == workspace_id, ScoreSnapshot.company_id == company_id)
+        .order_by(ScoreSnapshot.created_at.desc())
+    ).all()
+    return {
+        "items": [
+            {
+                "id": s.id,
+                "company_id": s.company_id,
+                "score": s.score,
+                "tier": s.tier,
+                "reason_codes": s.reason_codes,
+                "feature_values": s.feature_values,
+                "algorithm_version": s.algorithm_version,
+                "profile_version": s.profile_version,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in snapshots
+        ]
+    }

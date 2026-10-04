@@ -1,6 +1,25 @@
-.venv/
+# Dependencies
 node_modules/
+.venv/
+
+# Build & caches
 .next/
 __pycache__/
 .pytest_cache/
+.turbo/
+dist/
+coverage/
+
+# Environment & secrets
 .env
+.env.*
+!.env.example
+!apps/api/.env.example
+!apps/web/.env.example
+
+# Runtime databases & temporary uploads
+*.db
+*.sqlite
+*.sqlite3
+.uploads/
+*.log

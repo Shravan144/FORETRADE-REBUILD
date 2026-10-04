@@ -8,7 +8,7 @@ os.environ["UPLOAD_DIR"] = os.path.join(tempfile.gettempdir(), "foretrade-api-te
 import pytest
 from app.db.base import Base
 from app.db.session import engine
-from app.models import audit_event, domain, exporter_profile, session, user, workspace  # noqa: F401
+from app.models import audit_event, domain, exporter_profile, session, trade_intelligence, user, workspace  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

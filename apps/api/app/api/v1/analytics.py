@@ -29,7 +29,7 @@ def analytics(workspace_id: str, user: User = Depends(get_current_user), db: Ses
 
 @router.post("/{workspace_id}/exports/companies", status_code=202)
 def export_companies(workspace_id: str, user: User = Depends(require_csrf), db: Session = Depends(get_db)) -> dict:
-    require_workspace_role(workspace_id, user, db)
+    require_workspace_role(workspace_id, user, db, "editor")
     companies = list(db.scalars(select(Company).where(Company.workspace_id == workspace_id).order_by(Company.name)))
     output = StringIO(); writer = csv.writer(output)
     writer.writerow(["company_name", "country_code", "website", "product_or_industry", "contact_name", "contact_email", "contact_phone", "provenance"])

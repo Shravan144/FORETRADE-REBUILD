@@ -21,7 +21,11 @@
     "allowJs": true,
     "skipLibCheck": true,
     "incremental": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "next-env.d.ts",

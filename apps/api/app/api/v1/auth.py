@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_csrf
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.session import LoginRateLimit, OAuthAuthorization, SessionToken
@@ -43,7 +43,8 @@ def exchange_google_authorization(code: str, verifier: str, nonce: str) -> dict:
 
 
 def _rate_limit_key(email: str, request: Request) -> str:
-    client_host = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    client_host = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
     return hashlib.sha256(f"{email.strip().lower()}:{client_host}".encode("utf-8")).hexdigest()
 
 
@@ -107,7 +108,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
 
 
 @router.post("/logout", status_code=204)
-def logout(request: Request, response: Response, db: Session = Depends(get_db)) -> Response:
+def logout(request: Request, response: Response, user: User = Depends(require_csrf), db: Session = Depends(get_db)) -> None:
     token = request.cookies.get(settings.session_cookie_name)
     if token:
         record = db.scalar(select(SessionToken).where(SessionToken.token_hash == hash_token(token)))
@@ -115,7 +116,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
             record.revoked_at = datetime.now(timezone.utc)
             db.commit()
     response.delete_cookie(settings.session_cookie_name)
-    return response
+    return None
 
 
 @router.get("/me")
@@ -138,7 +139,12 @@ def google_start(db: Session = Depends(get_db)):
 
 
 @router.get("/google/callback")
-def google_callback(code: str | None = None, state: str | None = None, db: Session = Depends(get_db)):
+def google_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    db: Session = Depends(get_db),
+):
     if not (settings.google_client_id and settings.google_client_secret and settings.google_redirect_uri):
         return JSONResponse(status_code=503, content={"code": "google_oauth_unconfigured"})
     authorization = db.scalar(select(OAuthAuthorization).where(OAuthAuthorization.state_hash == hash_token(state or "")))
@@ -156,6 +162,13 @@ def google_callback(code: str | None = None, state: str | None = None, db: Sessi
     csrf = secrets.token_urlsafe(32)
     db.add(SessionToken(user_id=user.id, token_hash=hash_token(token), csrf_token=csrf, expires_at=session_expiry(settings.session_ttl_hours)))
     db.commit()
-    response = JSONResponse({"csrf_token": csrf, "email": user.email})
+
+    # Browser navigation receives redirect to onboarding, API client receives JSON
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        response = RedirectResponse(f"{settings.frontend_url}/onboarding", status_code=303)
+    else:
+        response = JSONResponse({"csrf_token": csrf, "email": user.email})
+
     response.set_cookie(settings.session_cookie_name, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
     return response

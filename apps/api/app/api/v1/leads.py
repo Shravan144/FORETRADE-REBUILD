@@ -8,10 +8,10 @@ from app.api.dependencies import get_current_user, require_csrf, require_workspa
 from app.db.session import get_db
 from app.models.domain import Company, Lead, LeadEvent, OutreachDraft
 from app.models.user import User
+from app.services.lead_service import REQUIRED_EVENT_FOR_STAGE
 
 router = APIRouter(prefix="/api/v1/workspaces", tags=["leads"])
 VALID_STAGES = {"new", "qualified", "contacted", "replied", "meeting", "won", "lost"}
-EVENT_REQUIRED_STAGE = {"replied": "reply_received", "meeting": "meeting"}
 
 
 class LeadCreate(BaseModel):
@@ -36,7 +36,28 @@ class DraftWrite(BaseModel):
 
 
 def serialize(lead: Lead) -> dict:
-    return {"id": lead.id, "company_id": lead.company_id, "stage": lead.stage, "owner_user_id": lead.owner_user_id, "notes": lead.notes, "created_at": lead.created_at.isoformat() if lead.created_at else None, "updated_at": lead.updated_at.isoformat() if lead.updated_at else None}
+    return {
+        "id": lead.id,
+        "company_id": lead.company_id,
+        "stage": lead.stage,
+        "owner_user_id": lead.owner_user_id,
+        "notes": lead.notes,
+        "created_at": lead.created_at.isoformat() if lead.created_at else None,
+        "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
+    }
+
+
+def serialize_draft(draft: OutreachDraft) -> dict:
+    return {
+        "id": draft.id,
+        "lead_id": draft.lead_id,
+        "created_by_user_id": draft.created_by_user_id,
+        "channel": draft.channel,
+        "subject": draft.subject,
+        "body": draft.body,
+        "status": draft.status,
+        "created_at": draft.created_at.isoformat() if draft.created_at else None,
+    }
 
 
 def get_lead(db: Session, workspace_id: str, lead_id: str) -> Lead:
@@ -63,9 +84,11 @@ def create_lead(workspace_id: str, payload: LeadCreate, user: User = Depends(req
     lead = Lead(workspace_id=workspace_id, company_id=payload.company_id, owner_user_id=user.id, notes=payload.notes)
     db.add(lead)
     try:
-        db.commit(); db.refresh(lead)
+        db.commit()
+        db.refresh(lead)
     except IntegrityError:
-        db.rollback(); raise HTTPException(status_code=409, detail="lead_already_exists")
+        db.rollback()
+        raise HTTPException(status_code=409, detail="lead_already_exists")
     return serialize(lead)
 
 
@@ -74,7 +97,9 @@ def create_event(workspace_id: str, lead_id: str, payload: LeadEventWrite, user:
     require_workspace_role(workspace_id, user, db, "editor")
     lead = get_lead(db, workspace_id, lead_id)
     event = LeadEvent(lead_id=lead.id, actor_user_id=user.id, event_type=payload.event_type, payload=payload.payload)
-    db.add(event); db.commit(); db.refresh(event)
+    db.add(event)
+    db.commit()
+    db.refresh(event)
     return {"id": event.id, "event_type": event.event_type, "payload": event.payload, "occurred_at": event.occurred_at.isoformat() if event.occurred_at else None}
 
 
@@ -84,27 +109,40 @@ def change_stage(workspace_id: str, lead_id: str, payload: LeadStageChange, user
     if payload.stage not in VALID_STAGES:
         raise HTTPException(status_code=422, detail="invalid_lead_stage")
     lead = get_lead(db, workspace_id, lead_id)
-    required_event = EVENT_REQUIRED_STAGE.get(payload.stage)
+    required_event = REQUIRED_EVENT_FOR_STAGE.get(payload.stage)
     if required_event and not db.scalar(select(LeadEvent).where(LeadEvent.lead_id == lead.id, LeadEvent.event_type == required_event)):
         raise HTTPException(status_code=409, detail="required_event_missing")
     lead.stage = payload.stage
     if payload.note is not None:
         lead.notes = payload.note
     db.add(LeadEvent(lead_id=lead.id, actor_user_id=user.id, event_type="stage_changed", payload={"stage": payload.stage}))
-    db.commit(); db.refresh(lead)
+    db.commit()
+    db.refresh(lead)
     return serialize(lead)
 
 
 @router.get("/{workspace_id}/leads/{lead_id}/events")
 def list_events(workspace_id: str, lead_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    require_workspace_role(workspace_id, user, db); get_lead(db, workspace_id, lead_id)
+    require_workspace_role(workspace_id, user, db)
+    get_lead(db, workspace_id, lead_id)
     items = db.scalars(select(LeadEvent).where(LeadEvent.lead_id == lead_id).order_by(LeadEvent.occurred_at.desc()))
     return {"items": [{"id": item.id, "event_type": item.event_type, "payload": item.payload, "occurred_at": item.occurred_at.isoformat() if item.occurred_at else None} for item in items]}
 
 
 @router.post("/{workspace_id}/leads/{lead_id}/drafts", status_code=201)
 def create_draft(workspace_id: str, lead_id: str, payload: DraftWrite, user: User = Depends(require_csrf), db: Session = Depends(get_db)) -> dict:
-    require_workspace_role(workspace_id, user, db, "editor"); lead = get_lead(db, workspace_id, lead_id)
+    require_workspace_role(workspace_id, user, db, "editor")
+    lead = get_lead(db, workspace_id, lead_id)
     draft = OutreachDraft(lead_id=lead.id, created_by_user_id=user.id, channel=payload.channel, subject=payload.subject, body=payload.body, status="draft")
-    db.add(draft); db.commit(); db.refresh(draft)
-    return {"id": draft.id, "channel": draft.channel, "subject": draft.subject, "body": draft.body, "status": draft.status}
+    db.add(draft)
+    db.commit()
+    db.refresh(draft)
+    return serialize_draft(draft)
+
+
+@router.get("/{workspace_id}/leads/{lead_id}/drafts")
+def list_drafts(workspace_id: str, lead_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    require_workspace_role(workspace_id, user, db)
+    get_lead(db, workspace_id, lead_id)
+    drafts = db.scalars(select(OutreachDraft).where(OutreachDraft.lead_id == lead_id).order_by(OutreachDraft.created_at.desc()))
+    return {"items": [serialize_draft(draft) for draft in drafts]}

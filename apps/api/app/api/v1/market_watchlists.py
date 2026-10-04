@@ -39,3 +39,15 @@ def list_items(workspace_id: str, user: User = Depends(get_current_user), db: Se
     require_workspace_role(workspace_id, user, db)
     items = db.scalars(select(MarketWatchlistItem).where(MarketWatchlistItem.workspace_id == workspace_id).order_by(MarketWatchlistItem.created_at.desc()))
     return {"items": [serialize(item) for item in items]}
+
+
+@router.delete("/{workspace_id}/market-watchlist/{item_id}", status_code=204)
+def delete_item(workspace_id: str, item_id: str, user: User = Depends(require_csrf), db: Session = Depends(get_db)):
+    from fastapi import HTTPException
+    require_workspace_role(workspace_id, user, db, "editor")
+    item = db.scalar(select(MarketWatchlistItem).where(MarketWatchlistItem.id == item_id, MarketWatchlistItem.workspace_id == workspace_id))
+    if not item:
+        raise HTTPException(status_code=404, detail="watchlist_item_not_found")
+    db.delete(item)
+    db.commit()
+    return None

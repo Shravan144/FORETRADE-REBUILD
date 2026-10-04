@@ -29,11 +29,13 @@ def list_workspaces(user: User = Depends(get_current_user), db: Session = Depend
 
 @router.post("", status_code=201)
 def create_workspace(payload: WorkspaceWrite, user: User = Depends(require_csrf), db: Session = Depends(get_db)) -> dict:
+    from app.services.workspace_service import seed_starter_companies_for_workspace
     workspace = Workspace(name=payload.name.strip())
     db.add(workspace); db.flush()
     db.add(WorkspaceMembership(workspace_id=workspace.id, user_id=user.id, role=WorkspaceRole.OWNER.value))
     record_audit_event(db, workspace_id=workspace.id, actor_user_id=user.id, action="workspace.created", entity_type="workspace", entity_id=workspace.id, metadata={})
     db.commit()
+    seed_starter_companies_for_workspace(db, workspace.id)
     return {"id": workspace.id, "name": workspace.name, "role": WorkspaceRole.OWNER.value}
 
 
@@ -42,6 +44,29 @@ def get_workspace(workspace_id: str, user: User = Depends(get_current_user), db:
     membership = require_workspace_role(workspace_id, user, db)
     workspace = db.get(Workspace, workspace_id)
     return {"id": workspace.id, "name": workspace.name, "role": membership.role}
+
+
+@router.get("/{workspace_id}/members")
+def list_members(workspace_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    require_workspace_role(workspace_id, user, db, "viewer")
+    rows = db.execute(
+        select(WorkspaceMembership, User.email)
+        .join(User, WorkspaceMembership.user_id == User.id)
+        .where(WorkspaceMembership.workspace_id == workspace_id)
+        .order_by(WorkspaceMembership.created_at)
+    ).all()
+    return {
+        "items": [
+            {
+                "id": membership.id,
+                "user_id": membership.user_id,
+                "email": email,
+                "role": membership.role,
+                "created_at": membership.created_at.isoformat() if membership.created_at else None,
+            }
+            for membership, email in rows
+        ]
+    }
 
 
 @router.post("/{workspace_id}/members", status_code=201)
