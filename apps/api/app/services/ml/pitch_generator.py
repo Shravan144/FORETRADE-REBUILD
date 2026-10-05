@@ -74,6 +74,12 @@ Do not use generic buzzwords. Reference their customs import volume and origin p
 
     # 1. Try OpenRouter (e.g. NVIDIA Nemotron 3 Ultra) if API key available
     openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(__file__).resolve().parents[4] / ".env")
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+
     if openrouter_key:
         try:
             import requests
@@ -104,7 +110,7 @@ Do not use generic buzzwords. Reference their customs import volume and origin p
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=30,
+                timeout=90,
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -121,7 +127,12 @@ Do not use generic buzzwords. Reference their customs import volume and origin p
                         "channel": channel,
                         "model_used": model_name,
                     }
-        except Exception:
+            else:
+                import logging
+                logging.warning(f"OpenRouter returned status {resp.status_code}: {resp.text[:200]}")
+        except Exception as exc:
+            import logging
+            logging.warning(f"OpenRouter pitch generation error: {exc}")
             # Fall through to Gemini or deterministic synthesizer
             pass
 
