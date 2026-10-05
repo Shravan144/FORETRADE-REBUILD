@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import {
@@ -19,6 +19,8 @@ import {
   X,
   Loader2,
   Award,
+  RefreshCw,
+  Layers,
 } from "lucide-react";
 
 interface BuyerRecommendation {
@@ -48,6 +50,23 @@ interface BuyerRecommendation {
   reasons: string[];
 }
 
+const SECTOR_OPTIONS = [
+  { value: "textiles", label: "Textiles & Apparel (HS 6109, 6203)" },
+  { value: "solar", label: "Solar Cells & Clean Energy (HS 8541)" },
+  { value: "automotive", label: "Automotive Components (HS 8708)" },
+  { value: "pharma", label: "Pharmaceuticals & APIs (HS 3004)" },
+  { value: "machinery", label: "Machinery & Equipment (HS 8471, 8483)" },
+  { value: "agriculture", label: "Agri-Commodities & Spices (HS 0910, 1006)" },
+  { value: "chemicals", label: "Chemicals & Petrochemicals (HS 2902, 3808)" },
+  { value: "leather", label: "Leather & Footwear (HS 4104, 6403)" },
+  { value: "ceramics", label: "Ceramics & Building Materials (HS 6907)" },
+  { value: "gems", label: "Gems & Jewellery (HS 7113)" },
+  { value: "electronics", label: "Electronics & Electrical (HS 8504)" },
+  { value: "medical", label: "Medical Devices & Diagnostics (HS 9018)" },
+];
+
+const POPULAR_COUNTRIES = ["US", "DE", "GB", "AE", "JP", "AU", "CA", "FR", "NL", "SG", "SA", "IT", "ES", "KE", "EG"];
+
 export default function SwipeToExportPage({
   params,
 }: {
@@ -56,11 +75,15 @@ export default function SwipeToExportPage({
   const { workspaceId } = use(params);
 
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [recommendations, setRecommendations] = useState<BuyerRecommendation[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const [lastAction, setLastAction] = useState<"accepted" | "passed" | null>(null);
   const [stats, setStats] = useState({ savedCount: 0, passedCount: 0 });
+  const [excludedCount, setExcludedCount] = useState(0);
+  const [resettingDismissed, setResettingDismissed] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   // Exporter Profile Settings
   const [productCategory, setProductCategory] = useState("textiles");
@@ -70,15 +93,14 @@ export default function SwipeToExportPage({
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [workspaceId]);
-
-  async function loadRecommendations() {
+  const loadRecommendations = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.getRecommendations(workspaceId, 25).catch(() => ({ items: [], total_recommendations: 0 }));
+      const res = await api
+        .getRecommendations(workspaceId, 25, true)
+        .catch(() => ({ items: [], total_recommendations: 0, excluded_count: 0 }));
       setRecommendations(res.items || []);
+      setExcludedCount(res.excluded_count || 0);
       setCurrentIndex(0);
       setStats({ savedCount: 0, passedCount: 0 });
     } catch (err) {
@@ -86,35 +108,93 @@ export default function SwipeToExportPage({
     } finally {
       setLoading(false);
     }
-  }
+  }, [workspaceId]);
 
-  async function handleSwipe(decision: "accept" | "pass") {
-    if (currentIndex >= recommendations.length || swiping) return;
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
 
-    const currentBuyer = recommendations[currentIndex];
-    setSwiping(true);
-    setLastAction(decision === "accept" ? "accepted" : "passed");
-
+  // Load more fresh candidates as deck gets close to ending
+  const fetchMoreCandidates = useCallback(async () => {
+    if (loadingMore) return;
     try {
-      if (decision === "accept") {
-        await api.swipeRecommendation(workspaceId, currentBuyer.buyer_id, "right");
-        setStats((prev) => ({ ...prev, savedCount: prev.savedCount + 1 }));
-      } else {
-        await api.swipeRecommendation(workspaceId, currentBuyer.buyer_id, "left");
-        setStats((prev) => ({ ...prev, passedCount: prev.passedCount + 1 }));
+      setLoadingMore(true);
+      const res = await api
+        .getRecommendations(workspaceId, 25, true)
+        .catch(() => ({ items: [], total_recommendations: 0, excluded_count: 0 }));
+      if (res.items && res.items.length > 0) {
+        setRecommendations((prev) => {
+          const existingIds = new Set(prev.map((p) => p.buyer_id));
+          const fresh = res.items.filter((item) => !existingIds.has(item.buyer_id));
+          return [...prev, ...fresh];
+        });
+        setExcludedCount(res.excluded_count || 0);
       }
+    } catch (err) {
+      console.warn("Could not load more recommendations:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [workspaceId, loadingMore]);
 
-      setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
+  const handleSwipe = useCallback(
+    async (decision: "accept" | "pass") => {
+      if (currentIndex >= recommendations.length || swiping) return;
+
+      const currentBuyer = recommendations[currentIndex];
+      setSwiping(true);
+      setLastAction(decision === "accept" ? "accepted" : "passed");
+
+      try {
+        if (decision === "accept") {
+          await api.swipeRecommendation(workspaceId, currentBuyer.buyer_id, "right");
+          setStats((prev) => ({ ...prev, savedCount: prev.savedCount + 1 }));
+        } else {
+          await api.swipeRecommendation(workspaceId, currentBuyer.buyer_id, "left");
+          setStats((prev) => ({ ...prev, passedCount: prev.passedCount + 1 }));
+        }
+
+        setExcludedCount((prev) => prev + 1);
+
+        setTimeout(() => {
+          setCurrentIndex((prev) => {
+            const nextIdx = prev + 1;
+            // Pre-fetch next batch if remaining cards in buffer < 5
+            if (nextIdx >= recommendations.length - 4) {
+              fetchMoreCandidates();
+            }
+            return nextIdx;
+          });
+          setLastAction(null);
+          setSwiping(false);
+        }, 220);
+      } catch (err) {
+        console.error("Failed to record recommendation feedback:", err);
         setLastAction(null);
         setSwiping(false);
-      }, 250);
-    } catch (err) {
-      console.error("Failed to record recommendation feedback:", err);
-      setLastAction(null);
-      setSwiping(false);
+      }
+    },
+    [currentIndex, recommendations, swiping, workspaceId, fetchMoreCandidates]
+  );
+
+  // Keyboard navigation: Left Arrow = Pass, Right Arrow = Save
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (showProfileDrawer) return; // Don't trigger when editing form
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleSwipe("pass");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleSwipe("accept");
+      }
     }
-  }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSwipe, showProfileDrawer]);
 
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -135,6 +215,26 @@ export default function SwipeToExportPage({
     }
   }
 
+  async function handleResetDismissed() {
+    try {
+      setResettingDismissed(true);
+      const res = await api.resetDismissedRecommendations(workspaceId);
+      setResetMessage(`Reset ${res.reset_count} passed candidates. Loading fresh feed...`);
+      setTimeout(() => setResetMessage(null), 4000);
+      await loadRecommendations();
+    } catch (err) {
+      console.error("Failed to reset passed candidates:", err);
+    } finally {
+      setResettingDismissed(false);
+    }
+  }
+
+  function toggleCountry(country: string) {
+    setTargetCountries((prev) =>
+      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
+    );
+  }
+
   const currentBuyer = recommendations[currentIndex];
   const nextBuyer = recommendations[currentIndex + 1];
 
@@ -148,15 +248,16 @@ export default function SwipeToExportPage({
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               Two-Tower Matchmaking
             </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Interactive Deck
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <Layers className="w-3 h-3 text-emerald-400" />
+              670+ Verified Importers
             </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             AI Buyer Matchmaking Deck
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Ranked by operational compatibility: Exporter embeddings × Buyer demand embeddings with capacity fit curves and XAI attribution.
+            Ranked by operational compatibility: Exporter capabilities × Buyer demand embeddings with capacity fit curves and XAI attribution.
           </p>
         </div>
 
@@ -174,9 +275,25 @@ export default function SwipeToExportPage({
             <span className="text-emerald-400 font-semibold">+{stats.savedCount} Saved</span>
             <span className="text-slate-600">•</span>
             <span className="text-slate-400">{stats.passedCount} Passed</span>
+            {excludedCount > 0 && (
+              <>
+                <span className="text-slate-600">•</span>
+                <span className="text-blue-400" title="Total candidates swiped or in CRM">
+                  {excludedCount} Evaluated
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Reset Feedback Notification */}
+      {resetMessage && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs font-medium text-emerald-300 flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{resetMessage}</span>
+        </div>
+      )}
 
       {/* Tuner Drawer */}
       {showProfileDrawer && (
@@ -203,18 +320,18 @@ export default function SwipeToExportPage({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
-                Product Category
+                Product Sector
               </label>
               <select
                 value={productCategory}
                 onChange={(e) => setProductCategory(e.target.value)}
                 className="w-full text-xs font-medium px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
               >
-                <option value="textiles">Textiles & Apparel (HS 6109)</option>
-                <option value="solar">Solar Cells & Clean Energy (HS 8541)</option>
-                <option value="automotive">Automotive Components (HS 8708)</option>
-                <option value="pharma">Pharmaceuticals (HS 3004)</option>
-                <option value="machinery">Machinery & Equipment (HS 8471)</option>
+                {SECTOR_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -248,6 +365,31 @@ export default function SwipeToExportPage({
             </div>
           </div>
 
+          <div>
+            <label className="text-[10px] uppercase font-semibold text-slate-400 block mb-1.5">
+              Priority Target Markets (Select Corridors)
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR_COUNTRIES.map((code) => {
+                const active = targetCountries.includes(code);
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => toggleCountry(code)}
+                    className={`px-2.5 py-1 rounded text-xs font-mono font-semibold transition ${
+                      active
+                        ? "bg-blue-600 text-white border border-blue-500"
+                        : "bg-white/[0.04] text-slate-400 border border-white/[0.08] hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    {code}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex justify-end pt-2">
             <button
               type="submit"
@@ -268,32 +410,51 @@ export default function SwipeToExportPage({
           <span className="text-sm font-medium">Computing Two-Tower embeddings & capacity fits...</span>
         </div>
       ) : currentIndex >= recommendations.length ? (
-        <div className="p-12 text-center bg-[#111827] rounded-2xl border border-white/[0.08] space-y-4 max-w-lg mx-auto">
+        <div className="p-12 text-center bg-[#111827] rounded-2xl border border-white/[0.08] space-y-5 max-w-lg mx-auto">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
             <Award className="w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">All Candidates Evaluated</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              You converted {stats.savedCount} prospective buyers into CRM Leads. Review them in your Lead Pipeline.
+            <h2 className="text-xl font-bold text-white">All Matching Candidates Evaluated!</h2>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              You reviewed the catalog for your active profile criteria.
+              <br />
+              <span className="text-emerald-400 font-semibold">+{stats.savedCount} buyers</span> converted to CRM Leads •{" "}
+              <span className="text-slate-400">{stats.passedCount} passed</span>.
             </p>
           </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
+
+          <div className="p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-xs text-slate-400 flex items-center justify-center gap-2 font-mono">
+            <span>{excludedCount} total catalog candidates evaluated</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
-              onClick={() => {
-                setCurrentIndex(0);
-                setStats({ savedCount: 0, passedCount: 0 });
-              }}
-              className="px-4 py-2 rounded-lg border border-white/[0.1] bg-white/[0.05] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition"
+              onClick={() => setShowProfileDrawer(true)}
+              className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/[0.1] bg-white/[0.05] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Review Deck Again</span>
+              <Sliders className="w-3.5 h-3.5 text-blue-400" />
+              <span>Expand Criteria / Sector</span>
             </button>
+
+            <button
+              onClick={handleResetDismissed}
+              disabled={resettingDismissed}
+              className="w-full sm:w-auto px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+            >
+              {resettingDismissed ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="w-3.5 h-3.5" />
+              )}
+              <span>Re-evaluate Passed Buyers</span>
+            </button>
+
             <Link
               href={`/workspace/${workspaceId}/leads`}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
             >
-              <span>View Lead Pipeline</span>
+              <span>View CRM Leads</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -324,7 +485,7 @@ export default function SwipeToExportPage({
                       {currentBuyer.country_code}
                     </span>
                     <span className="text-xs text-slate-400">
-                      {currentBuyer.city || "International Direct"}
+                      {currentBuyer.city || "International Direct Hub"}
                     </span>
                   </div>
                   <h2 className="text-xl font-bold tracking-tight text-white">
@@ -462,36 +623,42 @@ export default function SwipeToExportPage({
               </div>
 
               {/* Swipe Control Action Bar */}
-              <div className="p-5 bg-white/[0.02] border-t border-white/[0.08] flex items-center justify-center gap-6">
-                {/* Dismiss */}
-                <button
-                  onClick={() => handleSwipe("pass")}
-                  disabled={swiping}
-                  title="Swipe Left: Pass Candidate"
-                  className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/[0.1] hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 flex items-center justify-center transition disabled:opacity-50"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+              <div className="p-5 bg-white/[0.02] border-t border-white/[0.08] flex items-center justify-between px-8">
+                {/* Dismiss Button */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSwipe("pass")}
+                    disabled={swiping}
+                    title="Swipe Left: Pass Candidate (Keyboard: ←)"
+                    className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/[0.1] hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 flex items-center justify-center transition disabled:opacity-50"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                  <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">← Pass</span>
+                </div>
 
                 {/* Deck Counter */}
                 <div className="text-center px-4 font-mono">
                   <span className="text-xs font-semibold text-slate-300 block">
-                    Candidate {currentIndex + 1} / {recommendations.length}
+                    Candidate {currentIndex + 1} of {recommendations.length}
                   </span>
                   <span className="text-[10px] text-slate-500">
-                    Keyboard or Buttons
+                    Use Arrow Keys (← / →)
                   </span>
                 </div>
 
-                {/* Accept */}
-                <button
-                  onClick={() => handleSwipe("accept")}
-                  disabled={swiping}
-                  title="Swipe Right: Convert to CRM Lead"
-                  className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center justify-center transition disabled:opacity-50"
-                >
-                  <Check className="w-6 h-6" />
-                </button>
+                {/* Accept Button */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-emerald-500/80 font-mono hidden sm:inline">Save →</span>
+                  <button
+                    onClick={() => handleSwipe("accept")}
+                    disabled={swiping}
+                    title="Swipe Right: Convert to CRM Lead (Keyboard: →)"
+                    className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center justify-center transition disabled:opacity-50"
+                  >
+                    <Check className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

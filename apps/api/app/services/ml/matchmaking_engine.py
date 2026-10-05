@@ -6,7 +6,7 @@ and compliance alignment with explainable feature attribution (XAI).
 """
 
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 import math
 import numpy as np
 from sqlalchemy import select
@@ -207,13 +207,20 @@ def rank_buyer_recommendations(
     db: Session,
     exporter_profile: Dict[str, Any],
     top_k: int = 20,
+    exclude_buyer_ids: Optional[Union[set[str], list[str]]] = None,
 ) -> List[BuyerRecommendation]:
     """
     Two-Tower Hybrid Matchmaker
     Vectorizes profile vs. all global buyers, applies domain constraints,
-    and returns ranked recommendations with XAI explainability.
+    filters out already swiped/CRM buyers, and returns ranked recommendations with XAI explainability.
     """
-    buyers = list(db.scalars(select(GlobalBuyerCatalog)))
+    stmt = select(GlobalBuyerCatalog)
+    if exclude_buyer_ids:
+        exclude_list = list(exclude_buyer_ids)
+        if exclude_list:
+            stmt = stmt.where(GlobalBuyerCatalog.id.not_in(exclude_list))
+
+    buyers = list(db.scalars(stmt))
     if not buyers:
         return []
 

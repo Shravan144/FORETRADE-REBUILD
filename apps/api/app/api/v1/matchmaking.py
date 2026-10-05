@@ -5,12 +5,12 @@ FastAPI Router for Model 2: Matchmaking Engine & "Swipe to Export" Deck.
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_csrf, require_workspace_role
 from app.db.session import get_db
-from app.models.audit_event import record_audit_event
+from app.models.audit_event import AuditEvent, record_audit_event
 from app.models.domain import Company, CompanySourceRecord, Lead, LeadEvent, ScoreSnapshot
 from app.models.trade_intelligence import GlobalBuyerCatalog
 from app.models.user import User
@@ -28,12 +28,14 @@ class SwipeActionRequest(BaseModel):
 def get_recommendations(
     workspace_id: str,
     top_k: int = 20,
+    exclude_swiped: bool = True,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """
     Model 2: Two-Tower Hybrid Recommender
     Returns ranked buyer recommendation cards for the workspace's exporter profile.
+    Automatically excludes already swiped or converted buyers if exclude_swiped is True.
     """
     require_workspace_role(workspace_id, user, db, "viewer")
 
@@ -45,10 +47,51 @@ def get_recommendations(
         "certifications": ["ISO 9001"],
     }
 
-    recs = rank_buyer_recommendations(db, profile_payload, top_k=top_k)
+    excluded_ids: set[str] = set()
+    if exclude_swiped:
+        # 1. Audit events for swiped recommendations in this workspace (dismissed or saved)
+        swiped_audit = db.scalars(
+            select(AuditEvent.entity_id).where(
+                AuditEvent.workspace_id == workspace_id,
+                AuditEvent.entity_type == "buyer_catalog",
+                AuditEvent.action.in_(["recommendation.dismissed", "recommendation.swiped_right"]),
+            )
+        ).all()
+        for eid in swiped_audit:
+            if eid:
+                excluded_ids.add(eid)
+
+        # 2. Existing companies in this workspace (normalize & match)
+        existing_companies = db.execute(
+            select(Company.normalized_name, Company.country_code).where(
+                Company.workspace_id == workspace_id
+            )
+        ).all()
+        existing_pairs = {(row[0], row[1]) for row in existing_companies if row[0] and row[1]}
+
+        # Check source records for direct buyer_catalog_id
+        source_records = db.scalars(
+            select(CompanySourceRecord.raw_data).join(
+                Company, Company.id == CompanySourceRecord.company_id
+            ).where(Company.workspace_id == workspace_id)
+        ).all()
+        for sr in source_records:
+            if isinstance(sr, dict) and "buyer_catalog_id" in sr:
+                excluded_ids.add(sr["buyer_catalog_id"])
+
+        if existing_pairs:
+            matched_buyers = db.execute(
+                select(GlobalBuyerCatalog.id, GlobalBuyerCatalog.normalized_name, GlobalBuyerCatalog.country_code)
+            ).all()
+            for b_id, norm_name, c_code in matched_buyers:
+                if (norm_name, c_code) in existing_pairs:
+                    excluded_ids.add(b_id)
+
+    recs = rank_buyer_recommendations(db, profile_payload, top_k=top_k, exclude_buyer_ids=excluded_ids)
     return {
         "workspace_id": workspace_id,
         "total_recommendations": len(recs),
+        "excluded_count": len(excluded_ids),
         "items": [r.to_dict() for r in recs],
     }
 
@@ -183,9 +226,9 @@ def swipe_buyer_recommendation(
         workspace_id=workspace_id,
         actor_user_id=user.id,
         action="recommendation.swiped_right",
-        entity_type="lead",
-        entity_id=existing_lead.id,
-        metadata={"company_name": buyer.company_name, "score": score_val},
+        entity_type="buyer_catalog",
+        entity_id=buyer.id,
+        metadata={"company_name": buyer.company_name, "score": score_val, "lead_id": existing_lead.id},
     )
 
     db.commit()
@@ -196,3 +239,25 @@ def swipe_buyer_recommendation(
         "stage": existing_lead.stage,
         "compatibility_score": score_val,
     }
+
+
+@router.post("/{workspace_id}/recommendations/reset-dismissed")
+def reset_dismissed_recommendations(
+    workspace_id: str,
+    user: User = Depends(require_csrf),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Resets passed/dismissed recommendations for the workspace so they can be re-evaluated.
+    Does not affect saved CRM leads.
+    """
+    require_workspace_role(workspace_id, user, db, "editor")
+    stmt = delete(AuditEvent).where(
+        AuditEvent.workspace_id == workspace_id,
+        AuditEvent.action == "recommendation.dismissed",
+        AuditEvent.entity_type == "buyer_catalog",
+    )
+    result = db.execute(stmt)
+    db.commit()
+    return {"status": "ok", "reset_count": result.rowcount}
+

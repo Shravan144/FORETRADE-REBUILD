@@ -44,20 +44,21 @@ def test_matchmaking_recommendations_and_swipe_flow() -> None:
     assert len(top_card["reasons"]) >= 3
     assert top_card["compatibility_score"] >= 75.0
 
-    target_buyer_id = top_card["buyer_id"]
+    buyer_1_id = items[0]["buyer_id"]
+    buyer_2_id = items[1]["buyer_id"] if len(items) > 1 else items[0]["buyer_id"]
 
-    # 4. Test Swipe Left (Pass)
+    # 4. Test Swipe Left (Pass) on buyer 1
     pass_res = client.post(
-        f"/api/v1/workspaces/{ws_id}/recommendations/{target_buyer_id}/swipe",
+        f"/api/v1/workspaces/{ws_id}/recommendations/{buyer_1_id}/swipe",
         json={"direction": "left"},
         headers=headers,
     )
     assert pass_res.status_code == 200
     assert pass_res.json()["action"] == "dismissed"
 
-    # 5. Test Swipe Right (Promote to CRM Lead)
+    # 5. Test Swipe Right (Promote to CRM Lead) on buyer 2
     swipe_res = client.post(
-        f"/api/v1/workspaces/{ws_id}/recommendations/{target_buyer_id}/swipe",
+        f"/api/v1/workspaces/{ws_id}/recommendations/{buyer_2_id}/swipe",
         json={"direction": "right"},
         headers=headers,
     )
@@ -79,3 +80,24 @@ def test_matchmaking_recommendations_and_swipe_flow() -> None:
     assert leads_res.status_code == 200
     workspace_leads = leads_res.json().get("items", [])
     assert any(l["id"] == swipe_data["lead_id"] for l in workspace_leads)
+
+    # 8. Verify Deduplication: swiped buyers (both passed and saved) do NOT reappear in recommendations
+    fresh_recs_res = client.get(f"/api/v1/workspaces/{ws_id}/recommendations", headers=headers)
+    assert fresh_recs_res.status_code == 200
+    fresh_items = fresh_recs_res.json().get("items", [])
+    assert not any(i["buyer_id"] == buyer_1_id for i in fresh_items)
+    assert not any(i["buyer_id"] == buyer_2_id for i in fresh_items)
+    assert fresh_recs_res.json().get("excluded_count", 0) >= 2
+
+    # 9. Verify Reset Dismissed: resets passed candidates without removing saved leads
+    reset_res = client.post(f"/api/v1/workspaces/{ws_id}/recommendations/reset-dismissed", headers=headers)
+    assert reset_res.status_code == 200
+    assert reset_res.json()["status"] == "ok"
+    assert reset_res.json()["reset_count"] >= 1
+
+    # After reset, buyer 2 (saved as lead) is still excluded, but buyer 1 can reappear
+    after_reset_res = client.get(f"/api/v1/workspaces/{ws_id}/recommendations", headers=headers)
+    assert after_reset_res.status_code == 200
+    after_reset_items = after_reset_res.json().get("items", [])
+    assert not any(i["buyer_id"] == buyer_2_id for i in after_reset_items)  # Still excluded because in CRM
+

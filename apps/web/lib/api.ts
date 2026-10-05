@@ -384,10 +384,11 @@ export const api = {
   },
 
   // Model 2: Two-Tower Matchmaking & Swipe-to-Export
-  async getRecommendations(workspaceId: string, top_k: number = 20) {
+  async getRecommendations(workspaceId: string, top_k: number = 20, exclude_swiped: boolean = true) {
     return fetchApi<{
       workspace_id: string;
       total_recommendations: number;
+      excluded_count?: number;
       items: Array<{
         buyer_id: string;
         company_name: string;
@@ -414,7 +415,7 @@ export const api = {
         };
         reasons: string[];
       }>;
-    }>(`/api/v1/workspaces/${workspaceId}/recommendations?top_k=${top_k}`);
+    }>(`/api/v1/workspaces/${workspaceId}/recommendations?top_k=${top_k}&exclude_swiped=${exclude_swiped}`);
   },
 
   async swipeRecommendation(workspaceId: string, buyerId: string, direction: "right" | "left") {
@@ -429,6 +430,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ direction }),
     });
+  },
+
+  async resetDismissedRecommendations(workspaceId: string) {
+    return fetchApi<{ status: string; reset_count: number }>(
+      `/api/v1/workspaces/${workspaceId}/recommendations/reset-dismissed`,
+      {
+        method: "POST",
+      }
+    );
   },
 
   async getMatchmakingFeed(workspaceId: string, top_k: number = 20) {
