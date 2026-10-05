@@ -45,13 +45,7 @@ def generate_export_pitch(
     tariff_savings = (tariff_data or {}).get("tariff_savings_pct") or 0.0
     pref_rate = (tariff_data or {}).get("preferential_rate_pct") or 0.0
 
-    # Try Gemini if API key available
-    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if gemini_key:
-        try:
-            import urllib.request
-            prompt = f"""
-You are ForeTrade's senior cross-border export trade advisor.
+    prompt = f"""You are ForeTrade's senior cross-border export trade advisor.
 Write an authentic, highly persuasive B2B export pitch for an Indian exporter reaching out to a verified overseas buyer.
 
 Buyer Profile:
@@ -77,6 +71,65 @@ Commercial Advantage:
 Channel: {channel} (Format: Return a JSON object with 'subject' and 'body' keys).
 Do not use generic buzzwords. Reference their customs import volume and origin port to establish immediate commercial credibility.
 """
+
+    # 1. Try OpenRouter (e.g. NVIDIA Nemotron 3 Ultra) if API key available
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        try:
+            import requests
+
+            model_name = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
+            payload = {
+                "model": model_name,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are ForeTrade's senior cross-border export trade advisor. "
+                            "You MUST output valid, parseable JSON only with exactly two keys: 'subject' (string) and 'body' (string). "
+                            "Do not include markdown code block syntax (no ```json or ```). Return pure JSON text only."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.3,
+                "reasoning": {"enabled": True},
+            }
+            resp = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "HTTP-Referer": "https://foretrade.ai",
+                    "X-Title": "ForeTrade Cross-Border Intelligence",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"].strip()
+                if "```json" in content:
+                    content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+                parsed = json.loads(content)
+                if "subject" in parsed and "body" in parsed:
+                    return {
+                        "subject": parsed["subject"],
+                        "body": parsed["body"],
+                        "channel": channel,
+                        "model_used": model_name,
+                    }
+        except Exception:
+            # Fall through to Gemini or deterministic synthesizer
+            pass
+
+    # 2. Try Gemini if API key available
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if gemini_key:
+        try:
+            import urllib.request
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
             req_data = json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
