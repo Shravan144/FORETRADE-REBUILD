@@ -9,6 +9,7 @@ __pycache__/
 .turbo/
 dist/
 coverage/
+*.tsbuildinfo
 
 # Environment & secrets
 .env

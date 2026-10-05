@@ -553,6 +553,54 @@ export const api = {
     }>(`/api/v1/workspaces/${workspaceId}/leads${qs}`);
   },
 
+  async getLead(workspaceId: string, leadId: string) {
+    return fetchApi<{
+      id: string;
+      workspace_id: string;
+      company_id: string;
+      stage: string;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+      company?: {
+        id: string;
+        name: string;
+        country_code: string;
+        product_or_industry: string;
+        contact_name?: string;
+        contact_email?: string;
+        website?: string;
+        attributes?: Record<string, any>;
+      };
+      score?: {
+        score: number;
+        tier: string;
+        reasons?: string[];
+        feature_values?: Record<string, any>;
+      };
+    }>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}`);
+  },
+
+  async generatePitch(
+    workspaceId: string,
+    leadId: string,
+    payload: { channel?: string; custom_notes?: string } = {}
+  ) {
+    return fetchApi<{
+      id: string;
+      lead_id: string;
+      channel: string;
+      subject: string;
+      body: string;
+      status: string;
+      created_at: string;
+      model_used?: string;
+    }>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}/generate-pitch`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
   async createLead(workspaceId: string, companyId: string, notes?: string) {
     return fetchApi<{ id: string; company_id: string; stage: string }>(`/api/v1/workspaces/${workspaceId}/leads`, {
       method: "POST",
