@@ -24,16 +24,23 @@ SECTOR_FEATURES = [
     "machinery", "8471", "electronics", "8504",
     "agriculture", "spices", "1006", "0910",
     "medical", "9018",
+    "chemicals", "petrochemicals", "2901", "3808",
+    "leather", "footwear", "4104", "6403",
+    "ceramics", "tiles", "6907", "6802",
+    "gems", "jewellery", "7113", "7102",
 ]
 
 CERT_FEATURES = [
     "iso 9001", "oeko-tex", "gots", "iatf 16949",
     "ce mark", "fda", "who gmp", "eu gmp",
     "brcgs", "halal", "iso 13485", "ul",
+    "haccp", "fssc 22000", "usda organic", "reach",
+    "lwg", "rjc", "rohs", "bsci",
 ]
 
 COUNTRY_FEATURES = [
     "us", "de", "gb", "ae", "jp", "au", "sg", "nl", "fr", "ca",
+    "sa", "it", "es", "ke", "eg",
 ]
 
 DIMENSION = len(SECTOR_FEATURES) + len(CERT_FEATURES) + len(COUNTRY_FEATURES)

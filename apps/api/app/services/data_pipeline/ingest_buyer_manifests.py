@@ -380,8 +380,13 @@ BUYER_MANIFEST_DATA: List[Dict[str, Any]] = [
 def ingest_buyer_manifests(db: Session | None = None) -> int:
     """Ingest verified buyer manifest catalog into the GlobalBuyerCatalog master table."""
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(BUYER_MANIFEST_DATA, f, indent=2)
+    if OUTPUT_FILE.exists():
+        with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+            buyers_data = json.load(f)
+    else:
+        buyers_data = BUYER_MANIFEST_DATA
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(BUYER_MANIFEST_DATA, f, indent=2)
 
     close_session = False
     if db is None:
@@ -391,7 +396,7 @@ def ingest_buyer_manifests(db: Session | None = None) -> int:
 
     count = 0
     try:
-        for b in BUYER_MANIFEST_DATA:
+        for b in buyers_data:
             norm = normalized_name(b["company_name"])
             existing = db.scalar(
                 select(GlobalBuyerCatalog).where(

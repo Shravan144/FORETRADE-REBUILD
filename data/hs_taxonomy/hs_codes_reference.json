@@ -4,18 +4,45 @@
     "level": 2,
     "chapter_code": "52",
     "heading_code": null,
-    "description": "Cotton, including yarns and woven fabrics",
+    "description": "Cotton, raw, carded, combed, and cotton yarn and woven fabrics",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "cotton, raw cotton, cotton yarn, woven cotton, denim"
+    "search_keywords": "cotton, raw cotton, fiber, spinning, cotton yarn"
+  },
+  {
+    "hs_code": "5205",
+    "level": 4,
+    "chapter_code": "52",
+    "heading_code": "5205",
+    "description": "Cotton yarn (other than sewing thread), containing 85% or more by weight of cotton",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "cotton yarn, combed yarn, carded yarn, ring spun, open end yarn"
+  },
+  {
+    "hs_code": "520512",
+    "level": 6,
+    "chapter_code": "52",
+    "heading_code": "5205",
+    "description": "Single cotton yarn, of uncombed fibres, measuring less than 714.29 dtex but not less than 232.56 dtex",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "single yarn, uncombed cotton yarn, 20s yarn, 30s yarn"
   },
   {
     "hs_code": "5208",
     "level": 4,
     "chapter_code": "52",
     "heading_code": "5208",
-    "description": "Woven fabrics of cotton, containing 85% or more by weight of cotton",
+    "description": "Woven fabrics of cotton, containing 85% or more by weight of cotton, weighing not more than 200 g/m2",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "woven fabric, cotton textile, plain weave, bleached cotton"
+    "search_keywords": "cotton fabric, woven cotton, poplin, cambric, voile, plain weave"
+  },
+  {
+    "hs_code": "520811",
+    "level": 6,
+    "chapter_code": "52",
+    "heading_code": "5208",
+    "description": "Unbleached plain weave cotton fabrics, weighing not more than 100 g/m2",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "unbleached cotton, grey fabric, raw weave"
   },
   {
     "hs_code": "61",
@@ -24,7 +51,7 @@
     "heading_code": null,
     "description": "Articles of apparel and clothing accessories, knitted or crocheted",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "apparel, knitwear, garments, clothing, shirts, t-shirts"
+    "search_keywords": "apparel, knitwear, garments, clothing, shirts, knit fabrics"
   },
   {
     "hs_code": "6109",
@@ -42,7 +69,34 @@
     "heading_code": "6109",
     "description": "T-shirts, singlets and other vests, knitted or crocheted, of cotton",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "cotton t-shirt, combed cotton tee, round neck, organic cotton shirt"
+    "search_keywords": "cotton t-shirt, combed cotton tee, round neck, organic cotton shirt, graphic tee"
+  },
+  {
+    "hs_code": "610990",
+    "level": 6,
+    "chapter_code": "61",
+    "heading_code": "6109",
+    "description": "T-shirts, singlets and other vests, knitted or crocheted, of other textile materials",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "polyester t-shirt, blend tee, synthetic athletic wear"
+  },
+  {
+    "hs_code": "6110",
+    "level": 4,
+    "chapter_code": "61",
+    "heading_code": "6110",
+    "description": "Jerseys, pullovers, cardigans, waistcoats and similar articles, knitted or crocheted",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "sweater, pullover, cardigan, hoodie, fleece, sweatshirt"
+  },
+  {
+    "hs_code": "611020",
+    "level": 6,
+    "chapter_code": "61",
+    "heading_code": "6110",
+    "description": "Jerseys, pullovers, cardigans, waistcoats, of cotton",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "cotton hoodie, cotton sweatshirt, cotton pullover, fleece"
   },
   {
     "hs_code": "62",
@@ -51,115 +105,115 @@
     "heading_code": null,
     "description": "Articles of apparel and clothing accessories, not knitted or crocheted",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "woven garments, suits, trousers, jackets, formal wear"
+    "search_keywords": "woven garments, formal wear, suits, trousers, woven shirts"
   },
   {
     "hs_code": "6203",
     "level": 4,
     "chapter_code": "62",
     "heading_code": "6203",
-    "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, bib and brace overalls",
+    "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, bib and brace overalls, breeches and shorts",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "trousers, pants, denim jeans, men suit, blazer, chino"
+    "search_keywords": "men trousers, men suits, denim jeans, chinos, cargo pants"
+  },
+  {
+    "hs_code": "620342",
+    "level": 6,
+    "chapter_code": "62",
+    "heading_code": "6203",
+    "description": "Men's or boys' trousers, bib and brace overalls, breeches and shorts, of cotton",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "men cotton trousers, cotton jeans, denim pants, workwear trousers"
   },
   {
     "hs_code": "6204",
     "level": 4,
     "chapter_code": "62",
     "heading_code": "6204",
-    "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, trousers",
+    "description": "Women's or girls' suits, ensembles, jackets, blazers, dresses, skirts, divided skirts, trousers",
     "category_name": "Textiles & Apparel",
-    "search_keywords": "dresses, skirts, womens trousers, denim jeans, blazers"
+    "search_keywords": "women dresses, women trousers, skirts, blouses, denim jeans"
   },
   {
-    "hs_code": "84",
-    "level": 2,
-    "chapter_code": "84",
-    "heading_code": null,
-    "description": "Nuclear reactors, boilers, machinery and mechanical appliances; parts thereof",
-    "category_name": "Machinery & Equipment",
-    "search_keywords": "machinery, industrial equipment, engines, pumps, mechanical parts"
-  },
-  {
-    "hs_code": "8471",
-    "level": 4,
-    "chapter_code": "84",
-    "heading_code": "8471",
-    "description": "Automatic data processing machines and units thereof; magnetic or optical readers",
-    "category_name": "Machinery & Equipment",
-    "search_keywords": "computers, servers, laptops, processors, data processing hardware"
-  },
-  {
-    "hs_code": "8483",
-    "level": 4,
-    "chapter_code": "84",
-    "heading_code": "8483",
-    "description": "Transmission shafts, cranks, bearing housings, gears and gearing, ball screws",
-    "category_name": "Engineering & Components",
-    "search_keywords": "gears, transmission shafts, bearings, pulleys, clutches, mechanical drives"
-  },
-  {
-    "hs_code": "85",
-    "level": 2,
-    "chapter_code": "85",
-    "heading_code": null,
-    "description": "Electrical machinery and equipment and parts thereof; sound recorders and reproducers",
-    "category_name": "Electronics & Electrical",
-    "search_keywords": "electronics, circuit boards, transformers, batteries, telecom equipment"
-  },
-  {
-    "hs_code": "8504",
-    "level": 4,
-    "chapter_code": "85",
-    "heading_code": "8504",
-    "description": "Electrical transformers, static converters (e.g. inverters) and inductors",
-    "category_name": "Electronics & Electrical",
-    "search_keywords": "transformer, power inverter, power supply, static converter, inductor"
-  },
-  {
-    "hs_code": "8541",
-    "level": 4,
-    "chapter_code": "85",
-    "heading_code": "8541",
-    "description": "Semiconductor devices, photovoltaic cells (solar cells/panels), LEDs, diodes",
-    "category_name": "Renewables & Solar",
-    "search_keywords": "solar panels, photovoltaic cells, solar modules, semiconductors, diodes, led"
-  },
-  {
-    "hs_code": "854140",
+    "hs_code": "620462",
     "level": 6,
-    "chapter_code": "85",
-    "heading_code": "8541",
-    "description": "Photosensitive semiconductor devices, including photovoltaic cells and solar modules",
-    "category_name": "Renewables & Solar",
-    "search_keywords": "solar modules, solar panel array, pv cells, photovoltaic wafers"
+    "chapter_code": "62",
+    "heading_code": "6204",
+    "description": "Women's or girls' trousers, bib and brace overalls, breeches and shorts, of cotton",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "women denim, women cotton pants, ladies trousers"
+  },
+  {
+    "hs_code": "63",
+    "level": 2,
+    "chapter_code": "63",
+    "heading_code": null,
+    "description": "Other made-up textile articles; sets; worn clothing and worn textile articles; rags",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "home textiles, bedsheets, linen, towels, curtains"
+  },
+  {
+    "hs_code": "6302",
+    "level": 4,
+    "chapter_code": "63",
+    "heading_code": "6302",
+    "description": "Bed linen, table linen, toilet linen and kitchen linen",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "bed linen, sheets, pillowcases, bath towels, kitchen linen"
+  },
+  {
+    "hs_code": "630221",
+    "level": 6,
+    "chapter_code": "63",
+    "heading_code": "6302",
+    "description": "Other bed linen, printed, of cotton",
+    "category_name": "Textiles & Apparel",
+    "search_keywords": "printed bedsheet, cotton duvet cover, bedding set"
   },
   {
     "hs_code": "29",
     "level": 2,
     "chapter_code": "29",
     "heading_code": null,
-    "description": "Organic chemicals, acyclic hydrocarbons, alcohols, phenols, ethers",
-    "category_name": "Chemicals",
-    "search_keywords": "organic chemicals, specialty chemicals, aromatic compounds, chemical intermediates"
+    "description": "Organic chemicals, vitamins, antibiotics, and active pharmaceutical ingredients",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "organic chemicals, chemical synthesis, active ingredients, api"
   },
   {
-    "hs_code": "2902",
+    "hs_code": "2933",
     "level": 4,
     "chapter_code": "29",
-    "heading_code": "2902",
-    "description": "Cyclic hydrocarbons: benzene, toluene, xylenes, styrene",
-    "category_name": "Chemicals",
-    "search_keywords": "benzene, toluene, xylene, solvents, petrochemical intermediates"
+    "heading_code": "2933",
+    "description": "Heterocyclic compounds with nitrogen hetero-atom(s) only",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "heterocyclic, nitrogen compounds, pharmaceutical intermediates, raw api"
+  },
+  {
+    "hs_code": "293329",
+    "level": 6,
+    "chapter_code": "29",
+    "heading_code": "2933",
+    "description": "Other compounds containing an unfused imidazole ring in the structure",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "imidazole, pharma synthesis, organic intermediate"
+  },
+  {
+    "hs_code": "2941",
+    "level": 4,
+    "chapter_code": "29",
+    "heading_code": "2941",
+    "description": "Antibiotics and bulk antibiotic pharmaceutical substances",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "antibiotics, penicillin, amoxicillin, cephalosporin, bulk drug"
   },
   {
     "hs_code": "30",
     "level": 2,
     "chapter_code": "30",
     "heading_code": null,
-    "description": "Pharmaceutical products, medicaments, vaccines, toxins, blood fractions",
+    "description": "Pharmaceutical products, medicaments, vaccines, and medical dressings",
     "category_name": "Pharmaceuticals",
-    "search_keywords": "pharma, medicines, drugs, active pharmaceutical ingredients, API, medicaments"
+    "search_keywords": "medicine, drugs, pharmaceuticals, tablets, capsules, vaccines"
   },
   {
     "hs_code": "3004",
@@ -168,16 +222,169 @@
     "heading_code": "3004",
     "description": "Medicaments consisting of mixed or unmixed products for therapeutic or prophylactic uses",
     "category_name": "Pharmaceuticals",
-    "search_keywords": "generic drugs, tablets, capsules, therapeutic medicaments, antibiotics"
+    "search_keywords": "medicaments, finished drugs, generic drugs, tablets, capsules, injectables"
+  },
+  {
+    "hs_code": "300490",
+    "level": 6,
+    "chapter_code": "30",
+    "heading_code": "3004",
+    "description": "Other medicaments put up in measured doses or in forms or packings for retail sale",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "generic tablets, paracetamol, ibuprofen, cardiovascular drugs, retail pack medicine"
+  },
+  {
+    "hs_code": "3002",
+    "level": 4,
+    "chapter_code": "30",
+    "heading_code": "3002",
+    "description": "Human blood; animal blood; antisera, other blood fractions and immunological products",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "vaccines, blood fractions, antisera, monoclonal antibodies, biologics"
+  },
+  {
+    "hs_code": "3822",
+    "level": 4,
+    "chapter_code": "38",
+    "heading_code": "3822",
+    "description": "Diagnostic or laboratory reagents on a backing, prepared diagnostic or laboratory reagents",
+    "category_name": "Pharmaceuticals",
+    "search_keywords": "diagnostic test, rapid test kit, laboratory reagent, blood test"
+  },
+  {
+    "hs_code": "09",
+    "level": 2,
+    "chapter_code": "09",
+    "heading_code": null,
+    "description": "Coffee, tea, mate and spices",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "spices, coffee, tea, seasoning, organic condiments"
+  },
+  {
+    "hs_code": "0901",
+    "level": 4,
+    "chapter_code": "09",
+    "heading_code": "0901",
+    "description": "Coffee, whether or not roasted or decaffeinated; coffee husks and skins",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "coffee beans, arabica, robusta, green coffee, roasted beans"
+  },
+  {
+    "hs_code": "0902",
+    "level": 4,
+    "chapter_code": "09",
+    "heading_code": "0902",
+    "description": "Tea, whether or not flavoured",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "black tea, green tea, assam tea, darjeeling, ctc tea"
+  },
+  {
+    "hs_code": "0904",
+    "level": 4,
+    "chapter_code": "09",
+    "heading_code": "0904",
+    "description": "Pepper of the genus Piper; dried or crushed or ground fruits of the genus Capsicum or Pimenta",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "black pepper, white pepper, chili, crushed pepper, peppercorns"
+  },
+  {
+    "hs_code": "090411",
+    "level": 6,
+    "chapter_code": "09",
+    "heading_code": "0904",
+    "description": "Pepper of the genus Piper, neither crushed nor ground",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "whole black pepper, malabar pepper, telicherry pepper"
+  },
+  {
+    "hs_code": "0910",
+    "level": 4,
+    "chapter_code": "09",
+    "heading_code": "0910",
+    "description": "Ginger, saffron, turmeric (curcuma), thyme, bay leaves, curry and other spices",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "turmeric, ginger, cumin, coriander, saffron, curry powder"
+  },
+  {
+    "hs_code": "091030",
+    "level": 6,
+    "chapter_code": "09",
+    "heading_code": "0910",
+    "description": "Turmeric (curcuma)",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "turmeric powder, curcuma fingers, organic turmeric, curcumin extract"
+  },
+  {
+    "hs_code": "091011",
+    "level": 6,
+    "chapter_code": "09",
+    "heading_code": "0910",
+    "description": "Ginger, neither crushed nor ground",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "fresh ginger, dried ginger, ginger roots"
+  },
+  {
+    "hs_code": "10",
+    "level": 2,
+    "chapter_code": "10",
+    "heading_code": null,
+    "description": "Cereals, grains, rice, wheat, corn",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "cereals, grains, staple food, rice, wheat"
+  },
+  {
+    "hs_code": "1006",
+    "level": 4,
+    "chapter_code": "10",
+    "heading_code": "1006",
+    "description": "Rice",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "rice, basmati, non-basmati, parboiled rice, long grain"
+  },
+  {
+    "hs_code": "100630",
+    "level": 6,
+    "chapter_code": "10",
+    "heading_code": "1006",
+    "description": "Semi-milled or wholly milled rice, whether or not polished or glazed",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "basmati rice, 1121 basmati, steamed rice, white rice, parboiled basmati"
+  },
+  {
+    "hs_code": "0306",
+    "level": 4,
+    "chapter_code": "03",
+    "heading_code": "0306",
+    "description": "Crustaceans, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "shrimp, prawns, frozen seafood, marine exports"
+  },
+  {
+    "hs_code": "030617",
+    "level": 6,
+    "chapter_code": "03",
+    "heading_code": "0306",
+    "description": "Other shrimps and prawns, frozen",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "frozen vannamei shrimp, black tiger prawns, head-on shrimp"
+  },
+  {
+    "hs_code": "2008",
+    "level": 4,
+    "chapter_code": "20",
+    "heading_code": "2008",
+    "description": "Fruit, nuts and other edible parts of plants, otherwise prepared or preserved",
+    "category_name": "Agri-Commodities",
+    "search_keywords": "canned fruit, mango pulp, processed puree, cashew nuts"
   },
   {
     "hs_code": "87",
     "level": 2,
     "chapter_code": "87",
     "heading_code": null,
-    "description": "Vehicles other than railway or tramway rolling stock, and parts and accessories",
-    "category_name": "Automotive",
-    "search_keywords": "vehicles, automotive, car parts, trucks, motorcycles, auto components"
+    "description": "Vehicles other than railway or tramway rolling-stock, and parts and accessories thereof",
+    "category_name": "Automotive Components",
+    "search_keywords": "automotive, vehicle parts, cars, trucks, chassis"
   },
   {
     "hs_code": "8708",
@@ -186,16 +393,511 @@
     "heading_code": "8708",
     "description": "Parts and accessories of the motor vehicles of headings 8701 to 8705",
     "category_name": "Automotive Components",
-    "search_keywords": "auto parts, brakes, gear boxes, drive axles, radiators, suspension shock absorbers"
+    "search_keywords": "auto parts, car components, replacement parts, oem auto"
+  },
+  {
+    "hs_code": "870829",
+    "level": 6,
+    "chapter_code": "87",
+    "heading_code": "8708",
+    "description": "Other parts and accessories of bodies (including cabs) for motor vehicles",
+    "category_name": "Automotive Components",
+    "search_keywords": "body panels, bumpers, vehicle chassis, auto trim"
+  },
+  {
+    "hs_code": "870830",
+    "level": 6,
+    "chapter_code": "87",
+    "heading_code": "8708",
+    "description": "Brakes and servo-brakes; parts thereof",
+    "category_name": "Automotive Components",
+    "search_keywords": "brake pads, brake discs, calipers, brake rotors, commercial vehicle brakes"
+  },
+  {
+    "hs_code": "870840",
+    "level": 6,
+    "chapter_code": "87",
+    "heading_code": "8708",
+    "description": "Gear boxes and parts thereof",
+    "category_name": "Automotive Components",
+    "search_keywords": "gearbox, transmission, torque converter, gear assembly"
+  },
+  {
+    "hs_code": "870880",
+    "level": 6,
+    "chapter_code": "87",
+    "heading_code": "8708",
+    "description": "Suspension systems and parts thereof (including shock-absorbers)",
+    "category_name": "Automotive Components",
+    "search_keywords": "shock absorber, struts, suspension springs, tie rods"
+  },
+  {
+    "hs_code": "8544",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8544",
+    "description": "Insulated wire, cable and other insulated electric conductors",
+    "category_name": "Automotive Components",
+    "search_keywords": "wiring harness, automotive cable, copper conductor, battery cable"
+  },
+  {
+    "hs_code": "854430",
+    "level": 6,
+    "chapter_code": "85",
+    "heading_code": "8544",
+    "description": "Ignition wiring sets and other wiring sets of a kind used in vehicles, aircraft or ships",
+    "category_name": "Automotive Components",
+    "search_keywords": "vehicle wiring harness, engine harness, ignition wire"
+  },
+  {
+    "hs_code": "73",
+    "level": 2,
+    "chapter_code": "73",
+    "heading_code": null,
+    "description": "Articles of iron or steel, castings, forgings, pipes, fasteners",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "steel articles, iron castings, forgings, industrial steel"
+  },
+  {
+    "hs_code": "7325",
+    "level": 4,
+    "chapter_code": "73",
+    "heading_code": "7325",
+    "description": "Other cast articles of iron or steel",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "iron castings, ductile iron, steel castings, sand cast parts, valve bodies"
+  },
+  {
+    "hs_code": "7318",
+    "level": 4,
+    "chapter_code": "73",
+    "heading_code": "7318",
+    "description": "Screws, bolts, nuts, coach screws, screw hooks, rivets, cotters, cotter-pins, washers",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "fasteners, bolts, industrial nuts, hex screws, stainless washers"
+  },
+  {
+    "hs_code": "84",
+    "level": 2,
+    "chapter_code": "84",
+    "heading_code": null,
+    "description": "Nuclear reactors, boilers, machinery and mechanical appliances; parts thereof",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "machinery, mechanical appliances, pumps, valves, industrial equipment"
+  },
+  {
+    "hs_code": "8413",
+    "level": 4,
+    "chapter_code": "84",
+    "heading_code": "8413",
+    "description": "Pumps for liquids, whether or not fitted with a measuring device; liquid elevators",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "pumps, water pump, centrifugal pump, slurry pump, hydraulic pump"
+  },
+  {
+    "hs_code": "841370",
+    "level": 6,
+    "chapter_code": "84",
+    "heading_code": "8413",
+    "description": "Other centrifugal pumps",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "industrial centrifugal pump, submersible pump, chemical process pump"
+  },
+  {
+    "hs_code": "8481",
+    "level": 4,
+    "chapter_code": "84",
+    "heading_code": "8481",
+    "description": "Taps, cocks, valves and similar appliances for pipes, boiler shells, tanks, vats or the like",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "valves, ball valve, butterfly valve, gate valve, industrial taps"
+  },
+  {
+    "hs_code": "848180",
+    "level": 6,
+    "chapter_code": "84",
+    "heading_code": "8481",
+    "description": "Other appliances (taps, cocks and valves)",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "control valve, check valve, stainless valve, pressure relief valve"
+  },
+  {
+    "hs_code": "8483",
+    "level": 4,
+    "chapter_code": "84",
+    "heading_code": "8483",
+    "description": "Transmission shafts and cranks; bearing housings and plain shaft bearings; gears and gearing",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "transmission shaft, ball bearings, gears, sprockets, pulleys"
+  },
+  {
+    "hs_code": "848340",
+    "level": 6,
+    "chapter_code": "84",
+    "heading_code": "8483",
+    "description": "Gears and gearing; ball or roller screws; gear boxes and other speed changers",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "industrial gears, spur gear, bevel gear, speed reducer, ball screws"
+  },
+  {
+    "hs_code": "8471",
+    "level": 4,
+    "chapter_code": "84",
+    "heading_code": "8471",
+    "description": "Automatic data processing machines and units thereof; magnetic or optical readers",
+    "category_name": "Industrial Machinery",
+    "search_keywords": "computer hardware, servers, storage units, data processing"
+  },
+  {
+    "hs_code": "8541",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8541",
+    "description": "Semiconductor devices; photosensitive semiconductor devices, including photovoltaic cells",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "solar cells, solar panels, photovoltaic, pv modules, semiconductor"
+  },
+  {
+    "hs_code": "854140",
+    "level": 6,
+    "chapter_code": "85",
+    "heading_code": "8541",
+    "description": "Photosensitive semiconductor devices, including photovoltaic cells whether or not assembled in modules",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "solar panels, monocrystalline modules, bifacial solar cells, rooftop pv"
+  },
+  {
+    "hs_code": "8502",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8502",
+    "description": "Electric generating sets and rotary converters",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "generators, wind turbine generators, diesel gen sets"
+  },
+  {
+    "hs_code": "850231",
+    "level": 6,
+    "chapter_code": "85",
+    "heading_code": "8502",
+    "description": "Wind-powered generating sets",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "wind turbine, wind power generator, wind blades generator"
+  },
+  {
+    "hs_code": "8507",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8507",
+    "description": "Electric accumulators, including separators therefor, whether or not rectangular",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "batteries, lithium ion, storage accumulator, energy storage systems"
+  },
+  {
+    "hs_code": "850760",
+    "level": 6,
+    "chapter_code": "85",
+    "heading_code": "8507",
+    "description": "Lithium-ion accumulators",
+    "category_name": "Renewables & Solar",
+    "search_keywords": "lithium ion battery, ess battery pack, solar storage battery"
+  },
+  {
+    "hs_code": "2902",
+    "level": 4,
+    "chapter_code": "29",
+    "heading_code": "2902",
+    "description": "Cyclic hydrocarbons",
+    "category_name": "Chemicals",
+    "search_keywords": "benzene, toluene, xylene, styrene, aromatic hydrocarbons"
+  },
+  {
+    "hs_code": "290220",
+    "level": 6,
+    "chapter_code": "29",
+    "heading_code": "2902",
+    "description": "Benzene",
+    "category_name": "Chemicals",
+    "search_keywords": "industrial benzene, pure benzene, chemical solvent"
+  },
+  {
+    "hs_code": "2905",
+    "level": 4,
+    "chapter_code": "29",
+    "heading_code": "2905",
+    "description": "Acyclic alcohols and their halogenated, sulphonated, nitrated or nitrosated derivatives",
+    "category_name": "Chemicals",
+    "search_keywords": "methanol, ethanol, industrial alcohol, propanol"
+  },
+  {
+    "hs_code": "32",
+    "level": 2,
+    "chapter_code": "32",
+    "heading_code": null,
+    "description": "Tanning or dyeing extracts; tannins and their derivatives; dyes, pigments and other colouring matter",
+    "category_name": "Chemicals",
+    "search_keywords": "dyes, pigments, coloring matter, industrial inks, paints"
+  },
+  {
+    "hs_code": "3204",
+    "level": 4,
+    "chapter_code": "32",
+    "heading_code": "3204",
+    "description": "Synthetic organic colouring matter, whether or not chemically defined; preparations",
+    "category_name": "Chemicals",
+    "search_keywords": "reactive dyes, disperse dyes, synthetic pigments, vat dyes"
+  },
+  {
+    "hs_code": "38",
+    "level": 2,
+    "chapter_code": "38",
+    "heading_code": null,
+    "description": "Miscellaneous chemical products, insecticides, fungicides, industrial preparations",
+    "category_name": "Chemicals",
+    "search_keywords": "specialty chemicals, agrochemicals, pesticides, industrial additives"
+  },
+  {
+    "hs_code": "3808",
+    "level": 4,
+    "chapter_code": "38",
+    "heading_code": "3808",
+    "description": "Insecticides, rodenticides, fungicides, herbicides, anti-sprouting products and plant-growth regulators",
+    "category_name": "Chemicals",
+    "search_keywords": "agrochemicals, pesticides, insecticides, crop protection, fungicides"
+  },
+  {
+    "hs_code": "39",
+    "level": 2,
+    "chapter_code": "39",
+    "heading_code": null,
+    "description": "Plastics and articles thereof, polymers, resins",
+    "category_name": "Chemicals",
+    "search_keywords": "polymers, plastics, resin, polyethylene, polypropylene"
+  },
+  {
+    "hs_code": "3901",
+    "level": 4,
+    "chapter_code": "39",
+    "heading_code": "3901",
+    "description": "Polymers of ethylene, in primary forms",
+    "category_name": "Chemicals",
+    "search_keywords": "polyethylene, ldpe, hdpe, lldpe, plastic granules"
+  },
+  {
+    "hs_code": "41",
+    "level": 2,
+    "chapter_code": "41",
+    "heading_code": null,
+    "description": "Raw hides and skins (other than furskins) and leather",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "leather, hides, skins, tanned leather"
+  },
+  {
+    "hs_code": "4107",
+    "level": 4,
+    "chapter_code": "41",
+    "heading_code": "4107",
+    "description": "Leather further prepared after tanning or crusting, including parchment-dressed leather, of bovine",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "finished bovine leather, grain leather, crust leather, shoe upper leather"
+  },
+  {
+    "hs_code": "42",
+    "level": 2,
+    "chapter_code": "42",
+    "heading_code": null,
+    "description": "Articles of leather; saddlery and harness; travel goods, handbags and similar containers",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "leather goods, handbags, wallets, travel bags, belts"
+  },
+  {
+    "hs_code": "4202",
+    "level": 4,
+    "chapter_code": "42",
+    "heading_code": "4202",
+    "description": "Trunks, suit-cases, vanity-cases, executive-cases, brief-cases, school satchels, spectacle cases",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "handbags, leather suitcases, executive briefcases, travel luggage"
+  },
+  {
+    "hs_code": "64",
+    "level": 2,
+    "chapter_code": "64",
+    "heading_code": null,
+    "description": "Footwear, gaiters and the like; parts of such articles",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "shoes, footwear, boots, sandals"
+  },
+  {
+    "hs_code": "6403",
+    "level": 4,
+    "chapter_code": "64",
+    "heading_code": "6403",
+    "description": "Footwear with outer soles of rubber, plastics, leather or composition leather and uppers of leather",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "leather shoes, formal shoes, leather boots, dress shoes, loafers"
+  },
+  {
+    "hs_code": "640399",
+    "level": 6,
+    "chapter_code": "64",
+    "heading_code": "6403",
+    "description": "Other footwear with uppers of leather",
+    "category_name": "Leather & Footwear",
+    "search_keywords": "mens leather footwear, leather sandals, ladies leather shoes"
+  },
+  {
+    "hs_code": "69",
+    "level": 2,
+    "chapter_code": "69",
+    "heading_code": null,
+    "description": "Ceramic products, refractory goods, building bricks, tiles",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "ceramics, ceramic tiles, sanitaryware, porcelain"
+  },
+  {
+    "hs_code": "6907",
+    "level": 4,
+    "chapter_code": "69",
+    "heading_code": "6907",
+    "description": "Ceramic flags and paving, hearth or wall tiles; ceramic mosaic cubes and the like",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "vitrified tiles, floor tiles, porcelain wall tiles, mosaic, glazed tiles"
+  },
+  {
+    "hs_code": "690721",
+    "level": 6,
+    "chapter_code": "69",
+    "heading_code": "6907",
+    "description": "Tiles, flagstones and wall tiles, of a water absorption coefficient by weight not exceeding 0.5%",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "porcelain vitrified tile, gvt tile, pgvt tile, polished porcelain"
+  },
+  {
+    "hs_code": "6910",
+    "level": 4,
+    "chapter_code": "69",
+    "heading_code": "6910",
+    "description": "Ceramic sinks, wash basins, wash basin pedestals, baths, bidets, water closet pans, flushing cisterns",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "sanitaryware, ceramic wash basin, toilet commode, cistern, urinal"
+  },
+  {
+    "hs_code": "68",
+    "level": 2,
+    "chapter_code": "68",
+    "heading_code": null,
+    "description": "Articles of stone, plaster, cement, asbestos, mica or similar materials",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "granite, marble, polished stone, stone slabs"
+  },
+  {
+    "hs_code": "6802",
+    "level": 4,
+    "chapter_code": "68",
+    "heading_code": "6802",
+    "description": "Worked monumental or building stone and articles thereof",
+    "category_name": "Ceramics & Building Materials",
+    "search_keywords": "polished granite slab, marble tiles, monumental stone, gangsaw slabs"
+  },
+  {
+    "hs_code": "71",
+    "level": 2,
+    "chapter_code": "71",
+    "heading_code": null,
+    "description": "Natural or cultured pearls, precious or semi-precious stones, precious metals, jewellery",
+    "category_name": "Gems & Jewellery",
+    "search_keywords": "diamonds, gold jewellery, gems, precious stones"
+  },
+  {
+    "hs_code": "7102",
+    "level": 4,
+    "chapter_code": "71",
+    "heading_code": "7102",
+    "description": "Diamonds, whether or not worked, but not mounted or set",
+    "category_name": "Gems & Jewellery",
+    "search_keywords": "cut diamonds, polished diamonds, lab grown diamonds, loose gems"
+  },
+  {
+    "hs_code": "710239",
+    "level": 6,
+    "chapter_code": "71",
+    "heading_code": "7102",
+    "description": "Non-industrial diamonds, worked (cut or polished)",
+    "category_name": "Gems & Jewellery",
+    "search_keywords": "polished diamond, brilliant cut diamond, certified solitaire"
+  },
+  {
+    "hs_code": "7113",
+    "level": 4,
+    "chapter_code": "71",
+    "heading_code": "7113",
+    "description": "Articles of jewellery and parts thereof, of precious metal or of metal clad with precious metal",
+    "category_name": "Gems & Jewellery",
+    "search_keywords": "gold jewellery, diamond studded ring, necklace, 18k gold, 22k jewellery"
+  },
+  {
+    "hs_code": "7117",
+    "level": 4,
+    "chapter_code": "71",
+    "heading_code": "7117",
+    "description": "Imitation jewellery",
+    "category_name": "Gems & Jewellery",
+    "search_keywords": "fashion jewellery, brass jewellery, costume jewellery, imitation bangles"
+  },
+  {
+    "hs_code": "85",
+    "level": 2,
+    "chapter_code": "85",
+    "heading_code": null,
+    "description": "Electrical machinery and equipment and parts thereof; sound recorders and reproducers",
+    "category_name": "Electronics & Electrical",
+    "search_keywords": "electronics, electrical equipment, transformers, switchgear"
+  },
+  {
+    "hs_code": "8501",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8501",
+    "description": "Electric motors and generators (excluding generating sets)",
+    "category_name": "Electronics & Electrical",
+    "search_keywords": "electric motor, induction motor, ac motor, industrial motor"
+  },
+  {
+    "hs_code": "8504",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8504",
+    "description": "Electrical transformers, static converters (for example, rectifiers) and inductors",
+    "category_name": "Electronics & Electrical",
+    "search_keywords": "transformers, power transformer, power inverter, rectifiers"
+  },
+  {
+    "hs_code": "850440",
+    "level": 6,
+    "chapter_code": "85",
+    "heading_code": "8504",
+    "description": "Static converters (inverters, rectifiers)",
+    "category_name": "Electronics & Electrical",
+    "search_keywords": "solar inverter, ups inverter, power converter"
+  },
+  {
+    "hs_code": "8536",
+    "level": 4,
+    "chapter_code": "85",
+    "heading_code": "8536",
+    "description": "Electrical apparatus for switching or protecting electrical circuits, for a voltage <= 1000 V",
+    "category_name": "Electronics & Electrical",
+    "search_keywords": "circuit breaker, mcb, electrical switches, relays, connectors"
   },
   {
     "hs_code": "90",
     "level": 2,
     "chapter_code": "90",
     "heading_code": null,
-    "description": "Optical, photographic, cinematographic, measuring, precision, medical instruments",
-    "category_name": "Medical & Instruments",
-    "search_keywords": "medical devices, surgical instruments, diagnostic equipment, optical lenses"
+    "description": "Optical, photographic, cinematographic, measuring, checking, precision, medical instruments",
+    "category_name": "Medical Devices",
+    "search_keywords": "medical equipment, surgical instruments, diagnostic devices"
   },
   {
     "hs_code": "9018",
@@ -204,33 +906,24 @@
     "heading_code": "9018",
     "description": "Instruments and appliances used in medical, surgical, dental or veterinary sciences",
     "category_name": "Medical Devices",
-    "search_keywords": "catheters, syringes, surgical tools, diagnostic apparatus, dental instruments"
+    "search_keywords": "surgical instruments, syringes, needles, catheters, dental tools"
   },
   {
-    "hs_code": "09",
-    "level": 2,
-    "chapter_code": "09",
-    "heading_code": null,
-    "description": "Coffee, tea, mate and spices",
-    "category_name": "Agriculture & Spices",
-    "search_keywords": "spices, black pepper, cardamom, turmeric, ginger, tea, coffee beans"
+    "hs_code": "901890",
+    "level": 6,
+    "chapter_code": "90",
+    "heading_code": "9018",
+    "description": "Other instruments and appliances, used in medical or surgical sciences",
+    "category_name": "Medical Devices",
+    "search_keywords": "endoscopes, surgical forceps, hospital appliances, biopsy tools"
   },
   {
-    "hs_code": "0910",
+    "hs_code": "9021",
     "level": 4,
-    "chapter_code": "09",
-    "heading_code": "0910",
-    "description": "Ginger, saffron, turmeric (curcuma), thyme, bay leaves, curry and other spices",
-    "category_name": "Agriculture & Spices",
-    "search_keywords": "turmeric, curcuma, ginger, saffron, curry powder, ground spices"
-  },
-  {
-    "hs_code": "1006",
-    "level": 4,
-    "chapter_code": "10",
-    "heading_code": "1006",
-    "description": "Rice: in husk, husked (brown), semi-milled or wholly milled (white/basmati)",
-    "category_name": "Agri-Commodities",
-    "search_keywords": "basmati rice, non-basmati rice, parboiled rice, polished rice, grain export"
+    "chapter_code": "90",
+    "heading_code": "9021",
+    "description": "Orthopaedic appliances, including crutches, surgical belts and trusses; splints and other fracture appliances",
+    "category_name": "Medical Devices",
+    "search_keywords": "orthopedic implants, artificial joints, surgical bone plates, splints"
   }
 ]

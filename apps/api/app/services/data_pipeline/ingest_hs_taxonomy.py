@@ -270,8 +270,13 @@ TAXONOMY_SEED = [
 def ingest_hs_taxonomy(db: Session | None = None) -> int:
     """Ingest WCO HS Code reference taxonomy into PostgreSQL / SQLite."""
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(TAXONOMY_SEED, f, indent=2)
+    if OUTPUT_FILE.exists():
+        with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+            taxonomy_data = json.load(f)
+    else:
+        taxonomy_data = TAXONOMY_SEED
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(TAXONOMY_SEED, f, indent=2)
 
     close_session = False
     if db is None:
@@ -281,7 +286,7 @@ def ingest_hs_taxonomy(db: Session | None = None) -> int:
 
     count = 0
     try:
-        for item in TAXONOMY_SEED:
+        for item in taxonomy_data:
             existing = db.scalar(select(HsCodeTaxonomy).where(HsCodeTaxonomy.hs_code == item["hs_code"]))
             if existing:
                 existing.description = item["description"]

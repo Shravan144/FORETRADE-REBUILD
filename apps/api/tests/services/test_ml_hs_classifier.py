@@ -68,7 +68,7 @@ def test_classify_automotive_query() -> None:
         assert len(preds) > 0
 
         top = preds[0]
-        assert top.hs_code in ["8708", "8483"]
+        assert top.hs_code in ["8708", "8483", "870840"] or top.hs_code.startswith("8708")
         assert "Automotive" in top.category_name or "Components" in top.category_name
     finally:
         session.close()
