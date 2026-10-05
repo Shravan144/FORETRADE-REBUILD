@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.analytics import exports_router, router as analytics_router
 from app.api.v1.companies import router as companies_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.copilot import router as copilot_router
 from app.api.v1.exporter_profiles import router as exporter_profiles_router
 from app.api.v1.imports import router as imports_router
 from app.api.v1.leads import router as leads_router
@@ -75,6 +76,7 @@ for router in (
     leads_router,
     trade_intelligence_router,
     matchmaking_router,
+    copilot_router,
 ):
     app.include_router(router)
 

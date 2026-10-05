@@ -644,6 +644,24 @@ export const api = {
     );
   },
 
+  // AI Trade Copilot
+  async copilotChat(
+    workspaceId: string,
+    payload: {
+      message: string;
+      conversation_history?: Array<{ role: "user" | "assistant"; content: string }>;
+    }
+  ) {
+    return fetchApi<{
+      response: string;
+      model_used: string;
+      suggested_questions: string[];
+    }>(`/api/v1/workspaces/${workspaceId}/copilot/chat`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
   // Analytics
   async getAnalytics(workspaceId: string) {
     return fetchApi<{

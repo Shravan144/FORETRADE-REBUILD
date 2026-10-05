@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/workspace/sidebar";
+import TradeCopilot from "@/components/TradeCopilot";
 
 export default async function WorkspaceViewLayout({
   children,
@@ -15,6 +16,7 @@ export default async function WorkspaceViewLayout({
       <main className="flex-1 overflow-y-auto bg-[#0B0F19] text-slate-100">
         {children}
       </main>
+      <TradeCopilot workspaceId={workspaceId} />
     </div>
   );
 }
