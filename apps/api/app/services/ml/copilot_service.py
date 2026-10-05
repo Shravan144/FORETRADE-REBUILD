@@ -77,21 +77,23 @@ def answer_trade_query(
     grounded_context = build_copilot_context(db, workspace_id, user_message)
 
     system_instruction = (
-        "You are ForeTrade's Cross-Border Trade Copilot — a senior international trade, customs, and export finance advisor. "
-        "You advise Indian and global exporters on trade corridors, bilateral Free Trade Agreements (FTAs like India-UAE CEPA, India-Australia ECTA), "
-        "Incoterms 2020 (CIF, FOB, DDP, DAP), international payment security (Letters of Credit, CAD, DA/DP), customs manifests, "
-        "and compliance standards (ISO, OEKO-TEX, IATF, FDA). "
-        "Always be practical, authoritative, and concise. Use clear markdown formatting with bullet points. "
-        "When referencing tariffs or landed costs, cite realistic duty percentages and documentation rules. "
-        "Base your analysis on the provided verified database context whenever relevant."
+        "You are ForeTrade's Trade Advisor — an experienced, practical international export business consultant. "
+        "Talk directly, warmly, and clearly to the exporter. "
+        "NEVER mention NVIDIA, Nemotron, AI models, prompts, or technical parameters. Never say 'I am an AI'. "
+        "Always give direct, practical, easy-to-understand advice. Avoid dense bureaucratic jargon. "
+        "Format your answer cleanly with: "
+        "- A clear direct answer in the very first sentence. "
+        "- Short, practical bullet points highlighting numbers, duty rates, or Incoterm rules. "
+        "- A concise 'Next Step' recommendation."
     )
 
-    full_prompt = f"""[VERIFIED DATABASE KNOWLEDGE]:
+    full_prompt = f"""[RELEVANT TRADE & TARIFF CONTEXT]:
 {grounded_context}
 
-[USER QUESTION]:
+[EXPORTER'S QUESTION]:
 {user_message}
-"""
+
+Please provide a clear, practical, and helpful answer for the exporter:"""
 
     # Build messages array with prior history if provided
     messages = [{"role": "system", "content": system_instruction}]
@@ -118,7 +120,7 @@ def answer_trade_query(
                 "model": model_name,
                 "messages": messages,
                 "temperature": 0.4,
-                "reasoning": {"enabled": True},
+                "max_tokens": 1000,
             }
             resp = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
@@ -129,17 +131,24 @@ def answer_trade_query(
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=90,
+                timeout=75,
             )
             if resp.status_code == 200:
                 data = resp.json()
-                answer = data["choices"][0]["message"]["content"].strip()
-                if answer:
-                    return {
-                        "response": answer,
-                        "model_used": model_name,
-                        "suggested_questions": generate_suggested_followups(user_message),
-                    }
+                if "choices" in data and len(data["choices"]) > 0:
+                    answer = data["choices"][0]["message"]["content"].strip()
+                    # Strip any internal thought or reasoning tags if emitted
+                    if "</thought>" in answer:
+                        answer = answer.split("</thought>")[-1].strip()
+                    elif "</reasoning>" in answer:
+                        answer = answer.split("</reasoning>")[-1].strip()
+
+                    if answer:
+                        return {
+                            "response": answer,
+                            "model_used": "ForeTrade Trade Advisor",
+                            "suggested_questions": generate_suggested_followups(user_message),
+                        }
             else:
                 logger.warning(f"OpenRouter Copilot returned status {resp.status_code}: {resp.text[:200]}")
         except Exception as exc:
@@ -160,7 +169,7 @@ def answer_trade_query(
                 if text:
                     return {
                         "response": text,
-                        "model_used": "gemini-2.0-flash",
+                        "model_used": "ForeTrade Trade Advisor",
                         "suggested_questions": generate_suggested_followups(user_message),
                     }
         except Exception as exc:
@@ -170,7 +179,7 @@ def answer_trade_query(
     fallback_response = generate_deterministic_trade_answer(user_message, grounded_context)
     return {
         "response": fallback_response,
-        "model_used": "foretrade-trade-knowledge-engine",
+        "model_used": "ForeTrade Trade Advisor",
         "suggested_questions": generate_suggested_followups(user_message),
     }
 

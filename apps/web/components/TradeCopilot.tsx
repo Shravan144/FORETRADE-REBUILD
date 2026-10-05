@@ -28,10 +28,10 @@ interface Message {
 }
 
 const STARTER_PROMPTS = [
-  { label: "UAE CEPA Tariff Savings", query: "What are the preferential tariff savings under the India-UAE CEPA for cotton apparel (HS 6109)?" },
-  { label: "Draft 60-Day LC Clause", query: "Draft an irrevocable, non-negotiable 60-day Letter of Credit (LC) clause for export payment security." },
-  { label: "CIF vs FOB Incoterms", query: "Compare CIF vs FOB Incoterms for Indian container exports to Europe. Who bears transit and port demurrage risk?" },
-  { label: "US Customs Compliance", query: "What mandatory quality certifications and customs documents are required for US customs clearance of Indian textiles?" },
+  { label: "UAE CEPA Duty Savings", query: "How much import duty do I save exporting to the UAE under the India-UAE CEPA?" },
+  { label: "60-Day Letter of Credit", query: "How do I make sure a 60-day Letter of Credit (LC) is safe and guaranteed from an overseas buyer?" },
+  { label: "CIF vs FOB Simply Explained", query: "Can you explain the difference between CIF and FOB Incoterms in simple terms? Who pays freight and bears risk?" },
+  { label: "US Garment Export Standards", query: "What are the essential requirements and certificates needed to export cotton apparel (HS 6109) to the US?" },
 ];
 
 export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
@@ -126,8 +126,8 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Open ForeTrade AI Copilot"
-          className="relative group p-4 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-600/30 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-blue-400/30"
+          aria-label="Open ForeTrade Trade Assistant"
+          className="relative group p-4 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-600/30 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-blue-400/30 cursor-pointer"
         >
           {isOpen ? (
             <X className="w-6 h-6 transition-transform duration-200" />
@@ -144,7 +144,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
           {/* Hover Tooltip */}
           {!isOpen && (
             <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-slate-800">
-              ⚡ ForeTrade Copilot (NVIDIA Nemotron)
+              ⚡ ForeTrade Trade Assistant
             </div>
           )}
         </button>
@@ -161,13 +161,13 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">ForeTrade Copilot</h3>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
-                    AI Active
+                  <h3 className="text-sm font-bold tracking-tight">Trade Assistant</h3>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                    Online
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-300 truncate max-w-[200px]">
-                  NVIDIA Nemotron 3 Ultra (550B)
+                <p className="text-[10px] text-slate-300">
+                  Cross-Border Export Advisory
                 </p>
               </div>
             </div>
@@ -177,15 +177,15 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                 <button
                   onClick={handleClear}
                   title="Clear conversation"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                title="Minimize Copilot"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Minimize Assistant"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
@@ -201,7 +201,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                   <div className="p-3.5 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 text-slate-800 text-xs space-y-1.5">
                     <div className="flex items-center gap-1.5 font-bold text-blue-900 text-xs">
                       <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Cross-Border Trade Intelligence</span>
+                      <span>Cross-Border Trade Advisory</span>
                     </div>
                     <p className="text-slate-600 leading-relaxed text-[11px]">
                       Ask me anything about bilateral FTAs (India-UAE CEPA, ECTA), duty savings, Incoterms liability, payment security (LC clauses), or destination port regulations.
@@ -209,7 +209,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                   </div>
 
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                    Quick Inquiries:
+                    Common Questions:
                   </span>
 
                   <div className="grid grid-cols-1 gap-2">
@@ -234,7 +234,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                 </div>
 
                 <div className="text-center text-[10px] text-slate-400 pt-2">
-                  🔒 Grounded in institutional WTO, UN Comtrade & WCO datasets
+                  🔒 Grounded in verified WTO, UN Comtrade & WCO customs data
                 </div>
               </div>
             ) : (
@@ -263,12 +263,12 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                         {/* Assistant message footer */}
                         {!isUser && (
                           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                            <span className="truncate max-w-[170px]">
-                              {m.modelUsed ? `via ${m.modelUsed}` : "ForeTrade AI"}
+                            <span className="text-slate-400 font-medium">
+                              ForeTrade Advisory
                             </span>
                             <button
                               onClick={() => handleCopy(m.id, m.content)}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-800 transition-colors ml-2"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-800 transition-colors ml-2 cursor-pointer"
                             >
                               {isCopied ? (
                                 <>
@@ -299,7 +299,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                     <div className="p-3 rounded-2xl rounded-bl-xs bg-white border border-slate-200 text-slate-600 text-xs flex items-center gap-2 shadow-2xs">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                       <span className="text-[11px] text-slate-500">
-                        NVIDIA Nemotron reasoning through trade data...
+                        Analyzing trade rules & regulations...
                       </span>
                     </div>
                   </div>
