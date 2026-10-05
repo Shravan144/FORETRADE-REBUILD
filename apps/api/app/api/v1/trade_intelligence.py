@@ -3,6 +3,7 @@ Trade Intelligence & Model 1 ML Forecast API Endpoints
 Exposes UN Comtrade flows, time-series forecasting, tariffs, and risk assessment.
 """
 
+import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -36,7 +37,12 @@ def list_corridors(
     if destination_country:
         query = query.where(TradeCorridorFlow.destination_country == destination_country.upper())
     if hs_code:
-        query = query.where(TradeCorridorFlow.hs_code == hs_code)
+        clean = re.sub(r"[^0-9]", "", hs_code.strip())
+        query = query.where(
+            (TradeCorridorFlow.hs_code == clean)
+            | (TradeCorridorFlow.hs_code == clean[:4])
+            | (TradeCorridorFlow.hs_code.like(f"{clean[:2]}%"))
+        )
 
     rows = db.scalars(query.order_by(TradeCorridorFlow.year.desc())).all()
     return {
@@ -99,13 +105,26 @@ def get_tariff_differential(
     Calculates exact tariff differentials:
     Savings = Shipment Value * (MFN Tariff % - Preferential FTA Tariff %)
     """
-    tariff = db.scalar(
-        select(TariffSchedule).where(
-            TariffSchedule.exporter_country == exporter_country.upper(),
-            TariffSchedule.importer_country == importer_country.upper(),
-            TariffSchedule.hs_code == hs_code,
+    clean_code = re.sub(r"[^0-9]", "", hs_code.strip())
+    candidates = [clean_code]
+    if len(clean_code) >= 4:
+        candidates.append(clean_code[:4])
+    if len(clean_code) >= 2:
+        candidates.append(clean_code[:2])
+
+    tariff = None
+    resolved_hs = hs_code
+    for cand in candidates:
+        tariff = db.scalar(
+            select(TariffSchedule).where(
+                TariffSchedule.exporter_country == exporter_country.upper(),
+                TariffSchedule.importer_country == importer_country.upper(),
+                TariffSchedule.hs_code == cand,
+            )
         )
-    )
+        if tariff:
+            resolved_hs = cand
+            break
     if not tariff:
         mfn = 5.0
         pref = 5.0
@@ -126,7 +145,8 @@ def get_tariff_differential(
     return {
         "exporter_country": exporter_country.upper(),
         "importer_country": importer_country.upper(),
-        "hs_code": hs_code,
+        "hs_code": resolved_hs,
+        "requested_hs_code": hs_code,
         "shipment_value_usd": shipment_val,
         "mfn_applied_rate_pct": mfn,
         "preferential_rate_pct": pref,

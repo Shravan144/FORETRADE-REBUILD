@@ -141,14 +141,20 @@ const DESTINATION_OPTIONS = [
 
 const HS_OPTIONS = [
   { code: "6109", label: "HS 6109 - Cotton T-Shirts & Knitted Apparel", sector: "Textiles" },
+  { code: "6109.10", label: "HS 6109.10 - Cotton T-Shirts, Knitted (6-digit)", sector: "Textiles" },
   { code: "8541", label: "HS 8541 - Solar Cells & Photovoltaic Modules", sector: "Clean Energy" },
+  { code: "8541.40", label: "HS 8541.40 - Photovoltaic Solar Modules (6-digit)", sector: "Clean Energy" },
   { code: "3004", label: "HS 3004 - Packaged Medicaments & Pharma", sector: "Pharma" },
+  { code: "3004.90", label: "HS 3004.90 - Generic Formulations & APIs (6-digit)", sector: "Pharma" },
   { code: "8708", label: "HS 8708 - Commercial Motor Vehicle Parts", sector: "Automotive" },
+  { code: "8708.40", label: "HS 8708.40 - Gear Boxes & Transmissions (6-digit)", sector: "Automotive" },
   { code: "8471", label: "HS 8471 - Data Processing & Electronics", sector: "Tech" },
   { code: "8483", label: "HS 8483 - Transmission Shafts & Gears", sector: "Engineering" },
   { code: "2902", label: "HS 2902 - Cyclic Hydrocarbons & Chemicals", sector: "Chemicals" },
   { code: "1006", label: "HS 1006 - Semi-Milled / Basmati Rice", sector: "Agri-Food" },
+  { code: "1006.30", label: "HS 1006.30 - Wholly Milled Basmati Rice (6-digit)", sector: "Agri-Food" },
   { code: "9018", label: "HS 9018 - Medical & Diagnostic Instruments", sector: "Healthcare" },
+  { code: "9018.90", label: "HS 9018.90 - Surgical & Diagnostic Instruments (6-digit)", sector: "Healthcare" },
 ];
 
 export default function MarketExplorerPage({
@@ -161,6 +167,7 @@ export default function MarketExplorerPage({
   // Selected Corridor State
   const [selectedCountry, setSelectedCountry] = useState<string>("US");
   const [selectedHs, setSelectedHs] = useState<string>("6109");
+  const [customHsInput, setCustomHsInput] = useState<string>("");
   const [shipmentValue, setShipmentValue] = useState<number>(100000);
 
   // Data States
@@ -341,7 +348,10 @@ export default function MarketExplorerPage({
             </span>
             <select
               value={selectedHs}
-              onChange={(e) => setSelectedHs(e.target.value)}
+              onChange={(e) => {
+                setSelectedHs(e.target.value);
+                setCustomHsInput("");
+              }}
               className="text-xs font-semibold px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
             >
               {HS_OPTIONS.map((h) => (
@@ -351,8 +361,42 @@ export default function MarketExplorerPage({
               ))}
             </select>
           </div>
+
+          <div className="flex flex-col">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+              Custom Code (2/4/6-Digit)
+            </span>
+            <input
+              type="text"
+              placeholder="e.g. 6109.10, 87"
+              value={customHsInput}
+              onChange={(e) => {
+                setCustomHsInput(e.target.value);
+                const trimmed = e.target.value.trim();
+                if (trimmed.length >= 2) {
+                  setSelectedHs(trimmed);
+                }
+              }}
+              className="text-xs font-semibold px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none w-36 font-mono"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Auto-normalization feedback banner */}
+      {forecast && forecast.hs_code !== selectedHs.replace(/[^0-9]/g, "") && (
+        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-medium text-blue-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+            <span>
+              Hierarchical Auto-Normalizer: Input <strong className="font-mono text-white">{selectedHs}</strong> automatically mapped to primary UN Comtrade flow <strong className="font-mono text-white">HS {forecast.hs_code}</strong>.
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-200">
+            Auto-Resolved
+          </span>
+        </div>
+      )}
 
       {/* KPI Metric Highlights Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -96,3 +96,76 @@ def test_corridor_forecast_nonexistent_corridor_returns_none() -> None:
         assert result is None
     finally:
         session.close()
+
+
+def test_corridor_forecast_auto_normalization_subheading_6digit() -> None:
+    session = SessionLocal()
+    try:
+        # User passes dotted 6-digit subheading '6109.10'
+        res_dotted = score_corridor_opportunity(
+            db=session,
+            origin_country="IN",
+            destination_country="US",
+            hs_code="6109.10",
+        )
+        assert res_dotted is not None
+        assert res_dotted.hs_code == "6109"
+        assert res_dotted.forecast_12m.projected_usd > 100_000_000.0
+        assert any("Auto-normalized" in f for f in res_dotted.explanation_factors)
+
+        # User passes raw 6-digit subheading '610910'
+        res_raw = score_corridor_opportunity(
+            db=session,
+            origin_country="IN",
+            destination_country="US",
+            hs_code="610910",
+        )
+        assert res_raw is not None
+        assert res_raw.hs_code == "6109"
+        assert res_raw.forecast_12m.projected_usd == res_dotted.forecast_12m.projected_usd
+    finally:
+        session.close()
+
+
+def test_corridor_forecast_auto_normalization_chapter_2digit() -> None:
+    session = SessionLocal()
+    try:
+        # User passes 2-digit chapter '61' (Apparel)
+        res_chapter_apparel = score_corridor_opportunity(
+            db=session,
+            origin_country="IN",
+            destination_country="US",
+            hs_code="61",
+        )
+        assert res_chapter_apparel is not None
+        assert res_chapter_apparel.hs_code.startswith("61")
+
+        # User passes 2-digit chapter '87' (Vehicles & Auto Components)
+        res_chapter_auto = score_corridor_opportunity(
+            db=session,
+            origin_country="IN",
+            destination_country="DE",
+            hs_code="87",
+        )
+        assert res_chapter_auto is not None
+        assert res_chapter_auto.hs_code.startswith("87")
+    finally:
+        session.close()
+
+
+def test_corridor_forecast_auto_normalization_automotive_6digit() -> None:
+    session = SessionLocal()
+    try:
+        # User passes 6-digit automotive gearbox subheading '8708.40'
+        res_gearboxes = score_corridor_opportunity(
+            db=session,
+            origin_country="IN",
+            destination_country="DE",
+            hs_code="8708.40",
+        )
+        assert res_gearboxes is not None
+        assert res_gearboxes.hs_code == "8708"
+        assert res_gearboxes.forecast_12m.projected_usd > 200_000_000.0
+    finally:
+        session.close()
+

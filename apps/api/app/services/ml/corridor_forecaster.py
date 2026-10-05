@@ -7,6 +7,7 @@ CAGR momentum, and a composite Opportunity Index (0-100).
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 import math
+import re
 import numpy as np
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -107,6 +108,94 @@ def _calculate_forecast_point(
     )
 
 
+def resolve_corridor_flow_records(
+    db: Session,
+    origin_country: str,
+    destination_country: str,
+    raw_hs_code: str,
+) -> tuple[List[TradeCorridorFlow], Optional[str]]:
+    """
+    Hierarchical HS Code Auto-Normalizer for Corridor Forecaster:
+    Resolves raw user input (e.g., '6109.10', '610910', '6109', '61') to matching UN Comtrade flows:
+    1. Exact cleaned match
+    2. 4-digit Heading prefix (raw[:4])
+    3. 2-digit Chapter prefix (raw[:2])
+    4. Sibling/Chapter heading fallback (starts with raw[:2])
+    Returns (records, resolved_hs_code).
+    """
+    clean = re.sub(r"[^0-9]", "", (raw_hs_code or "").strip())
+    if not clean:
+        return [], None
+
+    # Step 1: Check exact match
+    records = list(
+        db.scalars(
+            select(TradeCorridorFlow)
+            .where(
+                TradeCorridorFlow.origin_country == origin_country,
+                TradeCorridorFlow.destination_country == destination_country,
+                TradeCorridorFlow.hs_code == clean,
+            )
+            .order_by(TradeCorridorFlow.year.asc())
+        )
+    )
+    if records:
+        return records, clean
+
+    # Step 2: If length >= 4, try 4-digit heading prefix (e.g. 610910 -> 6109)
+    if len(clean) >= 4:
+        heading_4 = clean[:4]
+        records = list(
+            db.scalars(
+                select(TradeCorridorFlow)
+                .where(
+                    TradeCorridorFlow.origin_country == origin_country,
+                    TradeCorridorFlow.destination_country == destination_country,
+                    TradeCorridorFlow.hs_code == heading_4,
+                )
+                .order_by(TradeCorridorFlow.year.asc())
+            )
+        )
+        if records:
+            return records, heading_4
+
+    # Step 3: If 2-digit chapter, check exact chapter flow
+    chapter_2 = clean[:2]
+    records = list(
+        db.scalars(
+            select(TradeCorridorFlow)
+            .where(
+                TradeCorridorFlow.origin_country == origin_country,
+                TradeCorridorFlow.destination_country == destination_country,
+                TradeCorridorFlow.hs_code == chapter_2,
+            )
+            .order_by(TradeCorridorFlow.year.asc())
+        )
+    )
+    if records:
+        return records, chapter_2
+
+    # Step 4: Sibling heading in chapter (e.g. user entered '61' or '87')
+    family_flows = list(
+        db.scalars(
+            select(TradeCorridorFlow)
+            .where(
+                TradeCorridorFlow.origin_country == origin_country,
+                TradeCorridorFlow.destination_country == destination_country,
+                TradeCorridorFlow.hs_code.like(f"{chapter_2}%"),
+            )
+            .order_by(TradeCorridorFlow.year.asc())
+        )
+    )
+    if family_flows:
+        # Pick the heading with the highest recent trade value
+        latest_code = family_flows[-1].hs_code
+        matching_records = [f for f in family_flows if f.hs_code == latest_code]
+        return matching_records, latest_code
+
+    return [], None
+
+
 def score_corridor_opportunity(
     db: Session,
     origin_country: str,
@@ -115,20 +204,16 @@ def score_corridor_opportunity(
 ) -> Optional[OpportunityScoreResult]:
     """
     Run Model 1 time-series forecast & opportunity scoring on a specific trade corridor.
+    Hierarchically normalizes HS codes (supports 2-digit chapters, 4-digit headings, and 6-digit subheadings).
     """
-    records = list(
-        db.scalars(
-            select(TradeCorridorFlow)
-            .where(
-                TradeCorridorFlow.origin_country == origin_country,
-                TradeCorridorFlow.destination_country == destination_country,
-                TradeCorridorFlow.hs_code == hs_code,
-            )
-            .order_by(TradeCorridorFlow.year.asc())
-        )
+    records, resolved_code = resolve_corridor_flow_records(
+        db,
+        origin_country=origin_country,
+        destination_country=destination_country,
+        raw_hs_code=hs_code,
     )
 
-    if not records:
+    if not records or not resolved_code:
         return None
 
     years = [r.year for r in records]
@@ -221,10 +306,14 @@ def score_corridor_opportunity(
     if risk_record and risk_record.risk_tier == "Low Risk":
         factors.append(f"Destination market has top-tier governance (World Bank Rule of Law: {risk_record.rule_of_law_score:.2f}).")
 
+    clean_input = re.sub(r"[^0-9]", "", (hs_code or "").strip())
+    if clean_input != resolved_code:
+        factors.append(f"Harmonized System: Auto-normalized input '{hs_code}' to primary trade classification '{resolved_code}'.")
+
     return OpportunityScoreResult(
         origin_country=origin_country,
         destination_country=destination_country,
-        hs_code=hs_code,
+        hs_code=resolved_code,
         historical_years=years,
         historical_values_usd=values,
         forecast_12m=fc_12m,

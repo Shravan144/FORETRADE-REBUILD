@@ -58,6 +58,17 @@ def test_trade_intelligence_model1_forecast_api() -> None:
     assert data["opportunity_tier"] in ["High Opportunity", "Moderate Growth", "Emerging"]
     assert len(data["explanation_factors"]) >= 3
 
+    # Test auto-normalization for dotted 6-digit subheading '6109.10'
+    res_dotted = client.get("/api/v1/intelligence/forecast?destination_country=US&hs_code=6109.10")
+    assert res_dotted.status_code == 200
+    assert res_dotted.json()["hs_code"] == "6109"
+    assert res_dotted.json()["forecast_12m"]["projected_usd"] == fc12["projected_usd"]
+
+    # Test auto-normalization for raw 6-digit subheading '610910'
+    res_raw = client.get("/api/v1/intelligence/forecast?destination_country=US&hs_code=610910")
+    assert res_raw.status_code == 200
+    assert res_raw.json()["hs_code"] == "6109"
+
 
 def test_trade_intelligence_tariffs_api() -> None:
     run_all_pipelines()
@@ -68,6 +79,13 @@ def test_trade_intelligence_tariffs_api() -> None:
     assert res.status_code == 200
     data = res.json()
     assert data["importer_country"] == "AE"
+    assert data["hs_code"] == "6109"
+
+    # Test auto-normalization for 6-digit code '6109.10' in tariffs endpoint
+    res_sub = client.get("/api/v1/intelligence/tariffs?importer_country=AE&hs_code=6109.10")
+    assert res_sub.status_code == 200
+    assert res_sub.json()["hs_code"] == "6109"
+    assert res_sub.json()["tariff_savings_pct"] == data["tariff_savings_pct"]
     assert data["preferential_rate_pct"] == 0.0
     assert "CEPA" in data["agreement_name"]
 

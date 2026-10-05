@@ -4,6 +4,7 @@ Knowledge base and resolver for mandatory destination customs certificates,
 regulatory agencies, inspection bodies, and testing requirements by product HS category & country.
 """
 
+import re
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
@@ -595,7 +596,8 @@ def resolve_compliance_requirements(
     Falls back to intelligent sector defaults if exact country-HS pair is not in matrix.
     """
     country = destination_country.upper()
-    prefix = hs_code[:4]
+    clean = re.sub(r"[^0-9]", "", hs_code.strip())
+    prefix = clean[:4] if len(clean) >= 4 else clean
 
     # Check exact match in database
     if country in COMPLIANCE_MATRIX_DB and prefix in COMPLIANCE_MATRIX_DB[country]:
