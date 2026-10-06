@@ -4,6 +4,7 @@ const apiBackend = process.env.INTERNAL_API_URL || "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   async rewrites() {
     return [
       {

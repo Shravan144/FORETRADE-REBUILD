@@ -1,8 +1,48 @@
-FROM python:3.13-slim
+# ==============================================================================
+# ForeTrade API - Production Container
+# Python 3.13 Slim with complete ML and EXIM dependencies
+# ==============================================================================
+
+FROM python:3.13-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app/apps/api
+
+# Install system dependencies (curl for container healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy pyproject.toml first for layer caching
+COPY apps/api/pyproject.toml /app/apps/api/pyproject.toml
+COPY apps/api/uv.lock /app/apps/api/uv.lock
+
+# Install dependencies using uv
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system -r /app/apps/api/pyproject.toml
+
+# Copy data assets (Customs BoL manifests, WCO taxonomy, WTO tariffs, UN Comtrade)
+COPY data /app/data
+
+# Copy backend application code
+COPY apps/api /app/apps/api
+
 WORKDIR /app/apps/api
-COPY apps/api/pyproject.toml ./
-RUN pip install --no-cache-dir fastapi "uvicorn[standard]" sqlalchemy "psycopg[binary]" alembic argon2-cffi email-validator python-multipart pandas openpyxl "PyJWT[crypto]"
-COPY apps/api/app ./app
-COPY apps/api/alembic ./alembic
-COPY apps/api/alembic.ini ./alembic.ini
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+# Create non-root user and directory for secure uploads
+RUN mkdir -p /data/uploads && \
+    adduser --disabled-password --gecos "" --no-create-home foretrade && \
+    chown -R foretrade:foretrade /data/uploads /app
+
+USER foretrade
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=25s --retries=3 \
+  CMD curl -f http://localhost:8000/healthz || exit 1
+
+CMD ["sh", "-c", "python -m app.services.data_pipeline.run_pipeline && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
