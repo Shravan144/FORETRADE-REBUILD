@@ -32,13 +32,24 @@ export default function OnboardingPage() {
     async function init() {
       try {
         setLoading(true);
+        // 1. Ensure user is authenticated & restore CSRF
+        try {
+          await api.me();
+        } catch (authErr: any) {
+          if (authErr?.status === 401) {
+            window.location.href = "/sign-in";
+            return;
+          }
+        }
+
+        // 2. Resolve workspaces
         const res = await api.listWorkspaces();
         if (res.items && res.items.length > 0) {
           setWorkspaceId(res.items[0].id);
           // Check if profile already exists
           const existing = await api.getExporterProfile(res.items[0].id).catch(() => null);
           if (existing?.payload?.company_name) {
-            router.push(`/workspace/${res.items[0].id}`);
+            window.location.href = `/workspace/${res.items[0].id}`;
             return;
           }
         } else {
@@ -57,20 +68,35 @@ export default function OnboardingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!workspaceId) return;
-
     setSubmitting(true);
     try {
-      await api.saveExporterProfile(workspaceId, {
+      let targetWsId = workspaceId;
+      if (!targetWsId) {
+        // Dynamically resolve or create workspace if not set yet
+        const wsRes = await api.listWorkspaces();
+        if (wsRes.items && wsRes.items.length > 0) {
+          targetWsId = wsRes.items[0].id;
+        } else {
+          const newWs = await api.createWorkspace("My Export Operations");
+          targetWsId = newWs.id;
+        }
+        setWorkspaceId(targetWsId);
+      }
+
+      await api.saveExporterProfile(targetWsId, {
         company_name: companyName || "My Export Enterprise",
         capacity_tons: capacityTons,
         product_categories: categories,
         target_countries: targetCountries,
         certifications: certifications,
       });
-      router.push(`/workspace/${workspaceId}`);
-    } catch (err) {
-      alert("Failed to save exporter profile. Please try again.");
+
+      // Direct full-page navigation to initialize cockpit state
+      window.location.href = `/workspace/${targetWsId}`;
+    } catch (err: any) {
+      console.error("Failed to save exporter profile:", err);
+      const msg = err?.message || err?.detail || "Failed to save exporter profile. Please try again.";
+      alert(msg);
     } finally {
       setSubmitting(false);
     }

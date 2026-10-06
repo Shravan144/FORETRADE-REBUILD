@@ -104,6 +104,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     db.add(SessionToken(user_id=user.id, token_hash=hash_token(token), csrf_token=csrf, expires_at=session_expiry(settings.session_ttl_hours)))
     db.commit()
     response.set_cookie(settings.session_cookie_name, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
+    response.set_cookie("foretrade_csrf", csrf, httponly=False, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
     return {"csrf_token": csrf}
 
 
@@ -116,16 +117,20 @@ def logout(request: Request, response: Response, user: User = Depends(require_cs
             record.revoked_at = datetime.now(timezone.utc)
             db.commit()
     response.delete_cookie(settings.session_cookie_name)
+    response.delete_cookie("foretrade_csrf")
     return None
 
 
 @router.get("/me")
-def me(user: User = Depends(get_current_user)) -> dict[str, str | None]:
+def me(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str | None]:
+    token = request.cookies.get(settings.session_cookie_name)
+    session = db.scalar(select(SessionToken).where(SessionToken.token_hash == hash_token(token))) if token else None
     return {
         "id": user.id,
         "email": user.email,
         "full_name": user.full_name,
         "job_title": user.job_title,
+        "csrf_token": session.csrf_token if session else None,
     }
 
 
@@ -192,4 +197,5 @@ def google_callback(
         response = JSONResponse({"csrf_token": csrf, "email": user.email})
 
     response.set_cookie(settings.session_cookie_name, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
+    response.set_cookie("foretrade_csrf", csrf, httponly=False, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
     return response

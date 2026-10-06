@@ -20,6 +20,12 @@ export function getCsrfToken(): string | null {
   if (csrfTokenCache) return csrfTokenCache;
   if (typeof window !== "undefined") {
     csrfTokenCache = sessionStorage.getItem("foretrade_csrf");
+    if (!csrfTokenCache) {
+      const match = document.cookie.match(/(?:^|;\s*)foretrade_csrf=([^;]+)/);
+      if (match) {
+        csrfTokenCache = decodeURIComponent(match[1]);
+      }
+    }
   }
   return csrfTokenCache;
 }
@@ -96,7 +102,9 @@ export const api = {
   },
 
   async me() {
-    return fetchApi<{ id: string; email: string; full_name?: string | null; job_title?: string | null }>("/api/v1/auth/me");
+    const data = await fetchApi<{ id: string; email: string; full_name?: string | null; job_title?: string | null; csrf_token?: string | null }>("/api/v1/auth/me");
+    if (data.csrf_token) setCsrfToken(data.csrf_token);
+    return data;
   },
 
   async updateMe(payload: { full_name?: string; job_title?: string }) {
