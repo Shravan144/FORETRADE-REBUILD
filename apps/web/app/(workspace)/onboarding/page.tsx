@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, setCsrfToken } from "@/lib/api";
 import {
   Compass,
   ArrowRight,
