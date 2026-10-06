@@ -34,7 +34,11 @@ import app.models.workspace  # noqa: F401
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Ensure all tables exist on startup automatically
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        # Tables may have already been created concurrently by another worker
+        pass
     try:
         from sqlalchemy import inspect, text
         with engine.connect() as conn:
