@@ -1,5 +1,10 @@
 # ForeTrade — Enterprise B2B Trade Intelligence & Matchmaking Platform
 
+[![Live App](https://img.shields.io/badge/Live%20Platform-foretrade--rebuild.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://foretrade-rebuild.vercel.app)
+[![API Status](https://img.shields.io/badge/Production%20API-Live%20on%20Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://foretrade-api.onrender.com/healthz)
+[![Interactive Docs](https://img.shields.io/badge/Swagger%20Docs-View%20API-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://foretrade-api.onrender.com/docs)
+[![Database](https://img.shields.io/badge/PostgreSQL-Neon%20Serverless-00E599?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
+
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?style=flat&logo=next.js&logoColor=white)](https://nextjs.org)
 [![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
@@ -7,6 +12,13 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4.0-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 [![Pytest](https://img.shields.io/badge/Tests-75%20Passed-brightgreen?style=flat&logo=pytest&logoColor=white)](https://pytest.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> 🚀 **Live Production Deployment**:
+> - **Web Cockpit (Frontend)**: [https://foretrade-rebuild.vercel.app](https://foretrade-rebuild.vercel.app)
+> - **API & ML Backend**: [https://foretrade-api.onrender.com](https://foretrade-api.onrender.com)
+> - **Interactive Swagger UI**: [https://foretrade-api.onrender.com/docs](https://foretrade-api.onrender.com/docs)
+> - **Backend Health Status**: [https://foretrade-api.onrender.com/healthz](https://foretrade-api.onrender.com/healthz)
+> - **Cloud Database**: Neon Serverless PostgreSQL (`AWS Singapore`)
 
 > **ForeTrade** bridges the intelligence gap in international cross-border trade. Moving far beyond static buyer directories and gut-feeling exports, ForeTrade transforms verified customs **Bill of Lading (BoL)** manifests, **UN Comtrade** bilateral flows, **WTO tariff schedules**, and **World Bank risk governance indicators** into an AI-powered, explainable **"Swipe to Export"** matchmaking platform, automated **Export Documentation Suite**, and real-time **Trade Copilot** decision cockpit.
 
@@ -447,17 +459,30 @@ GEMINI_API_KEY=
 
 ---
 
-## 🐳 Production & Docker Deployment
+## 🐳 Production & Cloud Deployment
 
-To spin up the entire multi-service stack with a single command:
+### 🌐 Live Cloud Infrastructure
+ForeTrade OS is deployed live across a modern, decoupled serverless architecture:
+
+- **Frontend Cockpit**: [Vercel](https://foretrade-rebuild.vercel.app) — Next.js 16 standalone with global Edge CDN caching and automatic HTTPS.
+- **Backend API & ML Engine**: [Render](https://foretrade-api.onrender.com) — Containerized FastAPI (`python:3.13-slim`) with automated data pipelines and XGBoost scoring.
+- **Cloud Database**: [Neon](https://neon.tech) — Serverless PostgreSQL 16 hosted in `AWS Asia Pacific (Singapore)` with automated connection pooling.
+- **Keep-Alive Monitor**: Scheduled cron healthcheck pinging `https://foretrade-api.onrender.com/healthz` to eliminate container idle cold starts.
+
+---
+
+### 📦 Local Multi-Service Docker Orchestration
+To spin up the entire production stack locally with one command from the project root:
 
 ```bash
-docker compose -f infra/compose/docker-compose.yml up --build
+docker compose up --build -d
 ```
 
-- **Frontend Container**: Port `3000`
-- **FastAPI Container**: Port `8000`
-- **Database**: Mounted volume with automatic startup schema migration
+- **Frontend Web Cockpit**: `http://localhost:3000`
+- **FastAPI Backend & ML Engine**: `http://localhost:8000`
+- **Interactive Swagger Documentation**: `http://localhost:8000/docs`
+- **PostgreSQL 16**: Port `5432` with persistent `pgdata` volume
+- **Redis 7**: Port `6379` with persistent `redisdata` volume
 
 ---
 
