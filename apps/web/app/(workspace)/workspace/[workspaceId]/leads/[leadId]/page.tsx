@@ -16,6 +16,10 @@ import {
   FileText,
   Loader2,
   Sparkles,
+  Printer,
+  Download,
+  ExternalLink,
+  Ship,
 } from "lucide-react";
 
 export default function LeadDetailPage({
@@ -30,6 +34,9 @@ export default function LeadDetailPage({
   const [company, setCompany] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [drafts, setDrafts] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
+  const [docSuccessMsg, setDocSuccessMsg] = useState<string | null>(null);
 
   // Form states
   const [selectedEventType, setSelectedEventType] = useState("contact_attempt");
@@ -80,12 +87,14 @@ export default function LeadDetailPage({
         setLead(target);
         setCompany(compRes);
 
-        const [eventsRes, draftsRes] = await Promise.all([
+        const [eventsRes, draftsRes, docsRes] = await Promise.all([
           api.listLeadEvents(workspaceId, leadId).catch(() => ({ items: [] })),
           api.listDrafts(workspaceId, leadId).catch(() => ({ items: [] })),
+          api.listLeadDocuments(workspaceId, leadId).catch(() => ({ items: [] })),
         ]);
         setEvents(eventsRes.items || []);
         setDrafts(draftsRes.items || []);
+        setDocuments(docsRes.items || []);
 
         if (compRes && !draftSubject) {
           setDraftSubject(`Partnership Inquiry: Certified Indian Exports for ${compRes.name}`);
@@ -98,6 +107,28 @@ export default function LeadDetailPage({
       console.error("Failed to load lead:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGenerateDoc(docType: "proforma_invoice" | "packing_list") {
+    try {
+      setGeneratingDoc(docType);
+      setDocSuccessMsg(null);
+      const newDoc = await api.generateLeadDocument(workspaceId, leadId, docType);
+      setDocuments((prev) => [newDoc, ...prev]);
+
+      // Refresh events timeline
+      const ev = await api.listLeadEvents(workspaceId, leadId).catch(() => ({ items: [] }));
+      setEvents(ev.items || []);
+
+      const label = docType === "proforma_invoice" ? "Proforma Invoice" : "Packing List";
+      setDocSuccessMsg(`Successfully generated official ${label} ${newDoc.document_number}!`);
+      setTimeout(() => setDocSuccessMsg(null), 5000);
+    } catch (err: any) {
+      console.error("Document generation failed:", err);
+      alert("Failed to generate document: " + (err.message || "Error"));
+    } finally {
+      setGeneratingDoc(null);
     }
   }
 
@@ -348,6 +379,174 @@ export default function LeadDetailPage({
           </div>
         </div>
       )}
+
+      {/* Export Documentation Suite (Proforma Invoices & Commercial Packing Lists) */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-blue-600 text-white">
+                <FileText className="w-4 h-4" />
+              </div>
+              <h2 className="text-base font-bold text-slate-900">
+                Export Documentation Suite
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">
+                Commercial EXIM Suite
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Synthesizes buyer billing/shipping addresses, Incoterms, container TEU weights, HS classifications, and bank remittance coordinates into official executable paperwork.
+            </p>
+          </div>
+
+          {/* 1-Click Generation Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={generatingDoc !== null}
+              onClick={() => handleGenerateDoc("proforma_invoice")}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+            >
+              {generatingDoc === "proforma_invoice" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              <span>Generate Proforma Invoice</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={generatingDoc !== null}
+              onClick={() => handleGenerateDoc("packing_list")}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+            >
+              {generatingDoc === "packing_list" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Ship className="w-3.5 h-3.5" />
+              )}
+              <span>Generate Packing List</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Stage High Priority Banner */}
+        {(lead.stage === "meeting" || lead.stage === "won") && (
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-900 text-xs flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 font-medium">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>
+                <strong>Deal Status ({lead.stage.toUpperCase()}):</strong> Buyer is in active commercial closure. Issuing official proforma invoice and container packing documentation will enable the buyer to open their Letter of Credit (L/C) or initiate wire transfer.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {docSuccessMsg && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{docSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Document Cards List */}
+        {documents.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+            <FileText className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+            <p className="font-medium text-slate-600">No export documents generated yet for this deal.</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Click either button above to auto-synthesize buyer addresses, HS codes, Incoterms, and bank routing.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {documents.map((d: any) => {
+              const isPI = d.document_type === "proforma_invoice";
+              const subtotalVal = (d.line_items || []).reduce(
+                (acc: number, it: any) => acc + (Number(it.total_amount) || 0),
+                0
+              );
+              const grossWt = (d.line_items || []).reduce(
+                (acc: number, it: any) => acc + (Number(it.gross_weight_kg) || 0),
+                0
+              );
+
+              return (
+                <div
+                  key={d.id}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-colors space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          isPI
+                            ? "bg-blue-100 text-blue-800 border border-blue-200"
+                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        }`}
+                      >
+                        {isPI ? "Proforma Invoice" : "Packing List"}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900">{d.document_number}</span>
+                    </div>
+
+                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                      {d.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Incoterm & Port</span>
+                      <span className="font-semibold text-slate-800 truncate block">
+                        {d.incoterm} • {d.port_of_discharge || "Discharge Port"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">
+                        {isPI ? "Commercial Value" : "Gross Freight Weight"}
+                      </span>
+                      <span className="font-bold text-slate-900">
+                        {isPI
+                          ? `${d.currency} ${subtotalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                          : `${grossWt.toLocaleString()} kg`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                    <span>Issued: <strong>{d.issue_date || "Today"}</strong></span>
+                    <span>TEU: <strong>{d.logistics_details?.container_type || "1 x 20' FCL"}</strong></span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link
+                      href={`/workspace/${workspaceId}/documents/${d.id}`}
+                      className="flex-1 py-1.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Open in Studio</span>
+                    </Link>
+
+                    <a
+                      href={api.getDocumentPdfUrl(workspaceId, d.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:text-blue-600 hover:border-blue-400 text-xs font-semibold flex items-center gap-1 transition-colors"
+                      title="Download Vector PDF"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Two Column Section: Timeline (Left) & Outreach Drafts (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

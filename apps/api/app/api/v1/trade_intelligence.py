@@ -7,7 +7,7 @@ import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_optional_user
@@ -339,12 +339,64 @@ def extract_signal_endpoint(
     return extracted.to_dict()
 
 
+@router.get("/buyers/facets")
+def get_global_buyer_facets(
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Returns aggregated metadata and facet counts across all 671 verified buyers."""
+    from app.models.trade_intelligence import GlobalBuyerCatalog
+
+    total_count = db.scalar(select(func.count(GlobalBuyerCatalog.id))) or 0
+    total_volume = db.scalar(select(func.sum(GlobalBuyerCatalog.annual_import_volume_usd))) or 0.0
+
+    # Countries with counts
+    country_rows = db.execute(
+        select(GlobalBuyerCatalog.country_code, func.count(GlobalBuyerCatalog.id))
+        .group_by(GlobalBuyerCatalog.country_code)
+        .order_by(func.count(GlobalBuyerCatalog.id).desc())
+    ).all()
+
+    # Sectors with counts
+    sector_rows = db.execute(
+        select(GlobalBuyerCatalog.primary_sector, func.count(GlobalBuyerCatalog.id))
+        .group_by(GlobalBuyerCatalog.primary_sector)
+        .order_by(func.count(GlobalBuyerCatalog.id).desc())
+    ).all()
+
+    # Incoterms with counts
+    incoterm_rows = db.execute(
+        select(GlobalBuyerCatalog.preferred_incoterms, func.count(GlobalBuyerCatalog.id))
+        .group_by(GlobalBuyerCatalog.preferred_incoterms)
+        .order_by(func.count(GlobalBuyerCatalog.id).desc())
+    ).all()
+
+    return {
+        "total_buyers": total_count,
+        "total_annual_volume_usd": total_volume,
+        "countries": [{"code": r[0], "count": r[1]} for r in country_rows if r[0]],
+        "sectors": [{"name": r[0], "count": r[1]} for r in sector_rows if r[0]],
+        "incoterms": [{"incoterm": r[0], "count": r[1]} for r in incoterm_rows if r[0]],
+        "volume_tiers": [
+            {"label": "Under $5M", "min": 0, "max": 5_000_000},
+            {"label": "$5M – $20M", "min": 5_000_000, "max": 20_000_000},
+            {"label": "$20M – $50M", "min": 20_000_000, "max": 50_000_000},
+            {"label": "$50M – $100M+", "min": 50_000_000, "max": None},
+        ],
+    }
+
+
 @router.get("/buyers")
 def list_global_buyers(
     country_code: Optional[str] = Query(None, max_length=2),
     sector: Optional[str] = Query(None, max_length=100),
     hs_code: Optional[str] = Query(None, max_length=10),
     query: Optional[str] = Query(None, max_length=200),
+    min_volume: Optional[float] = Query(None),
+    max_volume: Optional[float] = Query(None),
+    incoterm: Optional[str] = Query(None, max_length=10),
+    sort_by: Optional[str] = Query("volume_desc"),
+    min_reliability: Optional[float] = Query(None),
     user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -361,9 +413,35 @@ def list_global_buyers(
     if sector:
         stmt = stmt.where(GlobalBuyerCatalog.primary_sector.ilike(f"%{sector}%"))
     if query:
-        stmt = stmt.where(GlobalBuyerCatalog.company_name.ilike(f"%{query}%"))
+        q_clean = f"%{query.strip()}%"
+        stmt = stmt.where(
+            or_(
+                GlobalBuyerCatalog.company_name.ilike(q_clean),
+                GlobalBuyerCatalog.city.ilike(q_clean),
+                GlobalBuyerCatalog.customs_manifest_provenance.ilike(q_clean),
+            )
+        )
+    if min_volume is not None:
+        stmt = stmt.where(GlobalBuyerCatalog.annual_import_volume_usd >= min_volume)
+    if max_volume is not None:
+        stmt = stmt.where(GlobalBuyerCatalog.annual_import_volume_usd <= max_volume)
+    if incoterm:
+        stmt = stmt.where(GlobalBuyerCatalog.preferred_incoterms == incoterm.upper())
+    if min_reliability is not None:
+        stmt = stmt.where(GlobalBuyerCatalog.reliability_score >= min_reliability)
 
-    buyers = db.scalars(stmt.order_by(GlobalBuyerCatalog.annual_import_volume_usd.desc())).all()
+    if sort_by == "volume_asc":
+        stmt = stmt.order_by(GlobalBuyerCatalog.annual_import_volume_usd.asc())
+    elif sort_by == "reliability_desc":
+        stmt = stmt.order_by(GlobalBuyerCatalog.reliability_score.desc())
+    elif sort_by == "tonnage_desc":
+        stmt = stmt.order_by(GlobalBuyerCatalog.avg_order_tons.desc())
+    elif sort_by == "name_asc":
+        stmt = stmt.order_by(GlobalBuyerCatalog.company_name.asc())
+    else:  # volume_desc default
+        stmt = stmt.order_by(GlobalBuyerCatalog.annual_import_volume_usd.desc())
+
+    buyers = db.scalars(stmt).all()
 
     # In-memory filter for hs_codes if requested
     if hs_code:

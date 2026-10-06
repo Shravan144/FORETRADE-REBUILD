@@ -5,10 +5,10 @@
 [![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4.0-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Pytest](https://img.shields.io/badge/Tests-60%20Passed-brightgreen?style=flat&logo=pytest&logoColor=white)](https://pytest.org)
+[![Pytest](https://img.shields.io/badge/Tests-75%20Passed-brightgreen?style=flat&logo=pytest&logoColor=white)](https://pytest.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **ForeTrade** bridges the intelligence gap in international cross-border trade. Moving far beyond static buyer directories and gut-feeling exports, ForeTrade transforms verified customs **Bill of Lading (BoL)** manifests, **UN Comtrade** bilateral flows, **WTO tariff schedules**, and **World Bank risk governance indicators** into an AI-powered, explainable **"Swipe to Export"** matchmaking platform and decision cockpit.
+> **ForeTrade** bridges the intelligence gap in international cross-border trade. Moving far beyond static buyer directories and gut-feeling exports, ForeTrade transforms verified customs **Bill of Lading (BoL)** manifests, **UN Comtrade** bilateral flows, **WTO tariff schedules**, and **World Bank risk governance indicators** into an AI-powered, explainable **"Swipe to Export"** matchmaking platform, automated **Export Documentation Suite**, and real-time **Trade Copilot** decision cockpit.
 
 ---
 
@@ -17,6 +17,10 @@
 - [Executive Overview](#-executive-overview)
 - [System Architecture](#-system-architecture)
 - [The 5 Real-Time ML Decision Engines](#-the-5-real-time-ml-decision-engines)
+- [AI Trade Copilot](#-ai-trade-copilot)
+- [Export Documentation Suite (Path 2)](#-export-documentation-suite-path-2)
+- [Global Buyer Directory & Customs Explorer (Path 3)](#-global-buyer-directory--customs-explorer-path-3)
+- [Exporter Profile & Workspace Settings](#-exporter-profile--workspace-settings)
 - [Value-Added Exporter Tools](#-value-added-exporter-tools)
 - [Ingested Open Datasets](#-ingested-open-datasets)
 - [Cockpit & Workspace Routes](#-cockpit--workspace-routes)
@@ -33,11 +37,13 @@
 Cross-border trade for emerging market exporters—particularly Indian MSMEs—is burdened by high foreign sales cycle friction, opaque landed costs, compliance hurdles, and commercial default risks.
 
 **ForeTrade solves this with a unified intelligence cockpit:**
-1. **Verified Consignee Provenance**: Evaluates real buyers with audited customs Bill of Lading records, historical supplier shares, and container frequencies.
-2. **Predictive Corridor Forecasting**: Forecasts bilateral demand 12-24 months out using time-series modeling on official UN Comtrade flows.
+1. **Verified Consignee Provenance**: Evaluates real buyers with audited customs Bill of Lading records, historical supplier shares, and container frequencies across 671 verified global importers.
+2. **Predictive Corridor Forecasting**: Forecasts bilateral demand 12–24 months out using time-series modeling on official UN Comtrade flows.
 3. **Automated Incoterms Landed Costing**: Dynamically computes pricing progression (`EXW` $\rightarrow$ `FOB` $\rightarrow$ `CFR` $\rightarrow$ `CIF` $\rightarrow$ `DDP`) with live ocean freight lanes, marine insurance, and Free Trade Agreement (FTA) preferential tariff savings.
 4. **Adaptive Matchmaking ("Swipe to Export")**: Two-tower recommendation model offering high-velocity lead triage with immediate preference learning and explainable compatibility scores.
 5. **Cross-Border Risk Simulation**: XGBoost-powered transaction risk classifier evaluating country governance, currency volatility, and payment terms (`Open Account` vs. `Letter of Credit`).
+6. **Export Documentation Suite**: 1-click Proforma Invoice (P/I) and Commercial Packing List (CPL) generation with ReportLab vector PDF downloads and automated container TEU packing calculations.
+7. **AI Trade Copilot**: Multi-turn conversational copilot grounded in live trade corridor data, tariff schedules, and exporter workspace context.
 
 ---
 
@@ -47,9 +53,9 @@ Cross-border trade for emerging market exporters—particularly Indian MSMEs—i
 flowchart TD
     subgraph DataPipelines["1. Ingestion & Ingest Pipeline"]
         UN["UN Comtrade Flows\n(Bilateral Historical USD & Kg)"]
-        BOL["Public Customs Manifests\n(Bill of Lading Consignees & TEU)"]
+        BOL["Public Customs Manifests\n(671 Bill of Lading Consignees & TEU)"]
         WITS["WTO & FTA Tariff Matrix\n(MFN vs Preferential Concessions)"]
-        WB["World Bank Governance (WGI)\n(Country Stability & Credit Risk)"]
+        WB["World Bank Governance\n(Country Stability & Credit Risk)"]
         RADAR["Trade Bulletins & RSS\n(Tenders & Quota Alerts)"]
     end
 
@@ -64,22 +70,26 @@ flowchart TD
         M4["Model 4: Demand NLP Radar\n(Tender & Spike Entity Extraction)"]
         M5["Model 5: HS Auto-Classifier\n(Semantic Text-to-HS Embeddings)"]
         M6["Logistics Engine\n(Incoterms 2020 Landed Cost)"]
+        M7["Doc Engine\n(ReportLab Vector PDF Suite)"]
     end
 
     subgraph APILayer["4. FastAPI Backend (Python 3.13)"]
-        AuthRouter["Auth, RBAC & Workspaces"]
+        AuthRouter["Auth, RBAC & Profile Settings"]
         IntelRouter["Trade Intelligence Endpoints"]
         MatchRouter["Matchmaking & Feedback Loop"]
-        LogisticsRouter["Landed Cost & Tariff Calculation"]
+        DocRouter["Commercial Documents API"]
+        CopilotRouter["AI Trade Copilot Chatbot"]
+        LogisticsRouter["Landed Cost & Tariff Engine"]
     end
 
     subgraph FrontendApp["5. Next.js 16 Web Cockpit (Turbopack)"]
         Landing["Editorial Landing Page"]
         SwipeUI["Swipe-to-Export Deck"]
         RadarUI["Real-Time Demand Radar"]
-        LogisticsUI["Landed Cost & Freight Cockpit"]
-        RiskUI["Trade Risk Simulator"]
-        CRM["Export CRM & Deal Pipeline"]
+        DirectoryUI["Global Buyer Directory (671 Buyers)"]
+        DocStudioUI["Document Studio Dashboard & Editor"]
+        SettingsUI["Exporter & Bank Settings"]
+        CopilotUI["Trade Copilot Floating Widget"]
     end
 
     DataPipelines --> CoreDB
@@ -132,6 +142,66 @@ flowchart TD
 
 ---
 
+## 🤖 AI Trade Copilot
+
+The **ForeTrade AI Copilot** is an enterprise conversational assistant accessible from any screen via a floating cockpit widget:
+- **Resilient Multi-Provider Architecture**:
+  1. Primary: **Google Gemini 1.5 / 2.0 Flash** via REST API.
+  2. Local Fallback: **Ollama LLM** (e.g., Llama 3 / Mistral) for offline environments.
+  3. Deterministic Fallback: **Rule-Based Heuristic Trade Advisory** ensuring 100% uptime without external API keys.
+- **Grounding & Tools**: Tool-calling access to live database records:
+  - `lookup_hs_code`: Real-time taxonomy resolution.
+  - `check_tariff`: Bilateral MFN and FTA concession rates.
+  - `query_corridor`: Forecasted volume and growth trends.
+  - `assess_risk`: Country governance and currency volatility metrics.
+
+---
+
+## 📄 Export Documentation Suite (Path 2)
+
+Transforms qualified CRM leads into legally binding, customs-compliant commercial paperwork:
+- **1-Click Generation**:
+  - **Proforma Invoice (P/I)**: Official quotation with Incoterms (CIF, FOB, CFR), payment terms, exporter IEC/GSTIN, and beneficiary bank wire SWIFT/IBAN coordinates.
+  - **Commercial Packing List (CPL)**: Net weight, gross weight, CBM volume, package marks, and container packing manifest.
+- **Automated Container TEU Logistics Calculator**:
+  - Automatically assesses cargo weights and CBM volumes against standard maritime container envelopes (`20' FCL` holds ~22,000 kg / 28 CBM; `40' HC` holds ~26,500 kg / 68 CBM).
+  - Dynamically computes multi-container TEU equivalents and volume utilization percentages.
+- **ReportLab PDF Engine**: Generates downloadable, printable vector PDFs with clean tabular formatting, customs declaration clauses, and signature blocks.
+- **Document Studio Dashboard**: Full index at `/workspace/:id/documents` with search, type filters, status tracking, and 1-click PDF download buttons.
+
+---
+
+## 🔍 Global Buyer Directory & Customs Explorer (Path 3)
+
+Unlocks direct search and intelligence across **671 verified international buyers**:
+- **Multi-Facet Search**: Filter by Country (`US`, `AE`, `DE`, `JP`, `SA`, `GB`, etc.), Industry Sector, Annual Volume Range ($1M–$100M+), and Incoterms.
+- **Buyer Dossier Cards**:
+  - Historical shipment frequency and average container TEU tonnage.
+  - Customs Bill of Lading provenance badge.
+  - Top historical suppliers with origin country shares.
+- **Direct Actions**: 1-click **"Add to CRM"** or **"Pitch Buyer ⚡"** directly from the directory without swiping.
+
+---
+
+## ⚙️ Exporter Profile & Workspace Settings
+
+Located at `/workspace/:id/settings`, this screen synchronizes identity and statutory coordinates across all platform workflows:
+- **Personal Profile**: Full Name, Job Title / Designation, and authenticated email.
+- **Enterprise & Statutory EXIM Credentials**:
+  - Registered Company Name & Factory Address.
+  - **10-Digit DGFT IEC Code** (Importer-Exporter Code).
+  - **GSTIN / Tax ID**.
+  - Default **Port of Loading (POL)** (e.g., Nhava Sheva JNPT, Mundra).
+  - Annual Shipping Capacity (Metric Tons) & Minimum Order Value.
+- **Bank Wire Remittance Coordinates**:
+  - Beneficiary Account Name, Bank Name, and Branch Address.
+  - Account Number, **SWIFT / BIC Code**, and **IBAN / IFSC Code**.
+  - Automatically embeds into generated Proforma Invoices in the Document Studio.
+- **Dynamic Sidebar**:
+  - Displays user initials avatar, full name, job title, and active workspace company name.
+
+---
+
 ## 🛠 Value-Added Exporter Tools
 
 ### Incoterms 2020 Landed Cost & Logistics Engine
@@ -152,10 +222,10 @@ All platform intelligence is backed by structured, open data stored in [`data/`]
 | Dataset | File Location | Records & Scope |
 | :--- | :--- | :--- |
 | **UN Comtrade Bilateral Flows** | `data/un_comtrade/raw_comtrade_flows.json` | 10-year bilateral trade history (USD, Kg, unit prices) across US, DE, AE, UK, JP, SA, AU. |
-| **Customs Bill of Lading Manifests** | `data/customs_manifests/buyer_manifest_directory.json` | Verified overseas consignees with manifest provenance, TEU volumes, and historical supplier shares. |
+| **Customs Bill of Lading Manifests** | `data/customs_manifests/buyer_manifest_directory.json` | 671 verified overseas consignees with manifest provenance, TEU volumes, and historical supplier shares. |
 | **WTO Tariff Schedules** | `data/tariffs/tariff_schedules.json` | MFN duty rates and preferential FTA rates across active trade corridors. |
 | **World Bank Governance Indicators** | `data/country_risk_factors.json` | Political stability, regulatory quality, rule of law, and currency volatility metrics. |
-| **WCO Harmonized System Taxonomy** | `data/hs_taxonomy/hs_codes_reference.json` | 6-digit HS taxonomy directory spanning textiles, pharmaceuticals, agro, and engineering goods. |
+| **WCO Harmonized System Taxonomy** | `data/hs_taxonomy/hs_codes_reference.json` | 103 6-digit HS taxonomy directory entries spanning textiles, pharmaceuticals, agro, and engineering goods. |
 | **Trained XGBoost Risk Model** | `data/_ml_models/trade_risk_xgb.json` | Pre-trained XGBoost weights for cross-border commercial default classification. |
 
 ---
@@ -167,17 +237,20 @@ The frontend is built on a dark enterprise palette (`#0B0F19`, `#111827`, subtle
 | Route | View Name | Key Capabilities |
 | :--- | :--- | :--- |
 | `/` | **Landing Page** | Platform overview, verified trade stats, feature highlights, and interactive preview. |
-| `/sign-in` & `/register` | **Authentication** | Session cookies, CSRF protection, demo login credentials, and Google OAuth flow. |
+| `/sign-in` & `/register` | **Authentication** | Session cookies, CSRF protection, demo login credentials, Full Name and Company collection. |
 | `/workspace/:id` | **Cockpit Dashboard** | Exporter profile summary, trade metrics, recent activity, and workflow navigation. |
 | `/workspace/:id/swipe` | **Swipe to Export** | Tinder-style matchmaking deck, two-tower scoring, capacity/certification alignment. |
 | `/workspace/:id/radar` | **Demand Radar** | Live procurement bulletins, tenders, intent scores, and one-click lead conversion. |
 | `/workspace/:id/logistics` | **Landed Cost Engine** | Incoterms 2020 breakdown (EXW $\rightarrow$ DDP), container freight, FTA tariff savings. |
 | `/workspace/:id/risk` | **Trade Risk Simulator** | XGBoost risk tiering, default probability, payment term sensitivity, mitigation advisory. |
 | `/workspace/:id/markets` | **Global Corridors** | UN Comtrade bilateral time-series, forecasted growth, unit values, and tariff rates. |
-| `/workspace/:id/companies` | **Verified Buyers** | Bill of Lading consignee registry, container frequencies, and supplier track records. |
-| `/workspace/:id/leads` | **Deal Desk & CRM** | Multi-stage export pipeline (`new` $\rightarrow$ `contacted` $\rightarrow$ `negotiation` $\rightarrow$ `won`). |
-| `/workspace/:id/analytics` | **Analytics** | Export volumes, pipeline value, conversion rates, and buyer activity breakdown. |
-| `/workspace/:id/imports/new` | **Data Ingestion** | Upload CSV/Excel customs files with schema mapping and validation previews. |
+| `/workspace/:id/companies` | **Buyer Directory** | Multi-facet filtering across 671 buyers, provenance badges, direct "Add to CRM" & "Pitch". |
+| `/workspace/:id/leads` | **Deal Desk & CRM** | Multi-stage export pipeline (`new` $\rightarrow$ `contacted` $\rightarrow$ `replied` $\rightarrow$ `meeting` $\rightarrow$ `won`). |
+| `/workspace/:id/documents` | **Document Studio** | Master index of generated Proforma Invoices and Packing Lists with PDF download actions. |
+| `/workspace/:id/documents/:docId` | **Document Editor** | Interactive P/I and Packing List editor, recalculation engine, and ReportLab PDF preview. |
+| `/workspace/:id/settings` | **Settings & Profile** | User profile, statutory DGFT IEC, GSTIN, origin port, and bank wire remittance coordinates. |
+| `/workspace/:id/analytics` | **Analytics & Export** | Export volumes, pipeline value, conversion rates, and CSV data export. |
+| `/workspace/:id/imports/new` | **Data Ingestion** | Upload customs CSV/Excel files with schema mapping and validation previews. |
 
 ---
 
@@ -186,40 +259,43 @@ The frontend is built on a dark enterprise palette (`#0B0F19`, `#111827`, subtle
 ```
 FORETRADE RB/
 ├── apps/
-│   ├── api/                                # FastAPI Backend Application
+│   ├── api/                                # FastAPI Backend Application (Python 3.13)
 │   │   ├── app/
-│   │   │   ├── api/                        # HTTP Endpoints & Routers
-│   │   │   │   ├── v1/
-│   │   │   │   │   ├── auth.py             # Cookie & CSRF session authentication
-│   │   │   │   │   ├── matchmaking.py      # Recommendation & Swipe deck API
-│   │   │   │   │   ├── trade_intelligence.py # UN Comtrade, ML models, tariffs, risk
-│   │   │   │   │   ├── workspaces.py       # Exporter workspace management
-│   │   │   │   │   ├── companies.py        # Master company directory
-│   │   │   │   │   └── leads.py            # Deal pipeline & CRM stages
-│   │   │   │   └── dependencies.py         # Session auth & optional user resolvers
+│   │   │   ├── api/v1/                     # REST Endpoints
+│   │   │   │   ├── auth.py                 # Cookie & CSRF session auth + /me profile PATCH
+│   │   │   │   ├── copilot.py              # AI Trade Copilot chat & tool invocation
+│   │   │   │   ├── documents.py            # Commercial Documents Suite (P/I & CPL)
+│   │   │   │   ├── exporter_profiles.py    # Exporter company & bank credentials
+│   │   │   │   ├── matchmaking.py          # Two-tower recommendation & swipe deck API
+│   │   │   │   ├── trade_intelligence.py   # UN Comtrade, ML models, tariffs, risk, radar
+│   │   │   │   ├── workspaces.py           # Exporter workspace management
+│   │   │   │   ├── companies.py            # Master company directory
+│   │   │   │   └── leads.py                # Deal pipeline & generative pitch engine
 │   │   │   ├── core/                       # App settings, security, request ID
 │   │   │   ├── db/                         # SQLAlchemy session & Base engine
-│   │   │   ├── models/                     # Database models (Domain, Audit, Trade Intel)
+│   │   │   ├── models/                     # Database models (Domain, Audit, Trade Intel, User)
+│   │   │   ├── schemas/                    # Pydantic v2 validation schemas
 │   │   │   ├── services/
-│   │   │   │   ├── data_pipeline/          # Ingestion scripts for UN Comtrade & tariffs
-│   │   │   │   └── ml/                     # ML modules (Two-Tower, XGBoost, Radar, etc.)
+│   │   │   │   ├── data_pipeline/          # Ingestion pipelines for UN Comtrade & tariffs
+│   │   │   │   ├── document_service.py     # Proforma Invoice / CPL logic & ReportLab PDF
+│   │   │   │   └── ml/                     # ML modules (Two-Tower, XGBoost, Radar, Copilot)
 │   │   │   └── main.py                     # FastAPI factory & startup auto-migration
-│   │   ├── tests/                          # 60 Pytest test suites
-│   │   └── pyproject.toml                  # Python 3.13 dependencies (uv)
+│   │   ├── tests/                          # 75 Pytest automated integration & unit tests
+│   │   └── pyproject.toml                  # Python dependencies (managed via uv)
 │   │
-│   └── web/                                # Next.js 16 Web Application
-│       ├── app/                            # App Router routes
-│       │   ├── (public)/                   # Public routes (Landing, Sign-In, Register)
+│   └── web/                                # Next.js 16 Web Application (React 19, Turbopack)
+│       ├── app/                            # App Router routes (15 visual screens)
+│       │   ├── (public)/                   # Public routes (Landing, Sign-In, Register, Sign-Up)
 │       │   └── (workspace)/                # Authenticated Cockpit & tools
-│       ├── components/                     # Workspace sidebar, auth form, UI controls
-│       ├── lib/                            # Typed API client with resilient fallbacks
-│       ├── tests/                          # Vitest unit & smoke tests
+│       ├── components/                     # TradeCopilot, Sidebar, AuthForm, UI controls
+│       ├── lib/                            # Typed API client with credentials & CSRF handling
+│       ├── tests/                          # Vitest smoke & component unit tests
 │       ├── package.json                    # Node dependencies
 │       └── next.config.ts                  # Reverse proxy rewrites to FastAPI backend
 │
 ├── data/                                   # Real trade datasets & ML models
 │   ├── _ml_models/                         # Pre-trained XGBoost weights (JSON)
-│   ├── customs_manifests/                  # Verified BoL records
+│   ├── customs_manifests/                  # Verified BoL records (671 buyers)
 │   ├── hs_taxonomy/                        # WCO 6-digit HS directory
 │   ├── tariffs/                            # Bilateral tariff schedules
 │   └── un_comtrade/                        # Historical Comtrade flows
@@ -233,7 +309,7 @@ FORETRADE RB/
 │
 ├── .env.example                            # Root environment template
 ├── .gitignore                              # Git exclusion rules (DBs, logs, caches)
-└── README.md                               # Platform documentation
+└── README.md                               # Comprehensive platform documentation
 ```
 
 ---
@@ -250,7 +326,7 @@ FORETRADE RB/
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/Shravan144/Bandits_LOC8A1.git
+git clone https://github.com/Shravan144/FORETRADE-REBUILD.git
 cd "FORETRADE RB"
 ```
 
@@ -266,7 +342,7 @@ cd "FORETRADE RB"
    ```bash
    cp .env.example .env
    ```
-3. Install dependencies using `uv`:
+3. Install dependencies:
    ```bash
    uv sync
    ```
@@ -309,20 +385,20 @@ cd "FORETRADE RB"
 For instant local testing, use the pre-configured demo account:
 - **Email**: `demo@example.com`
 - **Password**: `DemoPassword123!`
-*(Or click **"Fill Demo Account"** directly on the `/sign-in` screen).*
+*(Or click **"Autofill Demo Exporter Credentials"** directly on the `/sign-in` screen).*
 
 ---
 
 ## ✅ Testing & Quality Verification
 
-ForeTrade includes automated test coverage across both backend and frontend layers:
+ForeTrade includes comprehensive automated test suites across all layers:
 
-### Backend Tests (Pytest)
+### Backend Tests (Pytest — 75 Tests)
 ```bash
 cd apps/api
 uv run pytest
 ```
-*Executes all 60 tests covering API endpoints, data pipelines, two-tower matchmaking, XGBoost risk evaluation, and landed cost logic.*
+*Executes all 75 integration and unit tests covering API endpoints, data pipelines, two-tower matchmaking, XGBoost risk evaluation, ReportLab PDF generation, AI copilot chat, and landed cost logic.*
 
 ### Frontend Tests (Vitest)
 ```bash
@@ -336,7 +412,13 @@ npm run test
 cd apps/web
 npm run build
 ```
-*Ensures strict TypeScript compliance and Turbopack production compilation across all 17 routes.*
+*Ensures strict TypeScript compliance and Turbopack production compilation across all 15 routes.*
+
+### Full End-to-End Visual Audit
+```bash
+python scratch/e2e_full_audit.py
+```
+*Executes a live 39-point simulated exporter journey from registration to PDF download with 100% pass verification.*
 
 ---
 
@@ -358,6 +440,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/v1/auth/google/callback
+
+# Optional AI Copilot Gemini API Key
+GEMINI_API_KEY=
 ```
 
 ---

@@ -294,3 +294,36 @@ def test_trade_intelligence_landed_cost_api() -> None:
     assert "incoterms" in cost_data
     assert cost_data["incoterms"]["margin_percentage"] == 18.0
 
+
+def test_trade_intelligence_buyers_directory_and_facets_api() -> None:
+    run_all_pipelines()
+    client, _, _ = authenticated_client("buyers_facets_test@example.com")
+
+    # 1. Fetch facets
+    facets_res = client.get("/api/v1/intelligence/buyers/facets")
+    assert facets_res.status_code == 200
+    facets = facets_res.json()
+    assert facets["total_buyers"] >= 600
+    assert facets["total_annual_volume_usd"] > 1_000_000_000
+    assert len(facets["countries"]) >= 10
+    assert len(facets["sectors"]) >= 10
+    assert len(facets["incoterms"]) >= 3
+
+    # 2. Filter by country and volume
+    filtered_res = client.get("/api/v1/intelligence/buyers?country_code=US&min_volume=20000000&sort_by=volume_desc")
+    assert filtered_res.status_code == 200
+    filtered_data = filtered_res.json()
+    assert filtered_data["total"] > 0
+    for b in filtered_data["items"]:
+        assert b["country_code"] == "US"
+        assert b["annual_import_volume_usd"] >= 20_000_000
+
+    # 3. Filter by Incoterms
+    incoterm_res = client.get("/api/v1/intelligence/buyers?incoterm=CIF")
+    assert incoterm_res.status_code == 200
+    incoterm_data = incoterm_res.json()
+    assert incoterm_data["total"] > 0
+    for b in incoterm_data["items"]:
+        assert b["preferred_incoterms"] == "CIF"
+
+

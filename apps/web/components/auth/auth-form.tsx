@@ -10,6 +10,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [googleStatus, setGoogleStatus] = useState<"idle" | "checking" | "unconfigured">("idle");
@@ -21,7 +23,12 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
 
     try {
       if (mode === "register") {
-        await api.register({ email, password });
+        await api.register({
+          email,
+          password,
+          full_name: fullName.trim() || undefined,
+          company_name: companyName.trim() || undefined,
+        });
       }
       // Log in to obtain session cookie & CSRF token
       await api.login({ email, password });
@@ -147,6 +154,39 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
 
       {/* Credentials Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {mode === "register" && (
+          <>
+            <div>
+              <label htmlFor="auth-fullname" className="block text-xs font-medium text-slate-300 mb-1">
+                Full Name
+              </label>
+              <input
+                id="auth-fullname"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Rajesh Sharma"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="auth-company" className="block text-xs font-medium text-slate-300 mb-1">
+                Company / Organization Name <span className="text-slate-500 text-[10px]">(Optional)</span>
+              </label>
+              <input
+                id="auth-company"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Apex Agro Exports Pvt Ltd"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+              />
+            </div>
+          </>
+        )}
+
         <div>
           <label htmlFor="auth-email" className="block text-xs font-medium text-slate-300 mb-1">
             Work Email Address

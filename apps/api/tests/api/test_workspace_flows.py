@@ -134,3 +134,65 @@ def test_workspace_data_is_not_visible_to_another_user() -> None:
     assert first.post(f"/api/v1/workspaces/{workspace_id}/market-watchlist", json={"country_code": "AE", "hs_code": "6109"}, headers=headers).status_code == 201
     second, _, _ = authenticated_client("second@example.com")
     assert second.get(f"/api/v1/workspaces/{workspace_id}/market-watchlist").status_code == 404
+
+
+def test_user_profile_and_exporter_settings_flow() -> None:
+    client = TestClient(app)
+    reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "director@agroexports.example",
+            "password": "correct horse battery staple",
+            "full_name": "Rajesh Sharma",
+            "company_name": "Agro Exports Ltd",
+        },
+    )
+    assert reg.status_code == 201
+    assert reg.json()["full_name"] == "Rajesh Sharma"
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "director@agroexports.example", "password": "correct horse battery staple"},
+    )
+    assert login.status_code == 200
+    csrf = login.json()["csrf_token"]
+    headers = {"X-CSRF-Token": csrf}
+
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["full_name"] == "Rajesh Sharma"
+
+    patch_me = client.patch(
+        "/api/v1/auth/me",
+        json={"full_name": "Rajesh Kumar Sharma", "job_title": "VP International Trade"},
+        headers=headers,
+    )
+    assert patch_me.status_code == 200
+    assert patch_me.json()["full_name"] == "Rajesh Kumar Sharma"
+    assert patch_me.json()["job_title"] == "VP International Trade"
+
+    workspaces = client.get("/api/v1/workspaces").json()["items"]
+    assert len(workspaces) >= 1
+    assert "Agro Exports Ltd" in workspaces[0]["name"]
+    ws_id = workspaces[0]["id"]
+
+    profile_save = client.post(
+        f"/api/v1/workspaces/{ws_id}/exporter-profile",
+        json={
+            "company_name": "Agro Exports Ltd",
+            "company_address": "Plot 42, EPIP, Navi Mumbai",
+            "origin_country": "IN",
+            "origin_port": "Nhava Sheva (JNPT)",
+            "iec_code": "0311029481",
+            "tax_id": "27AABCF1234F1Z5",
+            "bank_name": "State Bank of India",
+            "bank_account": "309812458923",
+            "bank_swift": "SBININBB001",
+        },
+        headers=headers,
+    )
+    assert profile_save.status_code == 200
+    payload = profile_save.json()["payload"]
+    assert payload["iec_code"] == "0311029481"
+    assert payload["bank_swift"] == "SBININBB001"
+

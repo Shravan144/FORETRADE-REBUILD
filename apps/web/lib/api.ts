@@ -83,8 +83,8 @@ export const api = {
     return data;
   },
 
-  async register(payload: { email: string; password: string }) {
-    return fetchApi<{ id: string; email: string }>("/api/v1/auth/register", {
+  async register(payload: { email: string; password: string; full_name?: string; company_name?: string }) {
+    return fetchApi<{ id: string; email: string; full_name?: string | null }>("/api/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -96,7 +96,14 @@ export const api = {
   },
 
   async me() {
-    return fetchApi<{ id: string; email: string }>("/api/v1/auth/me");
+    return fetchApi<{ id: string; email: string; full_name?: string | null; job_title?: string | null }>("/api/v1/auth/me");
+  },
+
+  async updateMe(payload: { full_name?: string; job_title?: string }) {
+    return fetchApi<{ id: string; email: string; full_name?: string | null; job_title?: string | null }>("/api/v1/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   },
 
   // Workspaces
@@ -129,10 +136,24 @@ export const api = {
       version: number;
       payload: {
         company_name?: string;
+        company_address?: string;
+        origin_country?: string;
+        origin_port?: string;
+        iec_code?: string;
+        tax_id?: string;
+        contact_person?: string;
+        contact_email?: string;
+        contact_phone?: string;
         capacity_tons?: number;
         product_categories?: string[];
         target_countries?: string[];
         certifications?: string[];
+        min_order_value_usd?: number;
+        bank_name?: string;
+        bank_branch?: string;
+        bank_account?: string;
+        bank_swift?: string;
+        bank_iban?: string;
       };
     }>(`/api/v1/workspaces/${workspaceId}/exporter-profile`);
   },
@@ -141,17 +162,33 @@ export const api = {
     workspaceId: string,
     payload: {
       company_name?: string;
+      company_address?: string;
+      origin_country?: string;
+      origin_port?: string;
+      iec_code?: string;
+      tax_id?: string;
+      contact_person?: string;
+      contact_email?: string;
+      contact_phone?: string;
       capacity_tons?: number;
       product_categories?: string[];
       target_countries?: string[];
       certifications?: string[];
       min_order_value_usd?: number;
+      bank_name?: string;
+      bank_branch?: string;
+      bank_account?: string;
+      bank_swift?: string;
+      bank_iban?: string;
     }
   ) {
-    return fetchApi<{ version: number; workspace_id: string }>(`/api/v1/workspaces/${workspaceId}/exporter-profile`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    return fetchApi<{ version: number; workspace_id: string; payload: Record<string, any> }>(
+      `/api/v1/workspaces/${workspaceId}/exporter-profile`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
   },
 
   // Markets
@@ -738,17 +775,38 @@ export const api = {
   },
 
   // ── Smart Buyer Discovery & Bill of Lading Endpoints ──
+  async getGlobalBuyerFacets() {
+    return fetchApi<{
+      total_buyers: number;
+      total_annual_volume_usd: number;
+      countries: Array<{ code: string; count: number }>;
+      sectors: Array<{ name: string; count: number }>;
+      incoterms: Array<{ incoterm: string; count: number }>;
+      volume_tiers: Array<{ label: string; min: number; max: number | null }>;
+    }>("/api/v1/intelligence/buyers/facets");
+  },
+
   async getGlobalBuyers(params?: {
     country_code?: string;
     sector?: string;
     hs_code?: string;
     query?: string;
+    min_volume?: number;
+    max_volume?: number;
+    incoterm?: string;
+    sort_by?: string;
+    min_reliability?: number;
   }) {
     const q = new URLSearchParams();
     if (params?.country_code) q.set("country_code", params.country_code);
     if (params?.sector) q.set("sector", params.sector);
     if (params?.hs_code) q.set("hs_code", params.hs_code);
     if (params?.query) q.set("query", params.query);
+    if (params?.min_volume !== undefined && params?.min_volume !== null) q.set("min_volume", String(params.min_volume));
+    if (params?.max_volume !== undefined && params?.max_volume !== null) q.set("max_volume", String(params.max_volume));
+    if (params?.incoterm) q.set("incoterm", params.incoterm);
+    if (params?.sort_by) q.set("sort_by", params.sort_by);
+    if (params?.min_reliability !== undefined && params?.min_reliability !== null) q.set("min_reliability", String(params.min_reliability));
     const qs = q.toString() ? `?${q.toString()}` : "";
     return fetchApi<{
       total: number;
@@ -886,7 +944,56 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+
+  // Commercial Documents Suite (Proforma Invoices & Packing Lists)
+  async listWorkspaceDocuments(
+    workspaceId: string,
+    params?: { document_type?: string; status?: string }
+  ) {
+    const query = new URLSearchParams();
+    if (params?.document_type) query.set("document_type", params.document_type);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return fetchApi<{ items: any[] }>(`/api/v1/workspaces/${workspaceId}/documents${qs}`);
+  },
+
+  async listLeadDocuments(workspaceId: string, leadId: string) {
+    return fetchApi<{ items: any[] }>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}/documents`);
+  },
+
+  async generateLeadDocument(
+    workspaceId: string,
+    leadId: string,
+    documentType: "proforma_invoice" | "packing_list"
+  ) {
+    return fetchApi<any>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}/documents/generate`, {
+      method: "POST",
+      body: JSON.stringify({ document_type: documentType }),
+    });
+  },
+
+  async getDocument(workspaceId: string, documentId: string) {
+    return fetchApi<any>(`/api/v1/workspaces/${workspaceId}/documents/${documentId}`);
+  },
+
+  async updateDocument(workspaceId: string, documentId: string, payload: any) {
+    return fetchApi<any>(`/api/v1/workspaces/${workspaceId}/documents/${documentId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteDocument(workspaceId: string, documentId: string) {
+    return fetchApi<{ deleted: boolean; id: string }>(`/api/v1/workspaces/${workspaceId}/documents/${documentId}`, {
+      method: "DELETE",
+    });
+  },
+
+  getDocumentPdfUrl(workspaceId: string, documentId: string) {
+    return `/api/v1/workspaces/${workspaceId}/documents/${documentId}/pdf`;
+  },
 };
+
 
 
 

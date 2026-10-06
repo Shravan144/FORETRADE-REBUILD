@@ -16,12 +16,24 @@ router = APIRouter(prefix="/api/v1/workspaces", tags=["exporter-profiles"])
 
 class ExporterProfileWrite(BaseModel):
     company_name: str | None = None
+    company_address: str | None = None
     origin_country: str | None = "IN"
+    origin_port: str | None = None
+    iec_code: str | None = None
+    tax_id: str | None = None
+    contact_person: str | None = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
     capacity_tons: int = 0
     product_categories: list[str] = []
     target_countries: list[str] = []
     certifications: list[str] = []
     min_order_value_usd: float = 0.0
+    bank_name: str | None = None
+    bank_branch: str | None = None
+    bank_account: str | None = None
+    bank_swift: str | None = None
+    bank_iban: str | None = None
 
 
 def serialize_profile(item) -> dict:

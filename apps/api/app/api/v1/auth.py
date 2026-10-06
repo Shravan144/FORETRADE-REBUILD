@@ -16,7 +16,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.session import LoginRateLimit, OAuthAuthorization, SessionToken
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest
+from app.schemas.auth import LoginRequest, RegisterRequest, UserProfileUpdate
 from app.services.auth_service import authenticate_password, find_or_create_google_user, hash_token, issue_session_token, register_user, session_expiry
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -76,12 +76,12 @@ def _record_login_failure(db: Session, key_hash: str, now: datetime) -> None:
 
 
 @router.post("/register", status_code=201)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> dict[str, str | None]:
     try:
-        user = register_user(db, payload.email, payload.password)
+        user = register_user(db, payload.email, payload.password, payload.full_name, payload.company_name)
     except ValueError:
         raise HTTPException(status_code=409, detail="email_already_registered")
-    return {"email": user.email, "id": user.id}
+    return {"email": user.email, "id": user.id, "full_name": user.full_name}
 
 
 @router.post("/login")
@@ -120,8 +120,29 @@ def logout(request: Request, response: Response, user: User = Depends(require_cs
 
 
 @router.get("/me")
-def me(user: User = Depends(get_current_user)) -> dict[str, str]:
-    return {"id": user.id, "email": user.email}
+def me(user: User = Depends(get_current_user)) -> dict[str, str | None]:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "job_title": user.job_title,
+    }
+
+
+@router.patch("/me")
+def update_me(payload: UserProfileUpdate, user: User = Depends(require_csrf), db: Session = Depends(get_db)) -> dict[str, str | None]:
+    if payload.full_name is not None:
+        user.full_name = payload.full_name.strip() if payload.full_name.strip() else None
+    if payload.job_title is not None:
+        user.job_title = payload.job_title.strip() if payload.job_title.strip() else None
+    db.commit()
+    db.refresh(user)
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "job_title": user.job_title,
+    }
 
 
 @router.get("/google/start")

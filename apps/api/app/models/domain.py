@@ -155,3 +155,31 @@ class ExportJob(Base):
     status: Mapped[str] = mapped_column(String(30), default="queued")
     storage_key: Mapped[str | None] = mapped_column(String(1000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CommercialDocument(Base):
+    __tablename__ = "commercial_documents"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    lead_id: Mapped[str | None] = mapped_column(ForeignKey("leads.id", ondelete="CASCADE"), index=True, nullable=True)
+    company_id: Mapped[str | None] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True, nullable=True)
+    created_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    document_type: Mapped[str] = mapped_column(String(50), index=True)  # "proforma_invoice" | "packing_list"
+    document_number: Mapped[str] = mapped_column(String(100), index=True)
+    status: Mapped[str] = mapped_column(String(30), default="draft", index=True)
+    currency: Mapped[str] = mapped_column(String(10), default="USD")
+    incoterm: Mapped[str] = mapped_column(String(10), default="CIF")
+    issue_date: Mapped[str] = mapped_column(String(30), default="")
+    validity_date: Mapped[str] = mapped_column(String(30), default="")
+    port_of_loading: Mapped[str] = mapped_column(String(255), default="Nhava Sheva (JNPT), India")
+    port_of_discharge: Mapped[str] = mapped_column(String(255), default="")
+    payment_terms: Mapped[str] = mapped_column(String(500), default="30% Advance T/T, 70% against B/L copy")
+    exporter_details: Mapped[dict] = mapped_column(JSON, default=dict)
+    buyer_details: Mapped[dict] = mapped_column(JSON, default=dict)
+    bank_details: Mapped[dict] = mapped_column(JSON, default=dict)
+    line_items: Mapped[list] = mapped_column(JSON, default=list)
+    logistics_details: Mapped[dict] = mapped_column(JSON, default=dict)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
