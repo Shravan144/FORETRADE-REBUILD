@@ -8,9 +8,9 @@ from app.models.exporter_profile import ExporterProfileVersion
 from app.models.session import LoginRateLimit, OAuthAuthorization, SessionToken
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceMembership
+from app.core.config import settings
 config = context.config
-if database_url := os.getenv("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url)
 target_metadata = Base.metadata
 def run_migrations_offline():
     context.configure(url=config.get_main_option("sqlalchemy.url"), target_metadata=target_metadata, literal_binds=True)

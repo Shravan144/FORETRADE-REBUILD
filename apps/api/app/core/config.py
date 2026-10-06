@@ -29,9 +29,17 @@ else:
 _DEFAULT_DB_URL = f"sqlite:///{_DEFAULT_DB_FILE.as_posix()}"
 
 
+def _normalize_db_url(raw_url: str) -> str:
+    if raw_url.startswith("postgres://"):
+        return f"postgresql+psycopg://{raw_url[len('postgres://'):]}"
+    if raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+"):
+        return f"postgresql+psycopg://{raw_url[len('postgresql://'):]}"
+    return raw_url
+
+
 @dataclass(frozen=True)
 class Settings:
-    database_url: str = os.getenv("DATABASE_URL", _DEFAULT_DB_URL)
+    database_url: str = _normalize_db_url(os.getenv("DATABASE_URL", _DEFAULT_DB_URL))
     session_cookie_name: str = os.getenv("SESSION_COOKIE_NAME", "foretrade_session")
     session_ttl_hours: int = int(os.getenv("SESSION_TTL_HOURS", "168"))
     cookie_secure: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
