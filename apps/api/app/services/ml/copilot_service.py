@@ -1,17 +1,19 @@
 """
 Model 5: AI Cross-Border Trade Copilot Service
 Provides intelligent export advisory, tariff analysis, documentation guidance,
-and commercial negotiation strategies powered by NVIDIA Nemotron 3 Ultra via OpenRouter.
+and commercial negotiation strategies powered by dual-engine AI:
+1. Google Gemini 2.0 Flash (ultra-fast, dedicated)
+2. NVIDIA Nemotron 3 Ultra via OpenRouter
+Grounded in real-time ForeTrade database tool execution.
 """
 
 import os
 import json
 import logging
 from typing import Any, Dict, List, Optional
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.trade_intelligence import TariffSchedule, CountryRiskFactor, HsCodeTaxonomy
+from app.services.ml.copilot_tools import detect_and_execute_tools
 from app.services.workspace_service import get_latest_profile_version
 
 logger = logging.getLogger(__name__)
@@ -19,11 +21,8 @@ logger = logging.getLogger(__name__)
 
 def build_copilot_context(db: Session, workspace_id: str, query: str) -> str:
     """
-    Retrieves dynamic, grounded trade context from database tables:
-    - Active exporter profile
-    - Applicable Tariff agreements (CEPA, ECTA, WTO MFN)
-    - Country risk profiles
-    - Product taxonomy
+    Dynamically combines active exporter profile with real-time tool execution
+    results from tariffs, global buyers, country risks, and HS taxonomy.
     """
     context_parts = []
 
@@ -32,7 +31,7 @@ def build_copilot_context(db: Session, workspace_id: str, query: str) -> str:
     if profile_record and profile_record.payload:
         p = profile_record.payload
         exp_info = (
-            f"Active Exporter Profile: Company: '{p.get('company_name', 'Indian Manufacturer')}', "
+            f"[ACTIVE EXPORTER PROFILE]: Company: '{p.get('company_name', 'Indian Manufacturer')}', "
             f"Origin Country: {p.get('origin_country', 'IN')}, "
             f"Monthly Capacity: {p.get('capacity_tons', 150)} MT, "
             f"Target Markets: {', '.join(p.get('target_countries', ['US', 'AE', 'DE']))}, "
@@ -41,23 +40,10 @@ def build_copilot_context(db: Session, workspace_id: str, query: str) -> str:
         )
         context_parts.append(exp_info)
 
-    # 2. Key Tariff Agreements
-    tariffs = db.scalars(select(TariffSchedule).limit(10)).all()
-    if tariffs:
-        tariff_lines = [
-            f"- {t.exporter_country}->{t.importer_country} (HS {t.hs_code}): MFN {t.mfn_applied_rate_pct}% vs FTA {t.preferential_rate_pct}% ({t.agreement_name})"
-            for t in tariffs[:8]
-        ]
-        context_parts.append("Known Bilateral Tariff Schedules in Database:\n" + "\n".join(tariff_lines))
-
-    # 3. Country Risk Factors
-    risks = db.scalars(select(CountryRiskFactor).limit(8)).all()
-    if risks:
-        risk_lines = [
-            f"- {r.country_name} ({r.country_code}): Risk Tier: {r.risk_tier}, Score: {r.composite_risk_score}/100, Currency: {r.currency_code}"
-            for r in risks[:6]
-        ]
-        context_parts.append("Country Risk Governance Ratings in Database:\n" + "\n".join(risk_lines))
+    # 2. Real-time dynamic tool execution
+    tool_results = detect_and_execute_tools(db, query)
+    if tool_results:
+        context_parts.append(tool_results)
 
     return "\n\n".join(context_parts)
 
@@ -69,119 +55,218 @@ def answer_trade_query(
     conversation_history: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     """
-    Generates a knowledgeable, actionable trade advisory response using:
-    1. NVIDIA Nemotron 3 Ultra via OpenRouter (Primary)
-    2. Google Gemini 2.0 Flash (Secondary)
-    3. ForeTrade Institutional Rule-Engine (Deterministic Fallback)
+    Answers any trade question using grounded database tools and dual-engine AI:
+    - Gemini 2.0 Flash (Primary if GEMINI_API_KEY available)
+    - OpenRouter Nemotron 3 Ultra (Primary if OPENROUTER_API_KEY available and Gemini unconfigured)
+    - Auto-failover between both providers
     """
     grounded_context = build_copilot_context(db, workspace_id, user_message)
 
     system_instruction = (
-        "You are ForeTrade's Trade Advisor — an experienced, practical international export business consultant. "
+        "You are ForeTrade's Cross-Border Trade Advisor — an experienced, practical international export business consultant. "
         "Talk directly, warmly, and clearly to the exporter. "
-        "NEVER mention NVIDIA, Nemotron, AI models, prompts, or technical parameters. Never say 'I am an AI'. "
-        "Always give direct, practical, easy-to-understand advice. Avoid dense bureaucratic jargon. "
-        "Format your answer cleanly with: "
+        "NEVER mention AI models, prompts, tokens, or technical parameters. Never say 'I am an AI'. "
+        "Always give direct, practical, easy-to-understand advice. "
+        "Answer ANY international trade question asked: tariffs, Incoterms, Letters of Credit, customs clearance, finding buyers, shipping routes, or export finance. "
+        "If verified database facts are provided in the context, cite them accurately. "
+        "Structure your response with: "
         "- A clear direct answer in the very first sentence. "
         "- Short, practical bullet points highlighting numbers, duty rates, or Incoterm rules. "
         "- A concise 'Next Step' recommendation."
     )
 
-    full_prompt = f"""[RELEVANT TRADE & TARIFF CONTEXT]:
-{grounded_context}
+    full_user_content = f"""[VERIFIED DATABASE KNOWLEDGE]:
+{grounded_context if grounded_context else "Standard WTO & WCO international trade framework."}
 
 [EXPORTER'S QUESTION]:
 {user_message}
 
 Please provide a clear, practical, and helpful answer for the exporter:"""
 
-    # Build messages array with prior history if provided
-    messages = [{"role": "system", "content": system_instruction}]
+    # Build conversation history
+    history_messages = []
     if conversation_history:
         for turn in conversation_history[-6:]:
             role = "user" if turn.get("role") == "user" else "assistant"
-            messages.append({"role": role, "content": turn.get("content", "")})
-    messages.append({"role": "user", "content": full_prompt})
+            history_messages.append({"role": role, "content": turn.get("content", "")})
 
-    # 1. Try OpenRouter (NVIDIA Nemotron 3 Ultra)
+    # Load environment keys
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     openrouter_key = os.getenv("OPENROUTER_API_KEY")
-    if not openrouter_key:
+    if not (gemini_key or openrouter_key):
         from dotenv import load_dotenv
         from pathlib import Path
         load_dotenv(Path(__file__).resolve().parents[4] / ".env")
+        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
 
+    # --- ENGINE 1: GOOGLE GEMINI 2.0 FLASH (Fast & Reliable) ---
+    if gemini_key:
+        try:
+            gemini_ans = _call_gemini(
+                api_key=gemini_key,
+                system_instruction=system_instruction,
+                history=history_messages,
+                user_prompt=full_user_content,
+            )
+            if gemini_ans:
+                return {
+                    "response": gemini_ans,
+                    "model_used": "ForeTrade Trade Advisor",
+                    "suggested_questions": generate_suggested_followups(user_message),
+                }
+        except Exception as exc:
+            logger.warning(f"Gemini Copilot engine error, attempting OpenRouter fallback: {exc}")
+
+    # --- ENGINE 2: OPENROUTER (NVIDIA Nemotron 3 Ultra / Llama) ---
     if openrouter_key:
         try:
-            import requests
-
-            model_name = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
-            payload = {
-                "model": model_name,
-                "messages": messages,
-                "temperature": 0.4,
-                "max_tokens": 1000,
-            }
-            resp = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openrouter_key}",
-                    "HTTP-Referer": "https://foretrade.ai",
-                    "X-Title": "ForeTrade Copilot",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=75,
+            or_ans = _call_openrouter(
+                api_key=openrouter_key,
+                system_instruction=system_instruction,
+                history=history_messages,
+                user_prompt=full_user_content,
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                if "choices" in data and len(data["choices"]) > 0:
-                    answer = data["choices"][0]["message"]["content"].strip()
-                    # Strip any internal thought or reasoning tags if emitted
-                    if "</thought>" in answer:
-                        answer = answer.split("</thought>")[-1].strip()
-                    elif "</reasoning>" in answer:
-                        answer = answer.split("</reasoning>")[-1].strip()
-
-                    if answer:
-                        return {
-                            "response": answer,
-                            "model_used": "ForeTrade Trade Advisor",
-                            "suggested_questions": generate_suggested_followups(user_message),
-                        }
-            else:
-                logger.warning(f"OpenRouter Copilot returned status {resp.status_code}: {resp.text[:200]}")
+            if or_ans:
+                return {
+                    "response": or_ans,
+                    "model_used": "ForeTrade Trade Advisor",
+                    "suggested_questions": generate_suggested_followups(user_message),
+                }
         except Exception as exc:
             logger.warning(f"OpenRouter Copilot query error: {exc}")
 
-    # 2. Try Gemini 2.0 Flash
-    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if gemini_key:
-        try:
-            import urllib.request
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
-            gemini_prompt = f"{system_instruction}\n\n{full_prompt}"
-            req_data = json.dumps({"contents": [{"parts": [{"text": gemini_prompt}]}]}).encode("utf-8")
-            req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=12) as response:
-                resp_json = json.loads(response.read().decode("utf-8"))
-                text = resp_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if text:
-                    return {
-                        "response": text,
-                        "model_used": "ForeTrade Trade Advisor",
-                        "suggested_questions": generate_suggested_followups(user_message),
-                    }
-        except Exception as exc:
-            logger.warning(f"Gemini Copilot query error: {exc}")
-
-    # 3. Deterministic Knowledge Engine Fallback
-    fallback_response = generate_deterministic_trade_answer(user_message, grounded_context)
+    # --- ENGINE 3: GROUNDED FALLBACK (If neither key reached) ---
+    fallback_text = generate_grounded_fallback(user_message, grounded_context)
     return {
-        "response": fallback_response,
+        "response": fallback_text,
         "model_used": "ForeTrade Trade Advisor",
         "suggested_questions": generate_suggested_followups(user_message),
     }
+
+
+def _format_gemini_contents(history_messages: List[Dict[str, str]], prompt_text: str) -> List[Dict[str, Any]]:
+    """Builds strictly alternating [user, model, user] contents for Gemini 2.0."""
+    contents: List[Dict[str, Any]] = []
+    found_first_user = False
+    valid_history = []
+    for h in history_messages:
+        role = "user" if h.get("role") == "user" else "model"
+        if not found_first_user and role == "user":
+            found_first_user = True
+        if found_first_user:
+            valid_history.append((role, h.get("content", "").strip()))
+
+    for role, text in valid_history:
+        if not text:
+            continue
+        if not contents or contents[-1]["role"] != role:
+            contents.append({"role": role, "parts": [{"text": text}]})
+        else:
+            contents[-1]["parts"].append({"text": text})
+
+    if contents and contents[-1]["role"] == "user":
+        contents[-1]["parts"].append({"text": prompt_text})
+    else:
+        contents.append({"role": "user", "parts": [{"text": prompt_text}]})
+
+    return contents
+
+
+def _call_gemini(
+    api_key: str,
+    system_instruction: str,
+    history: List[Dict[str, str]],
+    user_prompt: str,
+) -> Optional[str]:
+    """Invokes Google Gemini 2.0 Flash via standard HTTPS REST API."""
+    import urllib.request
+    import json
+
+    contents = _format_gemini_contents(history, user_prompt)
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.4,
+            "maxOutputTokens": 1024,
+        },
+    }
+
+    gemini_models = [
+        os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+        "gemini-flash-latest",
+        "gemini-3.8-flash",
+        "gemini-2.5-flash",
+    ]
+
+    for model_name in gemini_models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and "text" in parts[0]:
+                        return parts[0]["text"].strip()
+        except Exception as exc:
+            logger.warning(f"Gemini model {model_name} failed: {exc}")
+            continue
+
+    return None
+
+
+def _call_openrouter(
+    api_key: str,
+    system_instruction: str,
+    history: List[Dict[str, str]],
+    user_prompt: str,
+) -> Optional[str]:
+    """Invokes OpenRouter model via standard HTTPS REST API without external dependencies."""
+    import urllib.request
+    import json
+
+    model_name = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
+    messages = [{"role": "system", "content": system_instruction}]
+    for h in history:
+        messages.append({"role": "user" if h.get("role") == "user" else "assistant", "content": h.get("content", "")})
+    messages.append({"role": "user", "content": user_prompt})
+
+    payload = {
+        "model": model_name,
+        "messages": messages,
+        "temperature": 0.4,
+        "max_tokens": 1000,
+    }
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "https://foretrade.ai",
+            "X-Title": "ForeTrade Copilot",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=40) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        choices = data.get("choices", [])
+        if choices:
+            msg = choices[0].get("message", {}).get("content", "").strip()
+            if "</thought>" in msg:
+                msg = msg.split("</thought>")[-1].strip()
+            return msg if msg else None
+    return None
 
 
 def generate_suggested_followups(query: str) -> List[str]:
@@ -189,101 +274,63 @@ def generate_suggested_followups(query: str) -> List[str]:
     q = query.lower()
     if "cepa" in q or "uae" in q or "dubai" in q:
         return [
-            "What documents are needed for Certificate of Origin under CEPA?",
-            "How does shipping transit time compare from Mundra vs JNPT?",
-            "What are the typical payment terms for UAE buyers?",
+            "How do I apply for a digital Certificate of Origin for the UAE?",
+            "What is the ocean transit time from Mundra vs JNPT to Jebel Ali?",
+            "What are common payment terms used by Dubai buyers?",
         ]
     elif "lc" in q or "letter of credit" in q or "payment" in q:
         return [
-            "Draft an irrevocable, non-negotiable LC clause for 60 days",
-            "What is the difference between CAD and Confirmed Irrevocable LC?",
-            "How can I mitigate buyer default risk in high-growth corridors?",
+            "What is the difference between a Confirmed LC and Revocable LC?",
+            "How does ECGC export credit insurance protect against default?",
+            "What documents must be presented to the bank under UCP 600?",
         ]
     elif "incoterm" in q or "cif" in q or "fob" in q:
         return [
-            "Who bears port demurrage risk under CIF vs FOB?",
-            "How do freight and insurance surcharges impact landed cost?",
-            "Which Incoterm do European buyers prefer?",
+            "Who pays container demurrage charges under CIF vs FOB?",
+            "Which Incoterm should I offer to first-time buyers in Europe?",
+            "How do marine insurance clauses (Clause A vs C) differ?",
+        ]
+    elif "buyer" in q or "lead" in q or "customer" in q:
+        return [
+            "How can I pitch certified Indian manufacturing to overseas buyers?",
+            "What quality certifications do US and EU buyers require?",
+            "Show me top global buyers with verified customs Bill of Lading records",
         ]
     elif "tariff" in q or "duty" in q or "hs" in q:
         return [
             "Show bilateral tariff differential for HS 6109 in the US vs UAE",
-            "What are the Rules of Origin value-add requirements?",
-            "How do I obtain an advance customs ruling?",
+            "What are the Rules of Origin value-addition percentages?",
+            "How can I look up my 6-digit Harmonized System code?",
         ]
     else:
         return [
-            "Explain tariff savings under India-UAE CEPA",
-            "What are the best Incoterms for a new exporter?",
-            "How do I secure an Irrevocable Letter of Credit?",
+            "What are the duty savings under India-UAE CEPA?",
+            "How do I choose between CIF and FOB Incoterms?",
+            "What is the safest payment term for a new exporter?",
         ]
 
 
-def generate_deterministic_trade_answer(query: str, context: str) -> str:
-    """Specialized fallback when offline or LLM rate-limited."""
-    q = query.lower()
+def generate_grounded_fallback(query: str, grounded_context: str) -> str:
+    """Intelligent trade summary synthesized from database tools when API keys are unreachable."""
+    if grounded_context:
+        return f"""### **Trade Advisory Analysis**
 
-    if "cepa" in q or "uae" in q:
-        return """### **India-UAE Comprehensive Economic Partnership Agreement (CEPA) Overview**
+Based on verified database records for your corridor:
 
-Under the India-UAE CEPA (effective May 2022), Indian exporters enjoy zero-duty preferential tariff access into the UAE across over 90% of tariff lines:
+{grounded_context}
 
-1. **Key Tariff Advantages**:
-   - **Textiles & Apparel (HS 6109, 6204)**: 5.0% standard MFN duty eliminated to **0.0%**.
-   - **Gems & Jewellery**: 5% duty removed on Indian finished jewelry consignments.
-   - **Engineering & Electrical Machinery**: Instant 5% duty elimination.
+**Commercial Recommendations:**
+- Review your bilateral trade treaty to claim preferential tariff margins over competing export hubs.
+- Ensure all mandatory quality test certificates (OEKO-TEX, ISO, or IATF) are pre-cleared before container dispatch.
+- Secure payment through an Irrevocable Letter of Credit (LC) or 30% advance with CAD terms.
 
-2. **Rules of Origin Requirements**:
-   - Minimum value addition of **40% (CTSH)** within India.
-   - Consignments must be accompanied by an official **Digital Certificate of Origin (COO)** issued by the Directorate General of Foreign Trade (DGFT) Trade Portal.
+*Tip: Add your Gemini API key in `.env` (`GEMINI_API_KEY=...`) to unlock full conversational AI answers.*"""
 
-3. **Logistics & Ports**:
-   - Direct sailings from **Nhava Sheva (JNPT)** or **Mundra** to **Jebel Ali Port (Dubai)** take approximately 3 to 5 ocean sailing days.
-"""
+    return """### **ForeTrade Export Advisory**
 
-    if "incoterm" in q or "cif" in q or "fob" in q:
-        return """### **Incoterms 2020: CIF vs FOB Comparison for Exporters**
+For cross-border export operations:
+- **Tariffs**: Verify whether your destination country has an active Free Trade Agreement (FTA) with India (e.g. CEPA, ECTA) to qualify for 0% duty.
+- **Incoterms**: Quote CIF for complete landed-cost pricing control, or FOB if the buyer manages ocean freight.
+- **Payment Security**: Use Confirmed Irrevocable Letters of Credit (LC) to eliminate non-payment risk.
 
-Choosing between **FOB (Free on Board)** and **CIF (Cost, Insurance & Freight)** affects your financial liability and margin control:
-
-| Parameter | FOB (Free On Board) | CIF (Cost, Insurance, Freight) |
-| :--- | :--- | :--- |
-| **Exporter Scope** | Delivery till loaded on vessel at Indian load port | Delivery till destination arrival port + Ocean freight + Marine insurance |
-| **Risk Transfer** | When goods pass ship's rail at origin port | When goods pass ship's rail at origin port (buyer bears voyage transit risk) |
-| **Freight Control** | Buyer nominates shipping line and pays ocean freight | Exporter negotiates ocean contract & secures freight margins |
-| **Best Used When** | Buyer has massive regional freight volume contracts | Exporter wants end-to-end pricing control & turnkey landed quote |
-
-**Recommendation**: For established overseas buyers, **CIF** is preferred as it delivers a predictable landed price at their regional port of entry.
-"""
-
-    if "lc" in q or "payment" in q or "letter of credit" in q:
-        return """### **Export Payment Security: Protecting Cross-Border Receivables**
-
-When exporting to new or unrated overseas counterparties, securing your payment instrument is critical:
-
-1. **Confirmed Irrevocable Letter of Credit (LC)**:
-   - **Mechanism**: An Indian Tier-1 confirming bank guarantees payment upon presentation of clean shipping documents (Bill of Lading, Commercial Invoice, Certificate of Origin).
-   - **Protection**: Eliminates both buyer commercial default risk and foreign sovereign risk.
-
-2. **Cash Against Documents (CAD) / Documents Against Payment (DP)**:
-   - Original shipping documents are released only when the importer's bank collects payment.
-   - Suitable for buyers with verified repeat customs transaction history in our database.
-
-3. **ECGC Comprehensive Export Credit Insurance**:
-   - Covers up to 90% of commercial and political risks on deferred payment (DA 30/60 days).
-"""
-
-    return f"""### **ForeTrade Trade Advisory Summary**
-
-Based on our institutional customs data and bilateral trade frameworks:
-
-1. **Market & Tariff Positioning**:
-   - Review your target corridor's Free Trade Agreement (FTA) schedules to leverage preferential tariff margins against competing origin hubs.
-   - Ensure complete compliance with destination mandatory accreditations before loading container consignments.
-
-2. **Operational Alignment**:
-   - Align batch production cycles with container TEU capacities (FCL vs LCL) to minimize freight overhead.
-   - Route shipments through high-frequency origin gateways like Nhava Sheva (JNPT) or Mundra to guarantee reliable sailing schedules.
-
-*Ask specific questions on UAE CEPA, Australia ECTA, Letter of Credit structuring, or HS Code classifications for deep insights.*
-"""
+*Tip: Add your Gemini API key in `.env` (`GEMINI_API_KEY=...`) to unlock full conversational AI answers.*"""

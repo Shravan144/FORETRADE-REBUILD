@@ -8,7 +8,7 @@ from app.services.ml.copilot_service import (
     build_copilot_context,
     answer_trade_query,
     generate_suggested_followups,
-    generate_deterministic_trade_answer,
+    generate_grounded_fallback,
 )
 
 
@@ -33,14 +33,10 @@ def test_copilot_suggested_followups() -> None:
     assert any("incoterm" in f.lower() or "freight" in f.lower() or "demurrage" in f.lower() for f in incoterm_followups)
 
 
-def test_copilot_deterministic_trade_answer() -> None:
-    cepa_answer = generate_deterministic_trade_answer("What are UAE CEPA tariff savings?", "")
-    assert "India-UAE" in cepa_answer
-    assert "6109" in cepa_answer or "Textiles" in cepa_answer
-
-    incoterm_answer = generate_deterministic_trade_answer("Compare CIF and FOB", "")
-    assert "Incoterms 2020" in incoterm_answer
-    assert "FOB" in incoterm_answer and "CIF" in incoterm_answer
+def test_copilot_grounded_fallback() -> None:
+    ans = generate_grounded_fallback("Tariff benefits", "Verified FTA Tariff Schedule: 0% Preferential duty.")
+    assert "Trade Advisory" in ans
+    assert "Preferential duty" in ans
 
 
 def test_answer_trade_query_execution() -> None:
