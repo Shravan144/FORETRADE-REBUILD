@@ -105,7 +105,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     db.commit()
     response.set_cookie(settings.session_cookie_name, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
     response.set_cookie("foretrade_csrf", csrf, httponly=False, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
-    return {"csrf_token": csrf}
+    return {"csrf_token": csrf, "session_token": token}
 
 
 @router.post("/logout", status_code=204)
@@ -189,12 +189,12 @@ def google_callback(
     db.add(SessionToken(user_id=user.id, token_hash=hash_token(token), csrf_token=csrf, expires_at=session_expiry(settings.session_ttl_hours)))
     db.commit()
 
-    # Browser navigation receives redirect to onboarding, API client receives JSON
+    # Browser navigation receives redirect to onboarding with session tokens for cross-domain support
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
-        response = RedirectResponse(f"{settings.frontend_url}/onboarding", status_code=303)
+        response = RedirectResponse(f"{settings.frontend_url}/onboarding?session_token={token}&csrf_token={csrf}", status_code=303)
     else:
-        response = JSONResponse({"csrf_token": csrf, "email": user.email})
+        response = JSONResponse({"csrf_token": csrf, "email": user.email, "session_token": token})
 
     response.set_cookie(settings.session_cookie_name, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)
     response.set_cookie("foretrade_csrf", csrf, httponly=False, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_ttl_hours * 3600)

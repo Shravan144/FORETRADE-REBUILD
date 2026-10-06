@@ -81,11 +81,14 @@ export async function fetchApi<T>(path: string, options: RequestInit = {}): Prom
 export const api = {
   // Auth
   async login(payload: { email: string; password: string }) {
-    const data = await fetchApi<{ csrf_token: string }>("/api/v1/auth/login", {
+    const data = await fetchApi<{ csrf_token: string; session_token?: string }>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });
     if (data.csrf_token) setCsrfToken(data.csrf_token);
+    if (data.session_token && typeof document !== "undefined") {
+      document.cookie = `foretrade_session=${encodeURIComponent(data.session_token)}; path=/; max-age=${7 * 86400}; SameSite=Lax; Secure`;
+    }
     return data;
   },
 

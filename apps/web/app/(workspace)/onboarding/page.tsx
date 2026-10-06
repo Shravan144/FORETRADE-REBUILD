@@ -32,6 +32,22 @@ export default function OnboardingPage() {
     async function init() {
       try {
         setLoading(true);
+
+        // 0. Extract cross-domain tokens from OAuth redirect if present
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const st = params.get("session_token");
+          const ct = params.get("csrf_token");
+          if (st) {
+            document.cookie = `foretrade_session=${encodeURIComponent(st)}; path=/; max-age=${7 * 86400}; SameSite=Lax; Secure`;
+            if (ct) {
+              document.cookie = `foretrade_csrf=${encodeURIComponent(ct)}; path=/; max-age=${7 * 86400}; SameSite=Lax; Secure`;
+              setCsrfToken(ct);
+            }
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        }
+
         // 1. Ensure user is authenticated & restore CSRF
         try {
           await api.me();
