@@ -152,25 +152,44 @@ export default function RealTimeDemandRadarPage({
     setSavingSignalId(signal.id);
     try {
       const compList = await api.listCompanies(workspaceId);
-      let companyId = compList.items?.[0]?.id;
-      if (!companyId) {
-        const globalBuyers = await api.getGlobalBuyers();
-        const firstBuyer = globalBuyers.items?.[0];
-        if (firstBuyer) {
-          await api.swipeRecommendation(workspaceId, firstBuyer.id, "right");
-          setSavedSignalSuccess(signal.id);
-          setTimeout(() => setSavedSignalSuccess(null), 3000);
-          return;
+      let targetCompany = null;
+
+      if (signal.buyer_name) {
+        targetCompany = (compList.items || []).find(
+          (c: any) =>
+            c.name.toLowerCase().includes(signal.buyer_name!.toLowerCase()) ||
+            signal.buyer_name!.toLowerCase().includes(c.name.toLowerCase())
+        );
+      }
+
+      if (!targetCompany && signal.buyer_name) {
+        const globalBuyers = await api.getGlobalBuyers({ query: signal.buyer_name }).catch(() => ({ items: [], total: 0 }));
+        const matchedBuyer = (globalBuyers.items || []).find(
+          (b: any) =>
+            b.company_name.toLowerCase().includes(signal.buyer_name!.toLowerCase()) ||
+            signal.buyer_name!.toLowerCase().includes(b.company_name.toLowerCase())
+        ) || globalBuyers.items?.[0];
+
+        if (matchedBuyer) {
+          const swipeRes = await api.swipeRecommendation(workspaceId, matchedBuyer.id, "right").catch(() => null);
+          if (swipeRes?.company_id) {
+            targetCompany = await api.getCompany(workspaceId, swipeRes.company_id).catch(() => null);
+          }
         }
       }
-      if (companyId) {
+
+      if (!targetCompany) {
+        targetCompany = compList.items?.[0];
+      }
+
+      if (targetCompany) {
         await api.createLead(
           workspaceId,
-          companyId,
-          `Converted from Live Demand Signal: ${signal.title}\nSource: ${signal.source_channel}\nOriginal Text: ${signal.raw_text}`
-        );
+          targetCompany.id,
+          `Direct Tender Demand Signal: ${signal.title}\nSource: ${signal.source_channel}\nRequirement: ${signal.raw_text}`
+        ).catch(() => null); // ignore duplicate lead error if already exists
         setSavedSignalSuccess(signal.id);
-        setTimeout(() => setSavedSignalSuccess(null), 3000);
+        setTimeout(() => setSavedSignalSuccess(null), 4000);
       }
     } catch (err) {
       console.error("Failed to convert signal to lead:", err);
@@ -511,10 +530,16 @@ export default function RealTimeDemandRadarPage({
             const isClosingSoon = signal.status === "CLOSING_SOON" || signal.urgency_level === "Critical";
             const isExpired = signal.status === "EXPIRED";
 
+            const isDirectRfq = signal.source_channel?.includes("ForeTrade Direct") || signal.signal_type?.includes("Direct Network");
+
             return (
               <div
                 key={signal.id}
-                className="p-6 rounded-2xl bg-white border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition shadow-xs space-y-4"
+                className={`p-6 rounded-2xl bg-white border transition shadow-xs space-y-4 ${
+                  isDirectRfq
+                    ? "border-indigo-300 ring-1 ring-indigo-200/50 hover:border-indigo-400 hover:shadow-md bg-linear-to-br from-white to-indigo-50/20"
+                    : "border-slate-200/90 hover:border-blue-300 hover:shadow-md"
+                }`}
               >
                 {/* Top Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -522,6 +547,11 @@ export default function RealTimeDemandRadarPage({
                     <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono font-bold text-xs border border-slate-200">
                       {signal.target_country}
                     </span>
+                    {isDirectRfq && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-2xs">
+                        <span>✨ Direct Network RFQ</span>
+                      </span>
+                    )}
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                         signal.signal_type === "Government Quota Opening"
@@ -622,6 +652,8 @@ export default function RealTimeDemandRadarPage({
                           ? "bg-emerald-600 text-white"
                           : isExpired
                           ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                          : isDirectRfq
+                          ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 shadow-sm"
                           : "bg-blue-600 hover:bg-blue-700 text-white"
                       }`}
                     >
@@ -634,6 +666,11 @@ export default function RealTimeDemandRadarPage({
                         </>
                       ) : isExpired ? (
                         <span>Tender Closed</span>
+                      ) : isDirectRfq ? (
+                        <>
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          <span>Quote Direct RFQ</span>
+                        </>
                       ) : (
                         <>
                           <PlusCircle className="w-3.5 h-3.5" />
