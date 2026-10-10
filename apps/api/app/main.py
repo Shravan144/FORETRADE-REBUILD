@@ -50,10 +50,10 @@ async def lifespan(app: FastAPI):
                     for col in table.columns:
                         if col.name not in existing_cols:
                             col_type = col.type.compile(engine.dialect)
-                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"))
+                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col.name} {col_type}"))
             conn.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Lifespan schema column sync: {e}")
     yield
 
 

@@ -42,6 +42,24 @@ def run_all_pipelines() -> dict:
     # 1. Ensure all tables exist
     print("\n[1/7] Creating database schemas for trade intelligence...")
     Base.metadata.create_all(bind=engine)
+
+    # 1b. Sync missing columns on existing tables (critical for remote PostgreSQL like Neon/Render)
+    try:
+        from sqlalchemy import inspect, text
+        with engine.connect() as conn:
+            insp = inspect(engine)
+            existing_tables = insp.get_table_names()
+            for table_name, table in Base.metadata.tables.items():
+                if table_name in existing_tables:
+                    existing_cols = {c["name"] for c in insp.get_columns(table_name)}
+                    for col in table.columns:
+                        if col.name not in existing_cols:
+                            col_type = col.type.compile(engine.dialect)
+                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col.name} {col_type}"))
+            conn.commit()
+    except Exception as e:
+        print(f"Schema column check: {e}")
+
     db = SessionLocal()
 
     try:
