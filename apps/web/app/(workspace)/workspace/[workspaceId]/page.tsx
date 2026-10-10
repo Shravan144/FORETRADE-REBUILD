@@ -67,19 +67,19 @@ export default function WorkspaceDashboard({
   const scoreDist = analytics?.score_distribution || {};
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 text-slate-100">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 text-slate-900">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               {profile?.company_name || "Exporter Dashboard"}
             </h1>
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
               India Origin
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Algorithmic EXIM matchmaking, UN Comtrade demand forecasts, and landed cost intelligence.
           </p>
         </div>
@@ -87,14 +87,14 @@ export default function WorkspaceDashboard({
         <div className="flex items-center gap-3">
           <Link
             href={`/workspace/${workspaceId}/imports/new`}
-            className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1.5"
           >
             <UploadCloud className="w-3.5 h-3.5" />
             <span>Import Data</span>
           </Link>
           <Link
             href={`/workspace/${workspaceId}/swipe`}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Swipe to Export</span>
@@ -104,74 +104,74 @@ export default function WorkspaceDashboard({
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
             <span>Verified Buyers</span>
-            <Building2 className="w-4 h-4 text-blue-400" />
+            <Building2 className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-slate-900">
             {analytics?.companies || 0}
           </div>
-          <div className="text-[11px] text-slate-400 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+          <div className="text-[11px] text-slate-500 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Curated prospective buyers</span>
           </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
             <span>Pipeline Leads</span>
-            <Briefcase className="w-4 h-4 text-indigo-400" />
+            <Briefcase className="w-4 h-4 text-indigo-600" />
           </div>
-          <div className="text-2xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-slate-900">
             {totalLeads}
           </div>
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-slate-500">
             Across 6 stage verification gates
           </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
             <span>High-Fit Matches</span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400">
+          <div className="text-2xl font-bold font-mono text-emerald-700">
             {scoreDist["high"] || 0}
           </div>
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-slate-500">
             Score ≥ 70 with capacity fit
           </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
             <span>Annual Capacity</span>
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
+            <ShieldCheck className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-slate-900">
             {profile?.capacity_tons ? `${profile.capacity_tons} T` : "Configured"}
           </div>
-          <div className="text-[11px] text-slate-400 truncate">
+          <div className="text-[11px] text-slate-500 truncate">
             {profile?.product_categories?.join(", ") || "Manufacturing capability"}
           </div>
         </div>
       </div>
 
       {/* Pipeline Funnel Section */}
-      <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-4">
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-bold text-slate-900">
               Pipeline Stage Distribution
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Stages strictly verified by required interaction events with zero synthetic mock entries.
             </p>
           </div>
           <Link
             href={`/workspace/${workspaceId}/leads`}
-            className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition"
           >
             <span>View Kanban Board</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -180,20 +180,20 @@ export default function WorkspaceDashboard({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
           {[
-            { key: "new", label: "New Leads", color: "text-slate-300 border-white/[0.08] bg-white/[0.02]" },
-            { key: "qualified", label: "Qualified", color: "text-blue-400 border-blue-500/20 bg-blue-500/5" },
-            { key: "contacted", label: "Contacted", color: "text-indigo-400 border-indigo-500/20 bg-indigo-500/5" },
-            { key: "replied", label: "Replied", color: "text-amber-400 border-amber-500/20 bg-amber-500/5" },
-            { key: "meeting", label: "Meeting Set", color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" },
-            { key: "won", label: "Deal Won", color: "text-teal-400 border-teal-500/20 bg-teal-500/5" },
+            { key: "new", label: "New Leads", color: "text-slate-800 border-slate-200 bg-slate-50" },
+            { key: "qualified", label: "Qualified", color: "text-blue-700 border-blue-200 bg-blue-50/60" },
+            { key: "contacted", label: "Contacted", color: "text-indigo-700 border-indigo-200 bg-indigo-50/60" },
+            { key: "replied", label: "Replied", color: "text-amber-800 border-amber-200 bg-amber-50/60" },
+            { key: "meeting", label: "Meeting Set", color: "text-emerald-800 border-emerald-200 bg-emerald-50/60" },
+            { key: "won", label: "Deal Won", color: "text-teal-800 border-teal-200 bg-teal-50/60" },
           ].map((stage) => {
             const count = pipeline[stage.key] || 0;
             return (
               <div
                 key={stage.key}
-                className={`p-3.5 rounded-lg border ${stage.color} flex flex-col justify-between`}
+                className={`p-3.5 rounded-xl border ${stage.color} flex flex-col justify-between`}
               >
-                <div className="text-[11px] font-medium uppercase tracking-wider opacity-80">
+                <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">
                   {stage.label}
                 </div>
                 <div className="text-xl font-bold font-mono mt-2">{count}</div>
@@ -206,21 +206,21 @@ export default function WorkspaceDashboard({
       {/* Two Column Section: Recent Companies & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Companies (2 cols) */}
-        <div className="lg:col-span-2 p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-4">
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-bold text-slate-900">
               Recently Sourced Prospective Buyers
             </h2>
             <Link
               href={`/workspace/${workspaceId}/companies`}
-              className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition"
             >
               <span>View Directory</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="divide-y divide-white/[0.06]">
+          <div className="divide-y divide-slate-100">
             {recentCompanies.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-500">
                 No companies sourced yet. Use the Import Wizard to load prospective buyers.
@@ -229,17 +229,17 @@ export default function WorkspaceDashboard({
               recentCompanies.map((c) => (
                 <div
                   key={c.id}
-                  className="py-3 flex items-center justify-between gap-4 hover:bg-white/[0.02] px-2 rounded-lg transition"
+                  className="py-3 flex items-center justify-between gap-4 hover:bg-slate-50/70 px-2.5 rounded-xl transition"
                 >
                   <div className="min-w-0">
                     <Link
                       href={`/workspace/${workspaceId}/companies/${c.id}`}
-                      className="font-medium text-sm text-white hover:text-blue-400 truncate block transition"
+                      className="font-semibold text-sm text-slate-900 hover:text-blue-600 truncate block transition"
                     >
                       {c.name}
                     </Link>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                      <span className="font-mono text-slate-300">{c.country_code}</span>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <span className="font-mono font-medium text-slate-700">{c.country_code}</span>
                       <span>•</span>
                       <span className="truncate">{c.product_or_industry}</span>
                     </div>
@@ -247,7 +247,7 @@ export default function WorkspaceDashboard({
 
                   <Link
                     href={`/workspace/${workspaceId}/companies/${c.id}`}
-                    className="shrink-0 px-2.5 py-1 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded transition"
+                    className="shrink-0 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
                   >
                     View Score
                   </Link>
@@ -258,22 +258,22 @@ export default function WorkspaceDashboard({
         </div>
 
         {/* Quick Actions (1 col) */}
-        <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-4">
-          <h2 className="text-base font-semibold text-white">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-slate-900">
             Operational Engines
           </h2>
 
           <div className="space-y-2.5">
             <Link
               href={`/workspace/${workspaceId}/swipe`}
-              className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition flex items-start gap-3 group"
+              className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300 transition flex items-start gap-3 group"
             >
-              <Sparkles className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+              <Sparkles className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white group-hover:text-blue-300">
+                <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition">
                   Swipe to Export
                 </div>
-                <div className="text-[11px] text-slate-400 leading-snug">
+                <div className="text-[11px] text-slate-500 leading-snug">
                   Two-Tower operational matchmaking deck with XAI attribution.
                 </div>
               </div>
@@ -281,14 +281,14 @@ export default function WorkspaceDashboard({
 
             <Link
               href={`/workspace/${workspaceId}/radar`}
-              className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition flex items-start gap-3 group"
+              className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300 transition flex items-start gap-3 group"
             >
-              <Radar className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+              <Radar className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white group-hover:text-amber-300">
+                <div className="text-xs font-bold text-slate-900 group-hover:text-amber-600 transition">
                   Demand Radar
                 </div>
-                <div className="text-[11px] text-slate-400 leading-snug">
+                <div className="text-[11px] text-slate-500 leading-snug">
                   Live government procurement tender notice scanner.
                 </div>
               </div>
@@ -296,14 +296,14 @@ export default function WorkspaceDashboard({
 
             <Link
               href={`/workspace/${workspaceId}/logistics`}
-              className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition flex items-start gap-3 group"
+              className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300 transition flex items-start gap-3 group"
             >
-              <Ship className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+              <Ship className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white group-hover:text-indigo-300">
+                <div className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition">
                   Landed Cost Waterfall
                 </div>
-                <div className="text-[11px] text-slate-400 leading-snug">
+                <div className="text-[11px] text-slate-500 leading-snug">
                   Incoterms 2020 container logistics, freight, and tariff engine.
                 </div>
               </div>
@@ -311,14 +311,14 @@ export default function WorkspaceDashboard({
 
             <Link
               href={`/workspace/${workspaceId}/markets`}
-              className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] transition flex items-start gap-3 group"
+              className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300 transition flex items-start gap-3 group"
             >
-              <Globe className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+              <Globe className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white group-hover:text-emerald-300">
+                <div className="text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition">
                   Market Explorer
                 </div>
-                <div className="text-[11px] text-slate-400 leading-snug">
+                <div className="text-[11px] text-slate-500 leading-snug">
                   12-month ARIMA trade corridor projections across 220+ markets.
                 </div>
               </div>

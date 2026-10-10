@@ -110,6 +110,19 @@ def auto_populate_document_data(
     workspace_id: str,
     lead_id: str,
     doc_type: str = "proforma_invoice",
+    custom_incoterm: str | None = None,
+    custom_unit_price: float | None = None,
+    custom_quantity: float | None = None,
+    custom_unit: str | None = None,
+    custom_product_desc: str | None = None,
+    custom_container_type: str | None = None,
+    custom_dest_port: str | None = None,
+    custom_payment_terms: str | None = None,
+    custom_notes: str | None = None,
+    custom_buyer_contact_name: str | None = None,
+    custom_buyer_contact_email: str | None = None,
+    custom_buyer_contact_phone: str | None = None,
+    custom_buyer_contact_title: str | None = None,
 ) -> dict[str, Any]:
     """Extracts lead, company, profile, and intelligence data to formulate
     a complete ready-to-issue Proforma Invoice or Commercial Packing List.
@@ -174,25 +187,53 @@ def auto_populate_document_data(
         "ifsc_code": profile_payload.get("bank_ifsc", "SBIN0000300"),
     }
 
+    # Resolve Decision-Maker Contact
+    from app.models.trade_intelligence import EnrichedBuyerContact
+
+    resolved_contact_name = custom_buyer_contact_name
+    resolved_contact_email = custom_buyer_contact_email
+    resolved_contact_phone = custom_buyer_contact_phone
+
+    if not resolved_contact_name:
+        contact_record = None
+        if company:
+            contact_record = db.scalar(
+                select(EnrichedBuyerContact)
+                .where(EnrichedBuyerContact.company_id == company.id)
+                .order_by(EnrichedBuyerContact.is_primary.desc(), EnrichedBuyerContact.deliverability_score.desc())
+            )
+        if not contact_record and buyer_catalog:
+            contact_record = db.scalar(
+                select(EnrichedBuyerContact)
+                .where(EnrichedBuyerContact.buyer_id == buyer_catalog.id)
+                .order_by(EnrichedBuyerContact.is_primary.desc(), EnrichedBuyerContact.deliverability_score.desc())
+            )
+        if contact_record:
+            resolved_contact_name = f"{contact_record.full_name} ({contact_record.job_title})" if contact_record.job_title else contact_record.full_name
+            resolved_contact_email = contact_record.email
+            resolved_contact_phone = contact_record.phone_number
+
+    if not resolved_contact_name:
+        resolved_contact_name = (buyer_catalog.contact_name if buyer_catalog else None) or company.contact_name or "Procurement Director"
+
     # Buyer Details
     buyer_name = (buyer_catalog.company_name if buyer_catalog else None) or company.name
     buyer_city = (buyer_catalog.city if buyer_catalog else None) or attrs.get("city", "Free Port Zone")
-    buyer_contact = (buyer_catalog.contact_name if buyer_catalog else None) or company.contact_name or "Procurement Director"
-    buyer_email = company.contact_email or f"procurement@{company.normalized_name.replace(' ', '').lower()[:12]}.com"
-    buyer_phone = company.contact_phone or "+971 4 295 8800"
+    buyer_email = resolved_contact_email or company.contact_email or f"procurement@{company.normalized_name.replace(' ', '').lower()[:12]}.com"
+    buyer_phone = resolved_contact_phone or company.contact_phone or "+44 20 341 2100" if dest_country.upper() == "GB" else (company.contact_phone or "+1 212 555 0199")
 
     buyer_details = {
         "company_name": buyer_name,
         "billing_address": f"{buyer_city} Commercial District, Suite 400, {dest_country}",
         "shipping_address": f"{buyer_city} Logistics Hub, Berth 12, {dest_port}",
         "country_code": dest_country,
-        "contact_name": buyer_contact,
+        "contact_name": resolved_contact_name,
         "email": buyer_email,
         "phone": buyer_phone,
     }
 
     # Incoterm & Currency
-    incoterm = attrs.get("preferred_incoterms") or (buyer_catalog.preferred_incoterms if buyer_catalog else None) or "CIF"
+    incoterm = custom_incoterm or attrs.get("preferred_incoterms") or (buyer_catalog.preferred_incoterms if buyer_catalog else None) or "CIF"
     currency = CURRENCY_MAP.get(dest_country.upper(), "USD")
 
     # Goods & Line items calculation
@@ -202,30 +243,38 @@ def auto_populate_document_data(
     elif buyer_catalog and buyer_catalog.hs_codes and len(buyer_catalog.hs_codes) > 0:
         hs_code = buyer_catalog.hs_codes[0]
 
-    product_desc = company.product_or_industry or "Cold-Rolled Galvanized Industrial Steel Coils (Grade EN 10346)"
-    avg_tons = float(attrs.get("avg_order_tons") or (buyer_catalog.avg_order_tons if buyer_catalog else None) or 25.0)
+    raw_product_desc = custom_product_desc or company.product_or_industry or "Cold-Rolled Galvanized Industrial Steel Coils (Grade EN 10346)"
+    avg_tons = float(custom_quantity if custom_quantity is not None else (attrs.get("avg_order_tons") or (buyer_catalog.avg_order_tons if buyer_catalog else None) or 25.0))
 
-    # Unit price estimation: standard commercial tier
-    unit_price = 1180.00
+    # Unit price estimation: standard commercial tier or customized
+    unit_price = float(custom_unit_price if custom_unit_price is not None else 1180.00)
     quantity = avg_tons
+    unit_str = custom_unit or "Metric Tons (MT)"
     total_amount = round(quantity * unit_price, 2)
 
     # Logistics metrics
-    package_count = int(avg_tons * 2)  # e.g., 50 heavy coils / crates
-    package_type = "Steel-Banded Export Wooden Skids"
-    net_weight_kg = round(avg_tons * 1000.0, 2)
-    gross_weight_kg = round(avg_tons * 1045.0, 2)  # tare weight added
-    total_cbm = round(avg_tons * 1.15, 2)
+    package_count = max(1, int(avg_tons * 2))  # e.g., 50 heavy coils / crates / cartons
+    package_type = "Steel-Banded Export Wooden Skids" if "steel" in raw_product_desc.lower() else "Export Standard Pallets & Cartons"
+    net_weight_kg = round(avg_tons * 1000.0, 2) if "MT" in unit_str or "Ton" in unit_str else round(avg_tons * 25.0, 2)
+    gross_weight_kg = round(net_weight_kg * 1.045, 2)  # tare weight added
+    total_cbm = round(max(1.0, avg_tons * 1.15 if "MT" in unit_str or "Ton" in unit_str else avg_tons * 0.08), 2)
 
     teu_plan = calculate_container_teu(gross_weight_kg, total_cbm)
+    if custom_container_type:
+        if custom_container_type == "20ft":
+            teu_plan["container_type"] = "1 x 20' FCL (Standard Container)"
+            teu_plan["teu_equivalent"] = 1.0
+        elif custom_container_type in ("40ft", "40ft_hc"):
+            teu_plan["container_type"] = "1 x 40' HC (High Cube Container)"
+            teu_plan["teu_equivalent"] = 2.0
 
     line_items = [
         {
             "item_no": 1,
             "hs_code": hs_code,
-            "description": f"{product_desc} - Prime Export Quality with Mill Test Certificate (EN 10204 3.1)",
+            "description": f"{raw_product_desc} - Prime Export Quality with Certified Mill Inspection (ISO 9001)",
             "quantity": quantity,
-            "unit": "Metric Tons (MT)",
+            "unit": unit_str,
             "unit_price": unit_price,
             "total_amount": total_amount,
             "package_type": package_type,
@@ -233,7 +282,7 @@ def auto_populate_document_data(
             "net_weight_kg": net_weight_kg,
             "gross_weight_kg": gross_weight_kg,
             "cbm": total_cbm,
-            "dimensions": "120cm x 100cm x 95cm per skid",
+            "dimensions": "120cm x 100cm x 95cm per pallet",
         }
     ]
 
@@ -254,10 +303,13 @@ def auto_populate_document_data(
 
     doc_number = _generate_doc_number(db, workspace_id, doc_type)
 
-    notes = (
+    final_dest_port = custom_dest_port or dest_port
+    final_payment_terms = custom_payment_terms or "30% Advance T/T, 70% against B/L Copy & Inspection Certificate"
+
+    notes = custom_notes or (
         "1. Goods are guaranteed to conform to ISO 9001:2015 and Mill Test Certificate specifications.\n"
-        "2. Payment via Irrevocable Letter of Credit (L/C at Sight) or 30% T/T Advance + 70% against Bill of Lading.\n"
-        "3. Cargo insurance covered up to 110% of CIF invoice value (Institute Cargo Clauses A).\n"
+        f"2. Payment Terms: {final_payment_terms}.\n"
+        f"3. Incoterm: {incoterm} {final_dest_port}. Cargo insurance covered up to 110% of CIF invoice value.\n"
         "4. Country of Origin: India. Statutory Export Declaration applied."
     )
 
@@ -273,8 +325,8 @@ def auto_populate_document_data(
         "issue_date": today.strftime("%Y-%m-%d"),
         "validity_date": valid_until.strftime("%Y-%m-%d"),
         "port_of_loading": profile_payload.get("origin_port", "Nhava Sheva (JNPT), India"),
-        "port_of_discharge": dest_port,
-        "payment_terms": "30% Advance T/T, 70% against B/L Copy & Inspection Certificate",
+        "port_of_discharge": final_dest_port,
+        "payment_terms": final_payment_terms,
         "exporter_details": exporter_details,
         "buyer_details": buyer_details,
         "bank_details": bank_details,

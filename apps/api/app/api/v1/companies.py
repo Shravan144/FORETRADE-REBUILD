@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -73,3 +74,154 @@ def get_company_scores(workspace_id: str, company_id: str, user: User = Depends(
             for s in snapshots
         ]
     }
+
+
+@router.get("/{workspace_id}/companies/{company_id}/contacts")
+def get_company_contacts_endpoint(
+    workspace_id: str,
+    company_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Retrieves or enriches verified procurement & sourcing decision-makers for a workspace company.
+    """
+    require_workspace_role(workspace_id, user, db, "viewer")
+    from app.services.contact_enrichment import get_or_enrich_company_contacts
+
+    contacts = get_or_enrich_company_contacts(db, workspace_id, company_id, force_refresh=False)
+    return {"company_id": company_id, "total": len(contacts), "contacts": contacts}
+
+
+@router.post("/{workspace_id}/companies/{company_id}/enrich-contacts")
+def enrich_company_contacts_endpoint(
+    workspace_id: str,
+    company_id: str,
+    user: User = Depends(require_csrf),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Forces a live re-enrichment of verified procurement & sourcing decision-makers for a workspace company.
+    """
+    require_workspace_role(workspace_id, user, db, "editor")
+    from app.services.contact_enrichment import get_or_enrich_company_contacts
+
+    contacts = get_or_enrich_company_contacts(db, workspace_id, company_id, force_refresh=True)
+    return {"company_id": company_id, "total": len(contacts), "contacts": contacts}
+
+
+class BatchPromoteRequest(BaseModel):
+    buyer_ids: list[str]
+
+
+@router.post("/{workspace_id}/companies/batch-promote-buyers")
+def batch_promote_buyers(
+    workspace_id: str,
+    payload: BatchPromoteRequest,
+    user: User = Depends(require_csrf),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Bulk Action Endpoint: Converts multiple selected Global Buyer Catalog entries
+    into active workspace Companies and CRM Leads in a single atomic transaction.
+    """
+    require_workspace_role(workspace_id, user, db, "editor")
+    from app.models.domain import Company, CompanySourceRecord, Lead, LeadEvent
+    from app.models.trade_intelligence import GlobalBuyerCatalog
+    from app.models.audit_event import record_audit_event
+
+    promoted_companies = []
+    promoted_leads = []
+
+    for buyer_id in payload.buyer_ids:
+        buyer = db.get(GlobalBuyerCatalog, buyer_id)
+        if not buyer:
+            continue
+
+        # 1. Fetch or create Company
+        company = db.scalar(
+            select(Company).where(
+                Company.workspace_id == workspace_id,
+                Company.normalized_name == buyer.normalized_name,
+                Company.country_code == buyer.country_code,
+            )
+        )
+        if not company:
+            company = Company(
+                workspace_id=workspace_id,
+                name=buyer.company_name,
+                normalized_name=buyer.normalized_name,
+                country_code=buyer.country_code,
+                website=buyer.website,
+                product_or_industry=buyer.primary_sector,
+                contact_name=buyer.contact_name,
+                contact_email=buyer.contact_email,
+                provenance="customs_directory_batch",
+                attributes={
+                    "annual_import_volume_usd": buyer.annual_import_volume_usd,
+                    "avg_order_tons": buyer.avg_order_tons,
+                    "required_certifications": buyer.required_certifications,
+                    "preferred_incoterms": buyer.preferred_incoterms,
+                    "customs_provenance": buyer.customs_manifest_provenance,
+                    "avg_container_teu": buyer.avg_container_teu,
+                },
+            )
+            db.add(company)
+            db.flush()
+
+            db.add(
+                CompanySourceRecord(
+                    company_id=company.id,
+                    source_type="global_buyer_catalog",
+                    source_reference=buyer.customs_manifest_provenance,
+                    raw_data={"buyer_catalog_id": buyer.id},
+                )
+            )
+
+        # 2. Fetch or create Lead
+        lead = db.scalar(
+            select(Lead).where(
+                Lead.workspace_id == workspace_id,
+                Lead.company_id == company.id,
+            )
+        )
+        if not lead:
+            lead = Lead(
+                workspace_id=workspace_id,
+                company_id=company.id,
+                stage="new",
+            )
+            db.add(lead)
+            db.flush()
+
+            db.add(
+                LeadEvent(
+                    lead_id=lead.id,
+                    actor_user_id=user.id,
+                    event_type="lead_created_from_batch_import",
+                    payload={"from_stage": None, "to_stage": "new", "notes": "Batch promoted from Global Customs Directory."},
+                )
+            )
+
+        record_audit_event(
+            db,
+            workspace_id=workspace_id,
+            actor_user_id=user.id,
+            action="recommendation.swiped_right",
+            entity_type="buyer_catalog",
+            entity_id=buyer.id,
+            metadata={"company_name": buyer.company_name, "lead_id": lead.id, "source": "batch_promote"},
+        )
+
+        promoted_companies.append(company.id)
+        promoted_leads.append(lead.id)
+
+    db.commit()
+    return {
+        "status": "ok",
+        "promoted_count": len(promoted_leads),
+        "company_ids": promoted_companies,
+        "lead_ids": promoted_leads,
+    }
+
+

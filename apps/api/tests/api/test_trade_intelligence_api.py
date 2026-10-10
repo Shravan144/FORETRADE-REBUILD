@@ -199,6 +199,33 @@ def test_trade_intelligence_extract_signal_api() -> None:
     assert "hs_code" in data
 
 
+def test_trade_intelligence_demand_signals_sync_and_lifecycle_api() -> None:
+    run_all_pipelines()
+    client, _, headers = authenticated_client("radar_lifecycle_test@example.com")
+
+    # Test sync endpoint
+    res = client.post("/api/v1/intelligence/demand-signals/sync?purge_expired=false", headers=headers)
+    assert res.status_code == 200
+    sync_data = res.json()
+    assert "sources" in sync_data
+    assert "lifecycle" in sync_data
+    assert "total_in_radar" in sync_data
+    assert sync_data["total_in_radar"] >= 5
+
+    # Test status filter (ACTIVE)
+    res_active = client.get("/api/v1/intelligence/demand-signals?status=ACTIVE")
+    assert res_active.status_code == 200
+    active_data = res_active.json()
+    assert "items" in active_data
+    assert all(i["status"] in ["ACTIVE", "CLOSING_SOON"] for i in active_data["items"] if i.get("status"))
+
+    # Test purge expired endpoint
+    res_purge = client.post("/api/v1/intelligence/demand-signals/purge-expired", headers=headers)
+    assert res_purge.status_code == 200
+    purge_data = res_purge.json()
+    assert "purged_count" in purge_data
+
+
 def test_trade_intelligence_compliance_matrix_api() -> None:
     run_all_pipelines()
     client, _, _ = authenticated_client("compliance_test@example.com")

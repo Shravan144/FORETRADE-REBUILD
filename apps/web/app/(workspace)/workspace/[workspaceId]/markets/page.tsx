@@ -302,23 +302,23 @@ export default function MarketExplorerPage({
   const latestFlow = corridorFlows.sort((a, b) => b.year - a.year)[0];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 text-slate-100">
+    <div className="p-8 max-w-7xl mx-auto space-y-6 text-slate-800">
       {/* Header & Filter Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-blue-400" />
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-blue-600" />
               Corridor Intelligence
             </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               Model 1: Demand Forecaster
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Destination Market Explorer & 12M Forecaster
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Real UN Comtrade bilateral trade flows calibrated with Log-Linear OLS forecasting and WTO tariff schedules.
           </p>
         </div>
@@ -326,16 +326,16 @@ export default function MarketExplorerPage({
         {/* Dynamic Selector Dropdowns */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Destination Market
             </span>
             <select
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+              className="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20 outline-none"
             >
               {DESTINATION_OPTIONS.map((c) => (
-                <option key={c.code} value={c.code} className="bg-[#0B0F19]">
+                <option key={c.code} value={c.code}>
                   {c.flag} {c.name} ({c.code})
                 </option>
               ))}
@@ -343,7 +343,7 @@ export default function MarketExplorerPage({
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Product / HS Code
             </span>
             <select
@@ -352,10 +352,10 @@ export default function MarketExplorerPage({
                 setSelectedHs(e.target.value);
                 setCustomHsInput("");
               }}
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+              className="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20 outline-none"
             >
               {HS_OPTIONS.map((h) => (
-                <option key={h.code} value={h.code} className="bg-[#0B0F19]">
+                <option key={h.code} value={h.code}>
                   {h.label}
                 </option>
               ))}
@@ -363,7 +363,7 @@ export default function MarketExplorerPage({
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Custom Code (2/4/6-Digit)
             </span>
             <input
@@ -377,7 +377,7 @@ export default function MarketExplorerPage({
                   setSelectedHs(trimmed);
                 }
               }}
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-white/[0.12] bg-[#0B0F19] text-white focus:border-blue-500 outline-none w-36 font-mono"
+              className="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20 outline-none w-36 font-mono"
             />
           </div>
         </div>
@@ -385,14 +385,14 @@ export default function MarketExplorerPage({
 
       {/* Auto-normalization feedback banner */}
       {forecast && forecast.hs_code !== selectedHs.replace(/[^0-9]/g, "") && (
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-medium text-blue-300 flex items-center justify-between">
+        <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-medium text-blue-900 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
             <span>
-              Hierarchical Auto-Normalizer: Input <strong className="font-mono text-white">{selectedHs}</strong> automatically mapped to primary UN Comtrade flow <strong className="font-mono text-white">HS {forecast.hs_code}</strong>.
+              Hierarchical Auto-Normalizer: Input <strong className="font-mono text-slate-900">{selectedHs}</strong> automatically mapped to primary UN Comtrade flow <strong className="font-mono text-slate-900">HS {forecast.hs_code}</strong>.
             </span>
           </div>
-          <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-200">
+          <span className="text-[10px] uppercase font-mono font-semibold tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800">
             Auto-Resolved
           </span>
         </div>
@@ -401,17 +401,17 @@ export default function MarketExplorerPage({
       {/* KPI Metric Highlights Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Latest Flow */}
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Annual Flow ({latestFlow?.year || 2025})</span>
-            <DollarSign className="w-4 h-4 text-blue-400" />
+            <DollarSign className="w-4 h-4 text-blue-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold font-mono text-white">
+            <div className="text-2xl font-bold font-mono text-slate-900 tracking-tight">
               ${latestFlow ? (latestFlow.trade_value_usd / 1_000_000).toFixed(1) : "—"}M USD
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-              <span className="text-slate-300">
+            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
+              <span className="font-semibold text-slate-700">
                 {latestFlow?.unit_value_usd_per_kg ? `$${latestFlow.unit_value_usd_per_kg.toFixed(2)}/kg` : "Verified flow"}
               </span>
               <span>• UN Comtrade</span>
@@ -420,37 +420,37 @@ export default function MarketExplorerPage({
         </div>
 
         {/* 12M Forecast */}
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>12-Month Forecast ({forecast?.forecast_12m.year || 2026})</span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold font-mono text-emerald-400">
+            <div className="text-2xl font-bold font-mono text-emerald-700 tracking-tight">
               ${forecast ? (forecast.forecast_12m.projected_usd / 1_000_000).toFixed(1) : "—"}M USD
             </div>
-            <div className="text-[11px] text-emerald-400 font-mono mt-1 flex items-center gap-1">
-              <span>CAGR: {forecast ? (forecast.projected_cagr_pct > 0 ? `+${forecast.projected_cagr_pct}%` : `${forecast.projected_cagr_pct}%`) : "—"}</span>
-              <span className="text-slate-500 font-sans">• Log-Linear</span>
+            <div className="text-[11px] text-emerald-700 font-mono mt-1 flex items-center gap-1">
+              <span className="font-semibold">CAGR: {forecast ? (forecast.projected_cagr_pct > 0 ? `+${forecast.projected_cagr_pct}%` : `${forecast.projected_cagr_pct}%`) : "—"}</span>
+              <span className="text-slate-400 font-sans">• Log-Linear</span>
             </div>
           </div>
         </div>
 
         {/* Opportunity Score */}
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Opportunity Score</span>
-            <Sparkles className="w-4 h-4 text-amber-400" />
+            <Sparkles className="w-4 h-4 text-amber-500" />
           </div>
           <div className="mt-2">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono text-white">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold font-mono text-slate-900 tracking-tight">
                 {forecast?.opportunity_index || 0}
               </span>
-              <span className="text-xs font-mono text-slate-500">/ 100</span>
+              <span className="text-xs font-mono text-slate-400">/ 100</span>
             </div>
             <div className="text-[11px] mt-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                 {forecast?.opportunity_tier || "Evaluating"} (Grade {forecast?.risk_adjusted_rating || "B"})
               </span>
             </div>
@@ -458,18 +458,18 @@ export default function MarketExplorerPage({
         </div>
 
         {/* Duty Concession */}
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Duty Concession (FTA)</span>
-            <Percent className="w-4 h-4 text-purple-400" />
+            <Percent className="w-4 h-4 text-purple-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold font-mono text-purple-400">
+            <div className="text-2xl font-bold font-mono text-purple-700 tracking-tight">
               {tariff ? `${tariff.preferential_rate_pct}% Duty` : "5.0% MFN"}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 truncate">
+            <div className="text-[11px] text-slate-500 mt-1 truncate">
               {tariff && tariff.tariff_savings_pct > 0 ? (
-                <span className="text-emerald-400 font-semibold font-mono">
+                <span className="text-emerald-700 font-semibold font-mono">
                   Saves {tariff.tariff_savings_pct}% vs MFN rate
                 </span>
               ) : (
@@ -481,35 +481,35 @@ export default function MarketExplorerPage({
       </div>
 
       {/* Main Forecast Chart */}
-      <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08]">
+      <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <span>UN Comtrade Historical Flow vs. Model 1 ML Forecast</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                 Log-Linear Time-Series
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Shaded confidence envelopes display the 80% statistical interval representing market demand volatility.
             </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-slate-700 font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
               <span>Actual Flow</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
               <span>12M / 24M Forecast</span>
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="h-80 flex flex-col items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <div className="h-80 flex flex-col items-center justify-center gap-2 text-slate-500">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
             <span className="text-xs">Computing time-series forecasting equations...</span>
           </div>
         ) : chartData.length === 0 ? (
@@ -520,7 +520,7 @@ export default function MarketExplorerPage({
           <div className="h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 15, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="year"
                   stroke="#64748b"
@@ -540,11 +540,12 @@ export default function MarketExplorerPage({
                     return [`$${(num / 1_000_000).toFixed(2)}M USD`, name];
                   }}
                   contentStyle={{
-                    backgroundColor: "#0b0f19",
+                    backgroundColor: "#ffffff",
                     borderRadius: "8px",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    color: "#f8fafc",
+                    border: "1px solid #cbd5e1",
+                    color: "#0f172a",
                     fontSize: "12px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
                 />
                 <Legend
@@ -556,16 +557,16 @@ export default function MarketExplorerPage({
                   type="monotone"
                   dataKey="ci80Upper"
                   name="80% Upper Confidence Bound"
-                  stroke="#059669"
-                  fill="#059669"
+                  stroke="#10b981"
+                  fill="#10b981"
                   fillOpacity={0.15}
                 />
                 <Area
                   type="monotone"
                   dataKey="ci80Lower"
                   name="80% Lower Confidence Bound"
-                  stroke="#059669"
-                  fill="#0b0f19"
+                  stroke="#10b981"
+                  fill="#ffffff"
                   fillOpacity={1}
                 />
 
@@ -574,9 +575,9 @@ export default function MarketExplorerPage({
                   type="monotone"
                   dataKey="historical"
                   name="Actual Bilateral Trade (USD)"
-                  stroke="#3b82f6"
+                  stroke="#2563eb"
                   strokeWidth={2.5}
-                  dot={{ r: 4, fill: "#3b82f6" }}
+                  dot={{ r: 4, fill: "#2563eb" }}
                   activeDot={{ r: 6 }}
                 />
 
@@ -585,10 +586,10 @@ export default function MarketExplorerPage({
                   type="monotone"
                   dataKey="forecast"
                   name="Projected Forecast Demand"
-                  stroke="#10b981"
+                  stroke="#059669"
                   strokeWidth={2.5}
                   strokeDasharray="5 5"
-                  dot={{ r: 5, fill: "#10b981" }}
+                  dot={{ r: 5, fill: "#059669" }}
                   activeDot={{ r: 7 }}
                 />
               </ComposedChart>
@@ -600,17 +601,17 @@ export default function MarketExplorerPage({
       {/* Two Columns: Forecast Attribution & Tariff Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Model 1 Explainability Factors */}
-        <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
+        <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                <Sparkles className="w-5 h-5" />
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                <Sparkles className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-bold text-slate-900">
                   Model 1: Forecast Attribution & Dynamics
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Key drivers determining the corridor demand momentum score.
                 </p>
               </div>
@@ -621,57 +622,57 @@ export default function MarketExplorerPage({
                 {forecast.explanation_factors.map((factor, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs text-slate-300 flex items-start gap-2.5"
+                    className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-start gap-2.5"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{factor}</span>
                   </div>
                 ))}
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/15">
-                    <span className="text-[10px] uppercase font-semibold text-blue-400 tracking-wider">
+                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <span className="text-[10px] uppercase font-bold text-blue-700 tracking-wider">
                       Pricing Trend
                     </span>
-                    <div className="text-sm font-semibold text-white mt-1">
+                    <div className="text-sm font-bold text-slate-900 mt-1">
                       {forecast.unit_value_trend}
                     </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">
                       Corridor Rating
                     </span>
-                    <div className="text-sm font-semibold text-white mt-1">
+                    <div className="text-sm font-bold text-slate-900 mt-1">
                       Grade {forecast.risk_adjusted_rating}
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-8 text-center text-slate-500 text-xs">
+              <div className="p-8 text-center text-slate-400 text-xs">
                 Forecast explanations will appear once data loads.
               </div>
             )}
           </div>
 
-          <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
             <span>Model: Log-Linear OLS with Studentized Errors</span>
             <span>Confidence: 80% & 95%</span>
           </div>
         </div>
 
         {/* Right: Tariff Advantage & Destination Risk */}
-        <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] flex flex-col justify-between">
+        <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                <ShieldCheck className="w-5 h-5" />
+              <div className="p-2 rounded-lg bg-purple-50 text-purple-700 border border-purple-200">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-bold text-slate-900">
                   Tariff Advantage & Destination Governance
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Preferential trade treaty benefits and World Bank risk indicators.
                 </p>
               </div>
@@ -679,74 +680,74 @@ export default function MarketExplorerPage({
 
             <div className="mt-4 space-y-3">
               {/* Tariff Calculator Card */}
-              <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.06] space-y-3">
+              <div className="p-4 rounded-lg bg-slate-50 border border-slate-200/80 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <span className="text-xs font-semibold text-white block">
+                    <span className="text-xs font-bold text-slate-900 block">
                       {tariff?.agreement_name || "WTO Most-Favoured-Nation Schedule"}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500">
                       Savings = Shipment Value × (MFN Tariff % − Preferential FTA %)
                     </span>
                   </div>
                   {tariff && tariff.preferential_rate_pct === 0 ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 self-start sm:self-auto">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
                       0% Duty Free
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/[0.05] text-slate-300 self-start sm:self-auto">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white border border-slate-200 text-slate-700 self-start sm:self-auto">
                       Applied Tariff
                     </span>
                   )}
                 </div>
 
                 {/* Shipment Value Input */}
-                <div className="p-3 rounded-lg bg-[#0B0F19] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                   <div>
-                    <label className="text-[10px] uppercase font-semibold text-slate-400 block tracking-wider">
+                    <label className="text-[10px] uppercase font-bold text-slate-600 block tracking-wider">
                       Simulated Cargo Value (USD)
                     </label>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] text-slate-500">
                       Adjust cargo value to compute customs duty savings
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-500">$</span>
+                    <span className="text-xs font-mono text-slate-400">$</span>
                     <input
                       type="number"
                       step="5000"
                       min="1000"
                       value={shipmentValue}
                       onChange={(e) => setShipmentValue(Number(e.target.value) || 0)}
-                      className="w-32 px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-white/[0.12] bg-[#111827] text-white focus:border-blue-500 outline-none"
+                      className="w-32 px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-slate-300 bg-white text-slate-900 shadow-2xs focus:border-blue-600 outline-none"
                     />
                   </div>
                 </div>
 
                 {/* Tariff Rates Grid */}
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
-                  <div className="bg-white/[0.02] p-2.5 rounded-lg border border-white/[0.06]">
-                    <div className="text-[9px] text-slate-400 uppercase font-sans">MFN ({tariff?.mfn_applied_rate_pct ?? 5.0}%)</div>
-                    <div className="text-xs font-bold text-white mt-0.5">
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+                    <div className="text-[9px] text-slate-500 uppercase font-sans font-semibold">MFN ({tariff?.mfn_applied_rate_pct ?? 5.0}%)</div>
+                    <div className="text-xs font-bold text-slate-900 mt-0.5">
                       ${tariff?.duty_under_mfn_usd ? tariff.duty_under_mfn_usd.toLocaleString() : "—"}
                     </div>
                     <div className="text-[9px] text-slate-500 font-sans">Standard duty</div>
                   </div>
 
-                  <div className="bg-white/[0.02] p-2.5 rounded-lg border border-white/[0.06]">
-                    <div className="text-[9px] text-emerald-400 uppercase font-sans">FTA ({tariff?.preferential_rate_pct ?? 5.0}%)</div>
-                    <div className="text-xs font-bold text-emerald-400 mt-0.5">
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+                    <div className="text-[9px] text-emerald-700 uppercase font-sans font-semibold">FTA ({tariff?.preferential_rate_pct ?? 5.0}%)</div>
+                    <div className="text-xs font-bold text-emerald-700 mt-0.5">
                       ${tariff?.duty_under_fta_usd !== undefined ? tariff.duty_under_fta_usd.toLocaleString() : "—"}
                     </div>
-                    <div className="text-[9px] text-emerald-400/80 font-sans">With cert</div>
+                    <div className="text-[9px] text-emerald-600 font-sans">With cert</div>
                   </div>
 
-                  <div className="bg-purple-500/10 p-2.5 rounded-lg border border-purple-500/20">
-                    <div className="text-[9px] text-purple-400 font-bold uppercase font-sans">Savings</div>
-                    <div className="text-xs font-bold text-purple-300 mt-0.5">
+                  <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-200 shadow-2xs">
+                    <div className="text-[9px] text-purple-700 font-bold uppercase font-sans">Savings</div>
+                    <div className="text-xs font-bold text-purple-800 mt-0.5">
                       ${tariff?.duty_savings_usd ? tariff.duty_savings_usd.toLocaleString() : "0"}
                     </div>
-                    <div className="text-[9px] text-purple-400 font-sans">
+                    <div className="text-[9px] text-purple-700 font-sans font-semibold">
                       {tariff?.tariff_savings_pct ?? 0}% margin saved
                     </div>
                   </div>
@@ -755,16 +756,16 @@ export default function MarketExplorerPage({
 
               {/* World Bank Governance Tier */}
               {countryRisk && (
-                <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-white">
+                    <span className="text-xs font-bold text-slate-900">
                       World Bank Country Risk Profile
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                         countryRisk.risk_tier === "Low Risk"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          : "bg-amber-100 text-amber-800 border border-amber-200"
                       }`}
                     >
                       {countryRisk.risk_tier}
@@ -772,21 +773,21 @@ export default function MarketExplorerPage({
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 text-center pt-1 font-mono">
-                    <div className="bg-white/[0.02] p-2 rounded border border-white/[0.06]">
-                      <div className="text-[9px] text-slate-400 uppercase font-sans">Rule of Law</div>
-                      <div className="text-xs font-bold text-white mt-0.5">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-2xs">
+                      <div className="text-[9px] text-slate-500 uppercase font-sans font-semibold">Rule of Law</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">
                         {countryRisk.rule_of_law_score}
                       </div>
                     </div>
-                    <div className="bg-white/[0.02] p-2 rounded border border-white/[0.06]">
-                      <div className="text-[9px] text-slate-400 uppercase font-sans">Reg. Quality</div>
-                      <div className="text-xs font-bold text-white mt-0.5">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-2xs">
+                      <div className="text-[9px] text-slate-500 uppercase font-sans font-semibold">Reg. Quality</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">
                         {countryRisk.regulatory_quality_score}
                       </div>
                     </div>
-                    <div className="bg-white/[0.02] p-2 rounded border border-white/[0.06]">
-                      <div className="text-[9px] text-slate-400 uppercase font-sans">FX Volatility</div>
-                      <div className="text-xs font-bold text-white mt-0.5">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-2xs">
+                      <div className="text-[9px] text-slate-500 uppercase font-sans font-semibold">FX Volatility</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">
                         {countryRisk.fx_volatility_pct}%
                       </div>
                     </div>
@@ -796,7 +797,7 @@ export default function MarketExplorerPage({
             </div>
           </div>
 
-          <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
             <span>WTO Tariff Facility & World Bank WGI</span>
             <span>Currency: {countryRisk?.currency_code || "USD"}</span>
           </div>
@@ -804,45 +805,45 @@ export default function MarketExplorerPage({
       </div>
 
       {/* Automated Compliance & Certification Matrix Section */}
-      <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
+      <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-amber-600" />
                 Customs Compliance Matrix
               </span>
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                   complianceMatrix?.customs_entry_clearance_complexity === "High Risk / Stringent"
-                    ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                    ? "bg-rose-100 text-rose-800 border border-rose-200"
                     : complianceMatrix?.customs_entry_clearance_complexity === "Strict / Document-Heavy"
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    ? "bg-amber-100 text-amber-800 border border-amber-200"
+                    : "bg-emerald-100 text-emerald-800 border border-emerald-200"
                 }`}
               >
                 Clearance: {complianceMatrix?.customs_entry_clearance_complexity || "Standard"}
               </span>
             </div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-bold text-slate-900">
               Mandatory Customs Certificates & Compliance Protocols ({selectedCountryMeta?.name || selectedCountry})
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Official regulatory certificates required to prevent cargo detention, port seizure, or fines for {selectedHsMeta?.label}.
             </p>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-2 font-mono">
-            <span>Destination: <strong className="text-white">{complianceMatrix?.destination_country_name || selectedCountry}</strong></span>
+          <div className="text-xs text-slate-500 flex items-center gap-2 font-mono">
+            <span>Destination: <strong className="text-slate-900">{complianceMatrix?.destination_country_name || selectedCountry}</strong></span>
             <span>•</span>
-            <span>Sector: <strong className="text-white">{complianceMatrix?.sector_name || "General Goods"}</strong></span>
+            <span>Sector: <strong className="text-slate-900">{complianceMatrix?.sector_name || "General Goods"}</strong></span>
           </div>
         </div>
 
         {/* Mandatory Certificates Grid */}
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
             <span>Mandatory Customs Entry Certificates (Non-Negotiable)</span>
           </h3>
 
@@ -850,31 +851,31 @@ export default function MarketExplorerPage({
             {complianceMatrix?.mandatory_certificates.map((cert, ci) => (
               <div
                 key={ci}
-                className="p-4 rounded-xl bg-white/[0.02] border border-rose-500/20 space-y-2.5"
+                className="p-4 rounded-xl bg-rose-50/40 border border-rose-200 space-y-2.5 shadow-2xs"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="font-semibold text-sm text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                  <div className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0"></span>
                     <span>{cert.certificate_name}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 text-rose-800 border border-rose-200 shrink-0">
                     ~{cert.estimated_lead_time_days} Days Lead
                   </span>
                 </div>
 
-                <div className="text-xs text-slate-300 leading-relaxed">
-                  <span className="text-slate-400">Purpose:</span> {cert.purpose}
+                <div className="text-xs text-slate-700 leading-relaxed">
+                  <span className="font-semibold text-slate-900">Purpose:</span> {cert.purpose}
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-[#0B0F19] border border-white/[0.06] text-[11px] text-slate-400 space-y-1">
+                <div className="p-2.5 rounded-lg bg-white border border-rose-100 text-[11px] text-slate-600 space-y-1 shadow-2xs">
                   <div>
-                    <span className="text-slate-300">Issuing Body:</span> {cert.issuing_authority_agency}
+                    <span className="font-semibold text-slate-800">Issuing Body:</span> {cert.issuing_authority_agency}
                   </div>
                   <div>
-                    <span className="text-slate-300">Testing / Audit:</span> {cert.testing_or_audit_requirement}
+                    <span className="font-semibold text-slate-800">Testing / Audit:</span> {cert.testing_or_audit_requirement}
                   </div>
-                  <div className="text-rose-400">
-                    <span>Non-Compliance:</span> {cert.penalties_or_consequences}
+                  <div className="text-rose-700 font-medium">
+                    <span className="font-semibold">Non-Compliance:</span> {cert.penalties_or_consequences}
                   </div>
                 </div>
               </div>
@@ -886,8 +887,8 @@ export default function MarketExplorerPage({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
           {/* Recommended Commercial Standards */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>Recommended Commercial Quality & ESG Standards</span>
             </h3>
 
@@ -895,16 +896,16 @@ export default function MarketExplorerPage({
               {complianceMatrix?.recommended_commercial_standards.map((rec, ri) => (
                 <div
                   key={ri}
-                  className="p-3.5 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs space-y-1.5"
+                  className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5 shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-white">{rec.certificate_name}</span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="font-bold text-slate-900">{rec.certificate_name}</span>
+                    <span className="text-[10px] font-mono text-slate-500">
                       {rec.issuing_authority_agency}
                     </span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">{rec.purpose}</p>
-                  <div className="text-[11px] text-amber-400">
+                  <p className="text-slate-600 text-[11px]">{rec.purpose}</p>
+                  <div className="text-[11px] text-amber-800 font-medium">
                     Commercial Impact: {rec.penalties_or_consequences}
                   </div>
                 </div>
@@ -914,31 +915,31 @@ export default function MarketExplorerPage({
 
           {/* Border Declaration Pack */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Boxes className="w-4 h-4 text-blue-400" />
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Boxes className="w-4 h-4 text-blue-600" />
               <span>Customs Entry Declaration Pack</span>
             </h3>
 
-            <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.06] space-y-3 text-xs">
+            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3 text-xs shadow-2xs">
               <div>
-                <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-1.5">
+                <span className="text-[10px] font-bold uppercase text-slate-600 block mb-1.5">
                   Required Documents for Clearance Broker
                 </span>
                 <ul className="space-y-1.5">
                   {complianceMatrix?.customs_declaration_documents.map((doc, di) => (
-                    <li key={di} className="flex items-center gap-2 text-slate-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    <li key={di} className="flex items-center gap-2 text-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
                       <span>{doc}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="pt-3 border-t border-white/[0.06]">
-                <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-1">
+              <div className="pt-3 border-t border-slate-200">
+                <span className="text-[10px] font-bold uppercase text-slate-600 block mb-1">
                   Destination Port Inspection Protocol
                 </span>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-600 leading-relaxed">
                   {complianceMatrix?.border_inspection_protocols}
                 </p>
               </div>

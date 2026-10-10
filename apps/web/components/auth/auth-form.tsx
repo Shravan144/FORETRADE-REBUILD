@@ -79,15 +79,15 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
       {/* Brand Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm font-bold">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs font-bold">
             <Compass className="w-4 h-4" />
           </div>
-          <span className="font-bold text-white text-base">ForeTrade OS</span>
+          <span className="font-bold text-slate-900 text-base">ForeTrade OS</span>
         </div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
           {mode === "register" ? "Create Exporter Workspace" : "Sign In to Your Workspace"}
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500">
           {mode === "register"
             ? "Enter your company credentials to begin evaluating overseas buyers."
             : "Access live trade corridors, demand radar feeds, and landed cost tools."}
@@ -95,9 +95,9 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-rose-950/60 border border-rose-800 text-xs text-rose-300 flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-          <div className="leading-relaxed">{error}</div>
+        <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5 shadow-2xs">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <div className="leading-relaxed font-medium">{error}</div>
         </div>
       )}
 
@@ -107,7 +107,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
           type="button"
           onClick={handleGoogleLogin}
           disabled={googleStatus === "checking"}
-          className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-medium rounded-lg text-xs shadow-sm transition flex items-center justify-center gap-2.5"
+          className="w-full py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-semibold rounded-lg text-xs shadow-2xs transition flex items-center justify-center gap-2.5"
         >
           {/* Official Google G Logo SVG */}
           <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -132,13 +132,13 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
         </button>
 
         {googleStatus === "unconfigured" && (
-          <div className="p-3 bg-blue-950/60 border border-blue-900 rounded-lg text-xs text-blue-300 space-y-1">
-            <div className="flex items-center gap-1.5 font-semibold text-blue-200">
-              <Info className="w-3.5 h-3.5" />
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 space-y-1 shadow-2xs">
+            <div className="flex items-center gap-1.5 font-semibold text-blue-950">
+              <Info className="w-3.5 h-3.5 text-blue-600" />
               <span>Google OAuth Setup Note</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              To activate Google login, paste your <code className="text-blue-300 font-mono">GOOGLE_CLIENT_ID</code> and <code className="text-blue-300 font-mono">GOOGLE_CLIENT_SECRET</code> into your root <code className="text-blue-300 font-mono">.env</code> file. In the meantime, use email authentication or the Demo button below.
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              To activate Google login, paste your <code className="text-blue-800 font-mono bg-blue-100 px-1 py-0.2 rounded">GOOGLE_CLIENT_ID</code> and <code className="text-blue-800 font-mono bg-blue-100 px-1 py-0.2 rounded">GOOGLE_CLIENT_SECRET</code> into your root <code className="text-blue-800 font-mono bg-blue-100 px-1 py-0.2 rounded">.env</code> file. In the meantime, use email authentication or the Demo button below.
             </p>
           </div>
         )}
@@ -146,8 +146,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
 
       {/* Divider */}
       <div className="relative flex items-center justify-center">
-        <div className="border-t border-slate-800 w-full" />
-        <span className="bg-slate-950 px-3 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+        <div className="border-t border-slate-200 w-full" />
+        <span className="bg-white px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
           or continue with email
         </span>
       </div>
@@ -157,7 +157,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
         {mode === "register" && (
           <>
             <div>
-              <label htmlFor="auth-fullname" className="block text-xs font-medium text-slate-300 mb-1">
+              <label htmlFor="auth-fullname" className="block text-xs font-semibold text-slate-700 mb-1">
                 Full Name
               </label>
               <input
@@ -167,13 +167,13 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Rajesh Sharma"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
             </div>
 
             <div>
-              <label htmlFor="auth-company" className="block text-xs font-medium text-slate-300 mb-1">
-                Company / Organization Name <span className="text-slate-500 text-[10px]">(Optional)</span>
+              <label htmlFor="auth-company" className="block text-xs font-semibold text-slate-700 mb-1">
+                Company / Organization Name <span className="text-slate-400 text-[10px]">(Optional)</span>
               </label>
               <input
                 id="auth-company"
@@ -181,14 +181,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Apex Agro Exports Pvt Ltd"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
             </div>
           </>
         )}
 
         <div>
-          <label htmlFor="auth-email" className="block text-xs font-medium text-slate-300 mb-1">
+          <label htmlFor="auth-email" className="block text-xs font-semibold text-slate-700 mb-1">
             Work Email Address
           </label>
           <input
@@ -198,16 +198,16 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="export.director@company.com"
-            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+            className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
           />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label htmlFor="auth-password" className="block text-xs font-medium text-slate-300">
+            <label htmlFor="auth-password" className="block text-xs font-semibold text-slate-700">
               Password
             </label>
-            <span className="text-[10px] text-slate-500">Min 12 characters</span>
+            <span className="text-[10px] text-slate-400 font-mono">Min 12 characters</span>
           </div>
           <input
             id="auth-password"
@@ -217,14 +217,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+            className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-xs shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs shadow-2xs hover:shadow-xs transition flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -241,30 +241,30 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
       </form>
 
       {/* Quick Demo Credentials */}
-      <div className="pt-3 border-t border-slate-800">
+      <div className="pt-3 border-t border-slate-200">
         <button
           type="button"
           onClick={handleFillDemo}
-          className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-700 bg-slate-900 hover:bg-slate-850 text-slate-300 text-xs font-medium flex items-center justify-center gap-2 transition"
+          className="w-full py-2.5 px-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition shadow-2xs"
         >
-          <KeyRound className="w-3.5 h-3.5 text-blue-400" />
+          <KeyRound className="w-3.5 h-3.5 text-blue-600" />
           <span>Autofill Demo Exporter Credentials</span>
         </button>
       </div>
 
       {/* Switch between Sign-In and Register */}
-      <div className="text-center text-xs text-slate-400 pt-1">
+      <div className="text-center text-xs text-slate-500 pt-1">
         {mode === "register" ? (
           <p>
             Already have an active account?{" "}
-            <Link href="/sign-in" className="text-blue-400 font-semibold hover:underline">
+            <Link href="/sign-in" className="text-blue-600 font-bold hover:underline">
               Sign In
             </Link>
           </p>
         ) : (
           <p>
             New exporter or review evaluator?{" "}
-            <Link href="/register" className="text-blue-400 font-semibold hover:underline">
+            <Link href="/register" className="text-blue-600 font-bold hover:underline">
               Create an account
             </Link>
           </p>

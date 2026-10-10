@@ -109,7 +109,32 @@ def test_export_documentation_suite_flow() -> None:
     assert pkl_pdf_res.headers["content-type"] == "application/pdf"
     assert pkl_pdf_res.content[:4] == b"%PDF"
 
-    # 10. Delete Document
+    # 10. Test custom commercial parameters on document generation
+    custom_pi_res = client.post(
+        f"/api/v1/workspaces/{ws_id}/leads/{lead_id}/documents/generate",
+        json={
+            "document_type": "proforma_invoice",
+            "incoterm": "FOB",
+            "unit_price": 1450.00,
+            "quantity": 18.0,
+            "unit": "Metric Tons (MT)",
+            "product_description": "Export Grade Cold Rolled Stainless Steel Sheets",
+            "destination_port": "Port of Hamburg, Germany",
+            "payment_terms": "100% Confirmed Irrevocable Letter of Credit (L/C at Sight)",
+        },
+        headers=headers,
+    )
+    assert custom_pi_res.status_code == 201
+    custom_data = custom_pi_res.json()
+    assert custom_data["incoterm"] == "FOB"
+    assert custom_data["port_of_discharge"] == "Port of Hamburg, Germany"
+    assert custom_data["payment_terms"] == "100% Confirmed Irrevocable Letter of Credit (L/C at Sight)"
+    assert len(custom_data["line_items"]) == 1
+    assert custom_data["line_items"][0]["unit_price"] == 1450.00
+    assert custom_data["line_items"][0]["quantity"] == 18.0
+    assert custom_data["line_items"][0]["total_amount"] == 26100.00
+
+    # 11. Delete Document
     del_res = client.delete(f"/api/v1/workspaces/{ws_id}/documents/{pkl_id}", headers=headers)
     assert del_res.status_code == 200
     assert del_res.json()["deleted"] is True

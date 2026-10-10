@@ -239,13 +239,13 @@ export default function DocumentStudioPage({
   const totalCbm = lineItems.reduce((acc: number, it: any) => acc + (Number(it.cbm) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 p-6 print:p-0 print:bg-white print:text-black">
+    <div className="min-h-screen bg-slate-100/80 text-slate-900 p-6 print:p-0 print:bg-white print:text-black">
       {/* Non-print Top Controls Bar */}
-      <div className="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <div className="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-3">
           <Link
             href={doc.lead_id ? `/workspace/${workspaceId}/leads/${doc.lead_id}` : `/workspace/${workspaceId}/leads`}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             title="Back to Deal"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -253,16 +253,16 @@ export default function DocumentStudioPage({
           <div>
             <div className="flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                isPI ? "bg-blue-600/20 text-blue-400 border border-blue-500/30" : "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+                isPI ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
               }`}>
                 {isPI ? "Proforma Invoice" : "Packing List"}
               </span>
-              <h1 className="text-xl font-bold text-white tracking-tight">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                 {doc.document_number}
               </h1>
             </div>
-            <p className="text-xs text-slate-400">
-              Buyer: <strong className="text-slate-200">{doc.buyer_details?.company_name || "Consignee"}</strong> ({doc.buyer_details?.country_code}) • Incoterm: <strong className="text-blue-400">{doc.incoterm}</strong>
+            <p className="text-xs text-slate-500">
+              Buyer: <strong className="text-slate-800">{doc.buyer_details?.company_name || "Consignee"}</strong> ({doc.buyer_details?.country_code}) • Incoterm: <strong className="text-blue-700">{doc.incoterm}</strong>
             </p>
           </div>
         </div>
@@ -270,19 +270,19 @@ export default function DocumentStudioPage({
         {/* Action Buttons & Tabs */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Tab Switcher */}
-          <div className="flex rounded-lg bg-slate-900 p-1 border border-slate-800">
+          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
             <button
               onClick={() => setActiveTab("preview")}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                activeTab === "preview" ? "bg-blue-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "preview" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               Official View
             </button>
             <button
               onClick={() => setActiveTab("edit")}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                activeTab === "edit" ? "bg-blue-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "edit" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               Document Studio
@@ -293,7 +293,7 @@ export default function DocumentStudioPage({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>Save Changes</span>
@@ -302,7 +302,7 @@ export default function DocumentStudioPage({
 
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 border border-slate-300 transition-colors cursor-pointer shadow-xs"
             title="Browser Print (Ctrl+P)"
           >
             <Printer className="w-3.5 h-3.5" />
@@ -311,7 +311,7 @@ export default function DocumentStudioPage({
 
           <button
             onClick={handleDownloadPdf}
-            className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             title="Download Vector PDF"
           >
             <Download className="w-3.5 h-3.5" />
@@ -320,7 +320,7 @@ export default function DocumentStudioPage({
 
           <button
             onClick={handleDelete}
-            className="p-2 rounded-lg bg-slate-900 hover:bg-red-950 text-slate-400 hover:text-red-400 border border-slate-800 hover:border-red-800 transition-colors"
+            className="p-2 rounded-xl bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-300 hover:border-red-200 transition-colors cursor-pointer"
             title="Delete Document"
           >
             <Trash2 className="w-4 h-4" />
@@ -617,45 +617,45 @@ export default function DocumentStudioPage({
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
                 Commercial Value
               </span>
-              <span className="text-xl font-bold text-white">
+              <span className="text-xl font-bold text-slate-900">
                 {doc.currency} {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
-              <span className="text-xs text-blue-400 block mt-0.5">{doc.incoterm} terms</span>
+              <span className="text-xs text-blue-700 font-semibold block mt-0.5">{doc.incoterm} terms</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
                 Gross Freight Weight
               </span>
-              <span className="text-xl font-bold text-white">
+              <span className="text-xl font-bold text-slate-900">
                 {totalGross.toLocaleString()} kg
               </span>
-              <span className="text-xs text-emerald-400 block mt-0.5">{totalNet.toLocaleString()} kg Net</span>
+              <span className="text-xs text-emerald-700 font-semibold block mt-0.5">{totalNet.toLocaleString()} kg Net</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
                 TEU Allocation
               </span>
-              <span className="text-lg font-bold text-white truncate block">
+              <span className="text-lg font-bold text-slate-900 truncate block">
                 {doc.logistics_details?.container_type || "1 x 20' FCL"}
               </span>
-              <span className="text-xs text-slate-400 block mt-0.5">{totalCbm.toFixed(1)} m³ total CBM</span>
+              <span className="text-xs text-slate-500 block mt-0.5">{totalCbm.toFixed(1)} m³ total CBM</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
                 Status & Number
               </span>
               <div className="flex items-center gap-2">
                 <select
                   value={doc.status}
                   onChange={(e) => updateField(["status"], e.target.value)}
-                  className="bg-slate-800 text-white text-xs font-semibold px-2.5 py-1 rounded border border-slate-700"
+                  className="bg-slate-50 text-slate-800 text-xs font-bold px-2.5 py-1 rounded border border-slate-300"
                 >
                   <option value="draft">Draft</option>
                   <option value="issued">Issued</option>
@@ -663,24 +663,24 @@ export default function DocumentStudioPage({
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              <span className="text-[11px] text-slate-500 block mt-1">{doc.document_number}</span>
+              <span className="text-[11px] text-slate-500 font-mono block mt-1">{doc.document_number}</span>
             </div>
           </div>
 
           {/* Form Section 1: Header & Commercial Terms */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Compass className="w-4 h-4 text-blue-400" />
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Compass className="w-4 h-4 text-blue-600" />
               <span>Commercial Terms, Currency & Incoterms</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Document Type</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Document Type</label>
                 <select
                   value={doc.document_type}
                   onChange={(e) => updateField(["document_type"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="proforma_invoice">Proforma Invoice (P/I)</option>
                   <option value="packing_list">Commercial Packing List (CPL)</option>
@@ -688,11 +688,11 @@ export default function DocumentStudioPage({
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Currency</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Currency</label>
                 <select
                   value={doc.currency}
                   onChange={(e) => updateField(["currency"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="USD">USD ($ - US Dollar)</option>
                   <option value="EUR">EUR (€ - Euro)</option>
@@ -703,11 +703,11 @@ export default function DocumentStudioPage({
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Incoterm (ICC 2020)</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Incoterm (ICC 2020)</label>
                 <select
                   value={doc.incoterm}
                   onChange={(e) => updateField(["incoterm"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="CIF">CIF (Cost, Insurance & Freight)</option>
                   <option value="FOB">FOB (Free On Board)</option>
@@ -718,43 +718,43 @@ export default function DocumentStudioPage({
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Document Issue Date</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Document Issue Date</label>
                 <input
                   type="date"
                   value={doc.issue_date || ""}
                   onChange={(e) => updateField(["issue_date"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Port of Loading (Origin)</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Port of Loading (Origin)</label>
                 <input
                   type="text"
                   value={doc.port_of_loading || ""}
                   onChange={(e) => updateField(["port_of_loading"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Port of Discharge (Destination)</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Port of Discharge (Destination)</label>
                 <input
                   type="text"
                   value={doc.port_of_discharge || ""}
                   onChange={(e) => updateField(["port_of_discharge"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-slate-400 block mb-1 font-semibold">Payment Terms</label>
+                <label className="text-slate-600 block mb-1 font-semibold">Payment Terms</label>
                 <input
                   type="text"
                   value={doc.payment_terms || ""}
                   onChange={(e) => updateField(["payment_terms"], e.target.value)}
                   placeholder="e.g. 30% Advance T/T, 70% against B/L copy"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
             </div>
@@ -763,98 +763,98 @@ export default function DocumentStudioPage({
           {/* Form Section 2: Consignee & Exporter Coordinates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Exporter Block */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-400" />
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3 text-xs">
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
                 <span>Exporter Entity (Seller)</span>
               </h2>
 
               <div>
-                <label className="text-slate-400 block mb-1">Company Name</label>
+                <label className="text-slate-600 block mb-1">Company Name</label>
                 <input
                   type="text"
                   value={doc.exporter_details?.company_name || ""}
                   onChange={(e) => updateField(["exporter_details", "company_name"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Address</label>
+                <label className="text-slate-600 block mb-1">Address</label>
                 <textarea
                   rows={2}
                   value={doc.exporter_details?.address || ""}
                   onChange={(e) => updateField(["exporter_details", "address"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Tax ID / GSTIN</label>
+                  <label className="text-slate-600 block mb-1">Tax ID / GSTIN</label>
                   <input
                     type="text"
                     value={doc.exporter_details?.tax_id || ""}
                     onChange={(e) => updateField(["exporter_details", "tax_id"], e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">IEC Code</label>
+                  <label className="text-slate-600 block mb-1">IEC Code</label>
                   <input
                     type="text"
                     value={doc.exporter_details?.iec_code || ""}
                     onChange={(e) => updateField(["exporter_details", "iec_code"], e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
               </div>
             </div>
 
             {/* Buyer Block */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-emerald-400" />
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3 text-xs">
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-600" />
                 <span>Consignee Details (Buyer)</span>
               </h2>
 
               <div>
-                <label className="text-slate-400 block mb-1">Buyer Company</label>
+                <label className="text-slate-600 block mb-1">Buyer Company</label>
                 <input
                   type="text"
                   value={doc.buyer_details?.company_name || ""}
                   onChange={(e) => updateField(["buyer_details", "company_name"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Billing & Shipping Address</label>
+                <label className="text-slate-600 block mb-1">Billing & Shipping Address</label>
                 <textarea
                   rows={2}
                   value={doc.buyer_details?.billing_address || ""}
                   onChange={(e) => updateField(["buyer_details", "billing_address"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Attn Contact</label>
+                  <label className="text-slate-600 block mb-1">Attn Contact</label>
                   <input
                     type="text"
                     value={doc.buyer_details?.contact_name || ""}
                     onChange={(e) => updateField(["buyer_details", "contact_name"], e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Buyer Email</label>
+                  <label className="text-slate-600 block mb-1">Buyer Email</label>
                   <input
                     type="text"
                     value={doc.buyer_details?.email || ""}
                     onChange={(e) => updateField(["buyer_details", "email"], e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -862,16 +862,16 @@ export default function DocumentStudioPage({
           </div>
 
           {/* Form Section 3: Line Items Editor */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-400" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-600" />
                 <span>Merchandise Line Items & Freight Manifest ({lineItems.length})</span>
               </h2>
               <button
                 type="button"
                 onClick={addLineItem}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Item</span>
@@ -882,14 +882,14 @@ export default function DocumentStudioPage({
               {lineItems.map((item: any, idx: number) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3 text-xs"
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-blue-400">Item #{idx + 1}</span>
+                    <span className="font-bold text-blue-700 text-xs">Item #{idx + 1}</span>
                     <button
                       type="button"
                       onClick={() => removeLineItem(idx)}
-                      className="text-slate-500 hover:text-red-400 transition-colors"
+                      className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
                       title="Remove Item"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -898,103 +898,103 @@ export default function DocumentStudioPage({
 
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                     <div>
-                      <label className="text-slate-400 block mb-1">HS Code</label>
+                      <label className="text-slate-600 block mb-1 font-medium">HS Code</label>
                       <input
                         type="text"
                         value={item.hs_code || ""}
                         onChange={(e) => updateLineItem(idx, "hs_code", e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div className="md:col-span-3">
-                      <label className="text-slate-400 block mb-1">Cargo Description</label>
+                      <label className="text-slate-600 block mb-1 font-medium">Cargo Description</label>
                       <input
                         type="text"
                         value={item.description || ""}
                         onChange={(e) => updateLineItem(idx, "description", e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Qty</label>
+                      <label className="text-slate-600 block mb-1 font-medium">Qty</label>
                       <input
                         type="number"
                         value={item.quantity || 0}
                         onChange={(e) => updateLineItem(idx, "quantity", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 font-bold focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Unit</label>
+                      <label className="text-slate-600 block mb-1 font-medium">Unit</label>
                       <input
                         type="text"
                         value={item.unit || "MT"}
                         onChange={(e) => updateLineItem(idx, "unit", e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
                   </div>
 
                   {/* Commercial & Logistics sub-row */}
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-3 pt-2 border-t border-slate-800/80">
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-3 pt-2 border-t border-slate-200">
                     <div>
-                      <label className="text-slate-400 block mb-1">Unit Price ({doc.currency})</label>
+                      <label className="text-slate-600 block mb-1">Unit Price ({doc.currency})</label>
                       <input
                         type="number"
                         value={item.unit_price || 0}
                         onChange={(e) => updateLineItem(idx, "unit_price", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Item Total ({doc.currency})</label>
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 font-bold text-white text-xs">
+                      <label className="text-slate-600 block mb-1">Item Total ({doc.currency})</label>
+                      <div className="p-2 rounded-lg bg-slate-100 border border-slate-200 font-bold text-slate-900 text-xs">
                         {Number(item.total_amount || 0).toLocaleString()}
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Packages</label>
+                      <label className="text-slate-600 block mb-1">Packages</label>
                       <input
                         type="number"
                         value={item.package_count || 0}
                         onChange={(e) => updateLineItem(idx, "package_count", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Net Wt (Kg)</label>
+                      <label className="text-slate-600 block mb-1">Net Wt (Kg)</label>
                       <input
                         type="number"
                         value={item.net_weight_kg || 0}
                         onChange={(e) => updateLineItem(idx, "net_weight_kg", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">Gross Wt (Kg)</label>
+                      <label className="text-slate-600 block mb-1">Gross Wt (Kg)</label>
                       <input
                         type="number"
                         value={item.gross_weight_kg || 0}
                         onChange={(e) => updateLineItem(idx, "gross_weight_kg", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-400 block mb-1">CBM (m³)</label>
+                      <label className="text-slate-600 block mb-1">CBM (m³)</label>
                       <input
                         type="number"
                         step="0.1"
                         value={item.cbm || 0}
                         onChange={(e) => updateLineItem(idx, "cbm", Number(e.target.value))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 focus:border-blue-500 focus:outline-hidden"
                       />
                     </div>
                   </div>
@@ -1004,85 +1004,85 @@ export default function DocumentStudioPage({
           </div>
 
           {/* Form Section 4: Bank Remittance Coordinates */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-blue-400" />
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-blue-600" />
               <span>Remittance Bank Account & SWIFT Routing</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Beneficiary Account Name</label>
+                <label className="text-slate-600 block mb-1">Beneficiary Account Name</label>
                 <input
                   type="text"
                   value={doc.bank_details?.beneficiary_name || ""}
                   onChange={(e) => updateField(["bank_details", "beneficiary_name"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Bank Name</label>
+                <label className="text-slate-600 block mb-1">Bank Name</label>
                 <input
                   type="text"
                   value={doc.bank_details?.bank_name || ""}
                   onChange={(e) => updateField(["bank_details", "bank_name"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Account Number</label>
+                <label className="text-slate-600 block mb-1">Account Number</label>
                 <input
                   type="text"
                   value={doc.bank_details?.account_number || ""}
                   onChange={(e) => updateField(["bank_details", "account_number"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">SWIFT / BIC Code</label>
+                <label className="text-slate-600 block mb-1">SWIFT / BIC Code</label>
                 <input
                   type="text"
                   value={doc.bank_details?.swift_code || ""}
                   onChange={(e) => updateField(["bank_details", "swift_code"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">IBAN / IFSC Code</label>
+                <label className="text-slate-600 block mb-1">IBAN / IFSC Code</label>
                 <input
                   type="text"
                   value={doc.bank_details?.iban || doc.bank_details?.ifsc_code || ""}
                   onChange={(e) => updateField(["bank_details", "iban"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 font-mono focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Branch Name</label>
+                <label className="text-slate-600 block mb-1">Branch Name</label>
                 <input
                   type="text"
                   value={doc.bank_details?.branch || ""}
                   onChange={(e) => updateField(["bank_details", "branch"], e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 />
               </div>
             </div>
           </div>
 
           {/* Form Section 5: Statutory Declarations & Notes */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3 text-xs">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
               Statutory Notes & Legal Terms
             </h2>
             <textarea
               rows={4}
               value={doc.notes || ""}
               onChange={(e) => updateField(["notes"], e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs leading-relaxed"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-900 font-mono text-xs leading-relaxed focus:bg-white focus:border-blue-500 focus:outline-hidden"
             />
           </div>
 

@@ -147,26 +147,26 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
   const inc = result?.incoterms;
 
   return (
-    <div className="space-y-8 p-6 lg:p-8 max-w-[1440px] mx-auto text-slate-100">
+    <div className="space-y-8 p-6 lg:p-8 max-w-[1440px] mx-auto text-slate-900">
       {/* Page Title & Preset Badges */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg">
+            <div className="p-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-xl">
               <Ship className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Landed Cost & Logistics Estimator
             </h1>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Incoterms 2020 Waterfall Engine: Compute factory gate, ocean freight, marine insurance, and customs tariffs to quote overseas buyers with confidence.
           </p>
         </div>
 
         {/* Quick Presets */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Presets:</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Presets:</span>
           <button
             onClick={() => {
               handlePreset({
@@ -179,7 +179,7 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                 fta: false,
               });
             }}
-            className="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 rounded transition"
+            className="px-3 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-2xs transition cursor-pointer"
           >
             US Cotton Apparel (6109)
           </button>
@@ -195,7 +195,7 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                 fta: true,
               });
             }}
-            className="px-2.5 py-1 text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded transition"
+            className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition cursor-pointer"
           >
             UAE Rice (CEPA 0%)
           </button>
@@ -211,7 +211,7 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                 fta: false,
               });
             }}
-            className="px-2.5 py-1 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 rounded transition"
+            className="px-3 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-2xs transition cursor-pointer"
           >
             Germany Chemicals (2902)
           </button>
@@ -222,13 +222,13 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Interactive Inputs (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-[#111827] rounded-xl border border-white/[0.08] p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Anchor className="h-4 w-4 text-blue-400" />
-                Shipment & Maritime Parameters
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Anchor className="h-4 w-4 text-blue-600" />
+                <span>Shipment & Maritime Parameters</span>
               </h2>
-              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono font-medium px-2 py-0.5 rounded">
+              <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold px-2 py-0.5 rounded-full">
                 Incoterms 2020
               </span>
             </div>
@@ -236,32 +236,32 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
             {/* Factory Economics */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Factory Gate Price (EXW $)
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-xs">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
                     $
                   </span>
                   <input
                     type="number"
                     value={factoryPrice}
                     onChange={(e) => setFactoryPrice(Number(e.target.value))}
-                    className="w-full pl-7 pr-3 py-2 text-xs font-mono border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                    className="w-full pl-7 pr-3 py-2 text-xs font-mono font-medium border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                     placeholder="50000"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Cargo Units / Quantity
                 </label>
                 <input
                   type="number"
                   value={cargoUnits}
                   onChange={(e) => setCargoUnits(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs font-mono border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 text-xs font-mono font-medium border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   placeholder="10000"
                 />
               </div>
@@ -270,16 +270,16 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
             {/* Maritime Ports */}
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Origin Port of Loading (India)
                 </label>
                 <select
                   value={originPort}
                   onChange={(e) => setOriginPort(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   {routes?.origin_ports.map((p: any) => (
-                    <option key={p.code} value={p.code} className="bg-[#0B0F19] text-white">
+                    <option key={p.code} value={p.code}>
                       {p.name} — {p.city}
                     </option>
                   ))}
@@ -287,16 +287,16 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Destination Port of Discharge
                 </label>
                 <select
                   value={destinationPort}
                   onChange={(e) => setDestinationPort(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   {routes?.destination_ports.map((p: any) => (
-                    <option key={p.code} value={p.code} className="bg-[#0B0F19] text-white">
+                    <option key={p.code} value={p.code}>
                       {p.name} ({p.country_code}) — {p.city}
                     </option>
                   ))}
@@ -307,36 +307,36 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
             {/* Container Type & Count */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Container Specification
                 </label>
                 <select
                   value={containerType}
                   onChange={(e) => setContainerType(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-900 font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
-                  <option value="20ft" className="bg-[#0B0F19] text-white">20ft Standard Dry (TEU)</option>
-                  <option value="40ft_hc" className="bg-[#0B0F19] text-white">40ft High Cube (FEU HC)</option>
-                  <option value="lcl" className="bg-[#0B0F19] text-white">Less than Container (LCL)</option>
+                  <option value="20ft">20ft Standard Dry (TEU)</option>
+                  <option value="40ft_hc">40ft High Cube (FEU HC)</option>
+                  <option value="lcl">Less than Container (LCL)</option>
                 </select>
               </div>
 
               {containerType === "lcl" ? (
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Cargo Volume (CBM)
                   </label>
                   <input
                     type="number"
                     value={cbmVolume}
                     onChange={(e) => setCbmVolume(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs font-mono border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 text-xs font-mono font-medium border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                     placeholder="15.0"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Container Quantity
                   </label>
                   <input
@@ -345,54 +345,54 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                     max={20}
                     value={containerCount}
                     onChange={(e) => setContainerCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs font-mono border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 text-xs font-mono font-medium border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
               )}
             </div>
 
             {/* Product HS Code & Tariff Selection */}
-            <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+            <div className="space-y-3 pt-2 border-t border-slate-100">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Product HS Code (6-Digit Harmonized System)
                 </label>
                 <input
                   type="text"
                   value={hsCode}
                   onChange={(e) => setHsCode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-white/[0.12] rounded-lg bg-[#0B0F19] text-white focus:border-blue-500 outline-none font-mono"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-900 font-mono font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden"
                   placeholder="e.g. 6109.10"
                 />
               </div>
 
               {/* Preferential FTA Checkbox */}
-              <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.08] rounded-lg">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                <div className="flex items-center gap-2.5">
                   <input
                     type="checkbox"
                     id="fta_toggle"
                     checked={applyFta}
                     onChange={(e) => setApplyFta(e.target.checked)}
-                    className="h-4 w-4 rounded border-white/[0.2] bg-[#0B0F19] text-blue-600 focus:ring-0"
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
                   />
-                  <label htmlFor="fta_toggle" className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor="fta_toggle" className="text-xs text-slate-700 font-semibold cursor-pointer">
                     Apply Preferential FTA Tariff Rate
                   </label>
                 </div>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold px-2 py-0.5 rounded">
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
                   Duty Reducer
                 </span>
               </div>
             </div>
 
             {/* Target Margin Slider */}
-            <div className="pt-2 border-t border-white/[0.08]">
+            <div className="pt-2 border-t border-slate-100">
               <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-medium text-slate-400">
+                <label className="text-xs font-semibold text-slate-600">
                   Target Profit Margin on Quotation:
                 </label>
-                <span className="text-xs font-bold font-mono text-blue-400">{targetMargin}%</span>
+                <span className="text-xs font-bold font-mono text-blue-600">{targetMargin}%</span>
               </div>
               <input
                 type="range"
@@ -403,7 +403,7 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                 onChange={(e) => setTargetMargin(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 mt-0.5">
+              <div className="flex justify-between text-[10px] text-slate-500 mt-0.5 font-medium">
                 <span>5% (Volume thin)</span>
                 <span>15% (Standard)</span>
                 <span>40% (Premium)</span>
@@ -414,17 +414,17 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
             <button
               onClick={() => performCalculation()}
               disabled={calculating}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {calculating ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Calculating Marine Waterfall...
+                  <span>Calculating Marine Waterfall...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Recalculate Landed Cost Breakdown
+                  <span>Recalculate Landed Cost Breakdown</span>
                 </>
               )}
             </button>
@@ -437,73 +437,73 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
             <>
               {/* 4 KPI Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-[#111827] p-4 rounded-xl border border-white/[0.08]">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Total Landed (DDP)
                   </p>
-                  <p className="text-xl font-bold font-mono text-white mt-1">
+                  <p className="text-xl font-bold font-mono text-slate-900 mt-1">
                     ${b.total_landed_cost_ddp_usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
-                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  <p className="text-[11px] font-mono text-slate-500 mt-0.5">
                     ${b.unit_landed_cost_usd} / unit
                   </p>
                 </div>
 
-                <div className="bg-[#111827] p-4 rounded-xl border border-white/[0.08]">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     CIF Port Value
                   </p>
-                  <p className="text-xl font-bold font-mono text-blue-400 mt-1">
+                  <p className="text-xl font-bold font-mono text-blue-700 mt-1">
                     ${b.cif_value_usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
-                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  <p className="text-[11px] font-mono text-slate-500 mt-0.5">
                     ${b.unit_cif_cost_usd} / unit
                   </p>
                 </div>
 
-                <div className="bg-[#111827] p-4 rounded-xl border border-white/[0.08]">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Transit Lead Time
                   </p>
-                  <p className="text-xl font-bold font-mono text-amber-400 mt-1 flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-amber-400" />
-                    ~{result.transit_days} Days
+                  <p className="text-xl font-bold font-mono text-amber-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <span>~{result.transit_days} Days</span>
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 truncate" title={result.primary_carrier}>
+                  <p className="text-[11px] text-slate-500 mt-0.5 truncate font-medium" title={result.primary_carrier}>
                     {result.primary_carrier}
                   </p>
                 </div>
 
-                <div className="bg-[#111827] p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                  <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
+                <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/90 shadow-xs">
+                  <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
                     Buyer CIF Quote
                   </p>
-                  <p className="text-xl font-bold font-mono text-emerald-400 mt-1">
+                  <p className="text-xl font-bold font-mono text-emerald-800 mt-1">
                     ${inc.suggested_cif_quote_with_margin_usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
-                  <p className="text-[11px] font-mono text-emerald-400/80 mt-0.5">
+                  <p className="text-[11px] font-mono font-semibold text-emerald-700 mt-0.5">
                     ${(inc.suggested_cif_quote_with_margin_usd / b.units).toFixed(2)}/u (+{inc.margin_percentage}%)
                   </p>
                 </div>
               </div>
 
               {/* Tariff & FTA Banner */}
-              <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
+              <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 shadow-xs ${
                 b.is_fta_rate_applied
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
-                  : "bg-blue-500/10 border-blue-500/20 text-blue-300"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                  : "bg-blue-50/70 border-blue-200 text-blue-900"
               }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${b.is_fta_rate_applied ? "bg-emerald-500/20 text-emerald-400" : "bg-blue-500/20 text-blue-400"}`}>
+                  <div className={`p-2 rounded-xl ${b.is_fta_rate_applied ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-white">
+                    <h4 className="text-xs font-bold text-slate-900">
                       {b.is_fta_rate_applied
                         ? `Preferential Tariff Applied: ${result.applied_tariff_agreement || "FTA Rate"}`
                         : `Standard WTO MFN Tariff Applied (${b.tariff_rate_applied_pct}%)`}
                     </h4>
-                    <p className="text-[11px] opacity-80 mt-0.5 font-mono">
+                    <p className="text-[11px] text-slate-600 mt-0.5 font-mono">
                       Destination customs duty calculated at {b.tariff_rate_applied_pct}% on CIF value (${b.customs_import_duty_usd.toLocaleString()} USD).
                     </p>
                   </div>
@@ -511,35 +511,35 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
 
                 {b.is_fta_rate_applied && b.tariff_savings_usd > 0 && (
                   <div className="text-right shrink-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">FTA Savings</span>
-                    <p className="text-sm font-bold font-mono text-emerald-400">+${b.tariff_savings_usd.toLocaleString()} USD</p>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">FTA Savings</span>
+                    <p className="text-sm font-bold font-mono text-emerald-700">+${b.tariff_savings_usd.toLocaleString()} USD</p>
                   </div>
                 )}
               </div>
 
               {/* Incoterms 2020 Waterfall Table */}
-              <div className="bg-[#111827] rounded-xl border border-white/[0.08] overflow-hidden">
-                <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
-                  <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-blue-400" />
-                    Incoterms 2020 Cost Component Waterfall
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                  <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-blue-600" />
+                    <span>Incoterms 2020 Cost Component Waterfall</span>
                   </h3>
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-slate-600 font-mono font-medium">
                     {result.origin_port.code} → {result.destination_port.code}
                   </span>
                 </div>
 
-                <div className="divide-y divide-white/[0.06] text-xs">
+                <div className="divide-y divide-slate-100 text-xs">
                   {/* EXW */}
-                  <div className="p-3.5 flex items-center justify-between hover:bg-white/[0.02] transition">
+                  <div className="p-3.5 flex items-center justify-between hover:bg-slate-50/60 transition">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-white/[0.08] text-slate-300 rounded font-mono">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 rounded-md font-mono border border-slate-200">
                         EXW
                       </span>
-                      <span className="text-slate-200 font-medium">Factory Gate Goods Price</span>
+                      <span className="text-slate-800 font-semibold">Factory Gate Goods Price</span>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="font-semibold text-white">
+                      <span className="font-bold text-slate-900">
                         ${b.factory_gate_price_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                       <span className="block text-[10px] text-slate-500">${b.unit_factory_cost_usd}/unit</span>
@@ -547,124 +547,124 @@ Applicable Duty : ${b.tariff_rate_applied_pct}% (${b.is_fta_rate_applied ? "Pref
                   </div>
 
                   {/* Inland */}
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Inland Drayage (Factory to Port)</span>
-                    <span className="font-mono text-slate-300">${b.inland_trucking_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.inland_trucking_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Origin Terminal Handling (THC) & Documentation</span>
-                    <span className="font-mono text-slate-300">${b.origin_terminal_handling_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.origin_terminal_handling_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Export Customs Clearance & Shipping Bill</span>
-                    <span className="font-mono text-slate-300">${b.export_customs_clearance_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.export_customs_clearance_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
                   {/* FOB */}
-                  <div className="p-3.5 flex items-center justify-between bg-blue-500/5 font-medium">
+                  <div className="p-3.5 flex items-center justify-between bg-blue-50/40 border-y border-blue-100/60 font-medium">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-500/20 text-blue-400 rounded font-mono">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded-md font-mono border border-blue-200">
                         FOB
                       </span>
-                      <span className="text-white font-semibold">Free on Board (Loaded on Vessel)</span>
+                      <span className="text-slate-900 font-bold">Free on Board (Loaded on Vessel)</span>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-slate-900">
                         ${b.fob_value_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="block text-[10px] text-blue-400">${b.unit_fob_cost_usd}/unit</span>
+                      <span className="block text-[10px] text-blue-700 font-semibold">${b.unit_fob_cost_usd}/unit</span>
                     </div>
                   </div>
 
                   {/* Ocean Freight */}
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Ocean Maritime Freight ({result.container_count}x {result.container_type.toUpperCase()})</span>
-                    <span className="font-mono text-slate-200">${b.ocean_freight_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.ocean_freight_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
                   {/* Insurance */}
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Marine Cargo Insurance (ICC-A All Risks, 110%)</span>
-                    <span className="font-mono text-slate-200">${b.marine_insurance_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.marine_insurance_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
                   {/* CIF */}
-                  <div className="p-3.5 flex items-center justify-between bg-blue-500/10 font-medium">
+                  <div className="p-3.5 flex items-center justify-between bg-blue-100/40 border-y border-blue-200/60 font-medium">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-600 text-white rounded font-mono">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-600 text-white rounded-md font-mono">
                         CIF
                       </span>
-                      <span className="text-blue-200 font-bold">Cost, Insurance & Freight (Discharge Port)</span>
+                      <span className="text-blue-900 font-bold">Cost, Insurance & Freight (Discharge Port)</span>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="font-bold text-blue-300">
+                      <span className="font-bold text-blue-800">
                         ${b.cif_value_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="block text-[10px] text-blue-400">${b.unit_cif_cost_usd}/unit</span>
+                      <span className="block text-[10px] text-blue-700 font-semibold">${b.unit_cif_cost_usd}/unit</span>
                     </div>
                   </div>
 
                   {/* Destination Charges */}
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Destination Terminal Handling (DTHC)</span>
-                    <span className="font-mono text-slate-300">${b.destination_port_handling_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${b.destination_port_handling_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Customs Import Duty ({b.tariff_rate_applied_pct}% on CIF)</span>
-                    <span className="font-mono text-amber-400">${b.customs_import_duty_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-bold text-amber-700">${b.customs_import_duty_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
-                  <div className="p-3 pl-8 flex items-center justify-between text-slate-400">
+                  <div className="p-3 pl-8 flex items-center justify-between text-slate-600 hover:bg-slate-50/40">
                     <span>+ Import Brokerage & Final Delivery Drayage</span>
-                    <span className="font-mono text-slate-300">${(b.customs_brokerage_usd + b.destination_inland_delivery_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono font-medium text-slate-800">${(b.customs_brokerage_usd + b.destination_inland_delivery_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
 
                   {/* DDP */}
-                  <div className="p-3.5 flex items-center justify-between bg-white/[0.04] font-medium">
+                  <div className="p-3.5 flex items-center justify-between bg-emerald-50/60 border-t border-emerald-200 font-medium">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500 text-slate-950 rounded font-mono">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded-md font-mono">
                         DDP
                       </span>
-                      <span className="font-bold text-white">Delivered Duty Paid (Total Landed Cost)</span>
+                      <span className="font-bold text-slate-900">Delivered Duty Paid (Total Landed Cost)</span>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="font-bold text-emerald-400 text-sm">
+                      <span className="font-bold text-emerald-800 text-sm">
                         ${b.total_landed_cost_ddp_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="block text-[10px] text-slate-400">${b.unit_landed_cost_usd}/unit</span>
+                      <span className="block text-[10px] text-slate-600 font-semibold">${b.unit_landed_cost_usd}/unit</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Commercial Quotation Action Sheet */}
-              <div className="bg-[#111827] text-white p-5 rounded-xl border border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="bg-white text-slate-900 p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-xs font-semibold flex items-center gap-2 text-white">
-                    <FileText className="h-4 w-4 text-blue-400" />
-                    Ready-to-Send Export Quotation Sheet
+                  <h4 className="text-xs font-bold flex items-center gap-2 text-slate-900">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span>Ready-to-Send Export Quotation Sheet</span>
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1 max-w-lg">
+                  <p className="text-xs text-slate-500 mt-1 max-w-lg leading-relaxed">
                     Copy a clean quotation sheet formatted with CIF price, shipping schedule, container specifications, and tariff breakdown to paste directly into your buyer communication.
                   </p>
                 </div>
 
                 <button
                   onClick={copyQuotation}
-                  className="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2"
+                  className="shrink-0 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
                 >
                   {copied ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                      Quotation Copied!
+                      <span>Quotation Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-4 w-4" />
-                      Copy Quotation Sheet
+                      <span>Copy Quotation Sheet</span>
                     </>
                   )}
                 </button>

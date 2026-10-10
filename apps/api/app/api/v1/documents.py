@@ -19,6 +19,19 @@ router = APIRouter(prefix="/api/v1/workspaces", tags=["commercial-documents"])
 
 class GenerateDocumentRequest(BaseModel):
     document_type: str = Field(default="proforma_invoice", description="'proforma_invoice' or 'packing_list'")
+    incoterm: str | None = Field(default=None, description="EXW, FOB, CFR, CIF, DDP")
+    unit_price: float | None = Field(default=None, gt=0, description="Unit price in currency")
+    quantity: float | None = Field(default=None, gt=0, description="Order quantity")
+    unit: str | None = Field(default=None, description="Unit description (e.g. MT, Units, Yards)")
+    product_description: str | None = Field(default=None, description="Cargo / merchandise description")
+    container_type: str | None = Field(default=None, description="20ft or 40ft_hc")
+    destination_port: str | None = Field(default=None, description="Port of Discharge")
+    payment_terms: str | None = Field(default=None, description="Commercial payment terms")
+    notes: str | None = Field(default=None, description="Special buyer or bank clauses")
+    buyer_contact_name: str | None = Field(default=None, description="Attention / Decision-maker recipient name")
+    buyer_contact_email: str | None = Field(default=None, description="Buyer contact email")
+    buyer_contact_phone: str | None = Field(default=None, description="Buyer contact phone")
+    buyer_contact_title: str | None = Field(default=None, description="Buyer contact job title")
 
 
 class DocumentWritePayload(BaseModel):
@@ -141,6 +154,19 @@ def generate_document_from_lead(
             workspace_id=workspace_id,
             lead_id=lead_id,
             doc_type=payload.document_type,
+            custom_incoterm=payload.incoterm,
+            custom_unit_price=payload.unit_price,
+            custom_quantity=payload.quantity,
+            custom_unit=payload.unit,
+            custom_product_desc=payload.product_description,
+            custom_container_type=payload.container_type,
+            custom_dest_port=payload.destination_port,
+            custom_payment_terms=payload.payment_terms,
+            custom_notes=payload.notes,
+            custom_buyer_contact_name=payload.buyer_contact_name,
+            custom_buyer_contact_email=payload.buyer_contact_email,
+            custom_buyer_contact_phone=payload.buyer_contact_phone,
+            custom_buyer_contact_title=payload.buyer_contact_title,
         )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err))

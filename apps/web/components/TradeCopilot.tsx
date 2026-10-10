@@ -154,19 +154,19 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
       {isOpen && (
         <div className="fixed bottom-22 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-7rem)] flex flex-col bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-white/10 shrink-0">
+          <div className="p-4 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-2xs">
                 <Bot className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">Trade Assistant</h3>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                  <h3 className="text-sm font-bold tracking-tight text-slate-900">Trade Assistant</h3>
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
                     Online
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-300">
+                <p className="text-[10px] text-slate-500 font-medium">
                   Cross-Border Export Advisory
                 </p>
               </div>
@@ -177,7 +177,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
                 <button
                   onClick={handleClear}
                   title="Clear conversation"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
@@ -185,7 +185,7 @@ export default function TradeCopilot({ workspaceId }: { workspaceId: string }) {
               <button
                 onClick={() => setIsOpen(false)}
                 title="Minimize Assistant"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <ChevronDown className="w-4 h-4" />
               </button>

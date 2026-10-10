@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/v1/workspaces", tags=["matchmaking"])
 
 
 class SwipeActionRequest(BaseModel):
-    direction: Literal["right", "left"]
+    direction: Literal["right", "left", "up"]
 
 
 @router.get("/{workspace_id}/recommendations")
@@ -49,12 +49,16 @@ def get_recommendations(
 
     excluded_ids: set[str] = set()
     if exclude_swiped:
-        # 1. Audit events for swiped recommendations in this workspace (dismissed or saved)
+        # 1. Audit events for swiped recommendations in this workspace (dismissed, saved, or bookmarked)
         swiped_audit = db.scalars(
             select(AuditEvent.entity_id).where(
                 AuditEvent.workspace_id == workspace_id,
                 AuditEvent.entity_type == "buyer_catalog",
-                AuditEvent.action.in_(["recommendation.dismissed", "recommendation.swiped_right"]),
+                AuditEvent.action.in_([
+                    "recommendation.dismissed",
+                    "recommendation.swiped_right",
+                    "recommendation.bookmarked",
+                ]),
             )
         ).all()
         for eid in swiped_audit:
@@ -108,6 +112,7 @@ def swipe_buyer_recommendation(
     Swipe to Export Action:
     - Swipe Left: Dismisses recommendation.
     - Swipe Right: Automatically converts Global Buyer into an active Workspace Company & CRM Lead.
+    - Swipe Up: Bookmarks candidate for in-depth export review without auto-creating a CRM lead.
     """
     require_workspace_role(workspace_id, user, db, "editor")
 
@@ -127,6 +132,19 @@ def swipe_buyer_recommendation(
         )
         db.commit()
         return {"action": "dismissed", "buyer_id": buyer_id, "status": "ok"}
+
+    if payload.direction == "up":
+        record_audit_event(
+            db,
+            workspace_id=workspace_id,
+            actor_user_id=user.id,
+            action="recommendation.bookmarked",
+            entity_type="buyer_catalog",
+            entity_id=buyer_id,
+            metadata={"company_name": buyer.company_name, "primary_sector": buyer.primary_sector},
+        )
+        db.commit()
+        return {"action": "bookmarked", "buyer_id": buyer_id, "status": "ok"}
 
     # Swipe Right: Promote to active CRM Lead
     # 1. Create or fetch workspace company
@@ -260,4 +278,82 @@ def reset_dismissed_recommendations(
     result = db.execute(stmt)
     db.commit()
     return {"status": "ok", "reset_count": result.rowcount}
+
+
+@router.post("/{workspace_id}/recommendations/{buyer_id}/undo")
+def undo_buyer_recommendation_swipe(
+    workspace_id: str,
+    buyer_id: str,
+    user: User = Depends(require_csrf),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Reverses the most recent swipe action (pass, bookmark, or lead creation)
+    for a specific buyer, returning them to the active recommendation deck.
+    """
+    require_workspace_role(workspace_id, user, db, "editor")
+
+    # Find the most recent swipe audit event for this buyer
+    audit_event = db.scalar(
+        select(AuditEvent)
+        .where(
+            AuditEvent.workspace_id == workspace_id,
+            AuditEvent.entity_id == buyer_id,
+            AuditEvent.entity_type == "buyer_catalog",
+            AuditEvent.action.in_([
+                "recommendation.dismissed",
+                "recommendation.swiped_right",
+                "recommendation.bookmarked",
+            ]),
+        )
+        .order_by(AuditEvent.created_at.desc())
+    )
+
+    if not audit_event:
+        raise HTTPException(
+            status_code=404,
+            detail="No recorded recommendation swipe found for this candidate to undo.",
+        )
+
+    undone_action = audit_event.action
+
+    # If it was swiped right, clean up the lead and associated records
+    if undone_action == "recommendation.swiped_right":
+        lead_id = (audit_event.metadata or {}).get("lead_id")
+        if lead_id:
+            lead = db.get(Lead, lead_id)
+            if lead:
+                company_id = lead.company_id
+                db.delete(lead)
+                if company_id:
+                    company = db.get(Company, company_id)
+                    if company and company.provenance == "swipe_to_export":
+                        # Check if company has any other leads before deletion
+                        other_leads = db.scalar(
+                            select(Lead).where(Lead.company_id == company_id, Lead.id != lead_id)
+                        )
+                        if not other_leads:
+                            db.delete(company)
+
+    # Delete the swipe audit event so the candidate reappears in feed
+    db.delete(audit_event)
+
+    # Record undo action for auditability
+    record_audit_event(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user.id,
+        action="recommendation.undone",
+        entity_type="buyer_catalog",
+        entity_id=buyer_id,
+        metadata={"undone_action": undone_action},
+    )
+
+    db.commit()
+    return {
+        "status": "ok",
+        "undone_action": undone_action,
+        "buyer_id": buyer_id,
+    }
+
 

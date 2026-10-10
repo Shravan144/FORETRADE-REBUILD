@@ -101,3 +101,23 @@ def test_matchmaking_recommendations_and_swipe_flow() -> None:
     after_reset_items = after_reset_res.json().get("items", [])
     assert not any(i["buyer_id"] == buyer_2_id for i in after_reset_items)  # Still excluded because in CRM
 
+    # 10. Test Swipe Up (Bookmark)
+    buyer_3_id = after_reset_items[0]["buyer_id"]
+    bookmark_res = client.post(
+        f"/api/v1/workspaces/{ws_id}/recommendations/{buyer_3_id}/swipe",
+        json={"direction": "up"},
+        headers=headers,
+    )
+    assert bookmark_res.status_code == 200
+    assert bookmark_res.json()["action"] == "bookmarked"
+
+    # 11. Test Undo Swipe on buyer 3
+    undo_res = client.post(
+        f"/api/v1/workspaces/{ws_id}/recommendations/{buyer_3_id}/undo",
+        headers=headers,
+    )
+    assert undo_res.status_code == 200
+    assert undo_res.json()["status"] == "ok"
+    assert undo_res.json()["undone_action"] == "recommendation.bookmarked"
+
+

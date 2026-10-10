@@ -466,9 +466,9 @@ export const api = {
     }>(`/api/v1/workspaces/${workspaceId}/recommendations?top_k=${top_k}&exclude_swiped=${exclude_swiped}`);
   },
 
-  async swipeRecommendation(workspaceId: string, buyerId: string, direction: "right" | "left") {
+  async swipeRecommendation(workspaceId: string, buyerId: string, direction: "right" | "left" | "up") {
     return fetchApi<{
-      action: "saved_to_crm" | "dismissed";
+      action: "saved_to_crm" | "dismissed" | "bookmarked";
       buyer_id?: string;
       company_id?: string;
       lead_id?: string;
@@ -477,6 +477,16 @@ export const api = {
     }>(`/api/v1/workspaces/${workspaceId}/recommendations/${buyerId}/swipe`, {
       method: "POST",
       body: JSON.stringify({ direction }),
+    });
+  },
+
+  async undoSwipeRecommendation(workspaceId: string, buyerId: string) {
+    return fetchApi<{
+      status: string;
+      undone_action: string;
+      buyer_id: string;
+    }>(`/api/v1/workspaces/${workspaceId}/recommendations/${buyerId}/undo`, {
+      method: "POST",
     });
   },
 
@@ -632,7 +642,14 @@ export const api = {
   async generatePitch(
     workspaceId: string,
     leadId: string,
-    payload: { channel?: string; custom_notes?: string } = {}
+    payload: {
+      channel?: string;
+      custom_notes?: string;
+      pitch_angle?: "cost_duty" | "reliability_compliance" | "speed_trial";
+      recipient_name?: string;
+      recipient_title?: string;
+      recipient_email?: string;
+    } = {}
   ) {
     return fetchApi<{
       id: string;
@@ -727,11 +744,12 @@ export const api = {
   },
 
   // ── Real-Time Demand Radar Endpoints ──
-  async getDemandSignals(params?: { target_country?: string; hs_code?: string; signal_type?: string }) {
+  async getDemandSignals(params?: { target_country?: string; hs_code?: string; signal_type?: string; status?: string }) {
     const q = new URLSearchParams();
     if (params?.target_country) q.set("target_country", params.target_country);
     if (params?.hs_code) q.set("hs_code", params.hs_code);
     if (params?.signal_type) q.set("signal_type", params.signal_type);
+    if (params?.status) q.set("status", params.status);
     const qs = q.toString() ? `?${q.toString()}` : "";
     return fetchApi<{
       total: number;
@@ -749,10 +767,42 @@ export const api = {
         intent_score: number;
         urgency_level: string;
         extracted_entities: Record<string, any>;
+        external_id?: string | null;
+        source_url?: string | null;
+        buyer_name?: string | null;
+        status?: string;
+        expires_at?: string | null;
         published_at: string | null;
         created_at: string | null;
       }>;
     }>(`/api/v1/intelligence/demand-signals${qs}`);
+  },
+
+  async syncDemandSignals(purgeExpired: boolean = false) {
+    return fetchApi<{
+      sync_time: string;
+      total_in_radar: number;
+      sources: Array<{ source: string; status: string; new: number; updated: number; error?: string }>;
+      lifecycle: {
+        active_count: number;
+        closing_soon_count: number;
+        expired_count: number;
+        purged_count: number;
+      };
+    }>(`/api/v1/intelligence/demand-signals/sync?purge_expired=${purgeExpired}`, {
+      method: "POST",
+    });
+  },
+
+  async purgeExpiredSignals() {
+    return fetchApi<{
+      active_count: number;
+      closing_soon_count: number;
+      expired_count: number;
+      purged_count: number;
+    }>("/api/v1/intelligence/demand-signals/purge-expired", {
+      method: "POST",
+    });
   },
 
   async extractSignal(payload: { text: string; source_channel?: string }) {
@@ -869,15 +919,122 @@ export const api = {
       customs_manifest_provenance: string;
       reliability_score: number;
       shipment_frequency: string;
-      avg_container_teu: number;
-      estimated_order_cycle_days: number;
+      annual_estimated_teu?: number;
       top_historical_suppliers: Array<{
         supplier_name: string;
         origin_country: string;
         share_pct: number;
         port_of_lading: string;
       }>;
+      seasonality_curve?: Array<{
+        month_index: number;
+        month_name: string;
+        volume_share_pct: number;
+        estimated_teu: number;
+        estimated_shipments: number;
+        is_peak: boolean;
+      }>;
+      origin_breakdown?: Array<{
+        country_code: string;
+        share_pct: number;
+        is_indian_origin: boolean;
+        displacement_opportunity: boolean;
+      }>;
     }>(`/api/v1/intelligence/buyers/${buyerId}`);
+  },
+
+  async batchPromoteBuyers(workspaceId: string, buyerIds: string[]) {
+    return fetchApi<{
+      status: string;
+      promoted_count: number;
+      company_ids: string[];
+      lead_ids: string[];
+    }>(`/api/v1/workspaces/${workspaceId}/companies/batch-promote-buyers`, {
+      method: "POST",
+      body: JSON.stringify({ buyer_ids: buyerIds }),
+    });
+  },
+
+  async getBuyerContacts(buyerId: string) {
+    return fetchApi<{
+      buyer_id: string;
+      total: number;
+      contacts: Array<{
+        id: string;
+        buyer_id?: string;
+        company_id?: string;
+        company_name: string;
+        domain?: string;
+        full_name: string;
+        first_name?: string;
+        last_name?: string;
+        job_title: string;
+        department?: string;
+        seniority?: string;
+        email?: string;
+        email_status: string;
+        deliverability_score: number;
+        phone_number?: string;
+        linkedin_url?: string;
+        photo_url?: string;
+        city?: string;
+        country_code?: string;
+        source: string;
+        is_primary: boolean;
+        created_at?: string;
+      }>;
+    }>(`/api/v1/intelligence/buyers/${buyerId}/contacts`);
+  },
+
+  async enrichBuyerContacts(buyerId: string) {
+    return fetchApi<{
+      buyer_id: string;
+      total: number;
+      contacts: Array<{
+        id: string;
+        buyer_id?: string;
+        company_id?: string;
+        company_name: string;
+        domain?: string;
+        full_name: string;
+        first_name?: string;
+        last_name?: string;
+        job_title: string;
+        department?: string;
+        seniority?: string;
+        email?: string;
+        email_status: string;
+        deliverability_score: number;
+        phone_number?: string;
+        linkedin_url?: string;
+        photo_url?: string;
+        city?: string;
+        country_code?: string;
+        source: string;
+        is_primary: boolean;
+        created_at?: string;
+      }>;
+    }>(`/api/v1/intelligence/buyers/${buyerId}/enrich-contacts`, {
+      method: "POST",
+    });
+  },
+
+  async getCompanyContacts(workspaceId: string, companyId: string) {
+    return fetchApi<{
+      company_id: string;
+      total: number;
+      contacts: Array<any>;
+    }>(`/api/v1/workspaces/${workspaceId}/companies/${companyId}/contacts`);
+  },
+
+  async enrichCompanyContacts(workspaceId: string, companyId: string) {
+    return fetchApi<{
+      company_id: string;
+      total: number;
+      contacts: Array<any>;
+    }>(`/api/v1/workspaces/${workspaceId}/companies/${companyId}/enrich-contacts`, {
+      method: "POST",
+    });
   },
 
   // ── Landed Cost & Logistics Estimator Endpoints ──
@@ -975,11 +1132,26 @@ export const api = {
   async generateLeadDocument(
     workspaceId: string,
     leadId: string,
-    documentType: "proforma_invoice" | "packing_list"
+    documentType: "proforma_invoice" | "packing_list",
+    options?: {
+      incoterm?: string;
+      unit_price?: number;
+      quantity?: number;
+      unit?: string;
+      product_description?: string;
+      container_type?: string;
+      destination_port?: string;
+      payment_terms?: string;
+      notes?: string;
+      buyer_contact_name?: string;
+      buyer_contact_email?: string;
+      buyer_contact_phone?: string;
+      buyer_contact_title?: string;
+    }
   ) {
     return fetchApi<any>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}/documents/generate`, {
       method: "POST",
-      body: JSON.stringify({ document_type: documentType }),
+      body: JSON.stringify({ document_type: documentType, ...(options || {}) }),
     });
   },
 

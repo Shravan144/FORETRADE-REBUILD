@@ -40,6 +40,10 @@ class DraftWrite(BaseModel):
 
 class GeneratePitchRequest(BaseModel):
     channel: str = Field(default="email", description="email, linkedin, or proposal")
+    pitch_angle: str = Field(default="cost_duty", description="cost_duty, reliability_compliance, or speed_trial")
+    recipient_name: str | None = Field(default=None, max_length=200)
+    recipient_title: str | None = Field(default=None, max_length=200)
+    recipient_email: str | None = Field(default=None, max_length=320)
     custom_notes: str | None = Field(default=None, max_length=2000)
 
 
@@ -171,11 +175,38 @@ def generate_pitch(
             )
         )
 
+    # Resolve Target Decision-Maker Recipient
+    resolved_name = payload.recipient_name
+    resolved_title = payload.recipient_title
+
+    if not resolved_name:
+        from app.models.trade_intelligence import EnrichedBuyerContact
+        contact_record = None
+        if buyer_catalog:
+            contact_record = db.scalar(
+                select(EnrichedBuyerContact)
+                .where(EnrichedBuyerContact.buyer_id == buyer_catalog.id)
+                .order_by(EnrichedBuyerContact.is_primary.desc(), EnrichedBuyerContact.deliverability_score.desc())
+            )
+        if not contact_record and company:
+            contact_record = db.scalar(
+                select(EnrichedBuyerContact)
+                .where(EnrichedBuyerContact.company_id == company.id)
+                .order_by(EnrichedBuyerContact.is_primary.desc(), EnrichedBuyerContact.deliverability_score.desc())
+            )
+        if contact_record:
+            resolved_name = contact_record.full_name
+            resolved_title = contact_record.job_title
+
+    if not resolved_name:
+        resolved_name = (buyer_catalog.contact_name if buyer_catalog else None) or company.contact_name or "Procurement Director"
+
     # Assemble buyer_data dict
     attrs = company.attributes or {}
     buyer_data = {
         "company_name": buyer_catalog.company_name if buyer_catalog else company.name,
-        "contact_name": (buyer_catalog.contact_name if buyer_catalog else None) or company.contact_name or "Procurement Director",
+        "contact_name": resolved_name,
+        "contact_title": resolved_title or "Global Sourcing Director",
         "country_code": (buyer_catalog.country_code if buyer_catalog else None) or company.country_code or "Target Market",
         "city": (buyer_catalog.city if buyer_catalog else None) or attrs.get("city") or "Main Port",
         "primary_sector": (buyer_catalog.primary_sector if buyer_catalog else None) or company.product_or_industry or "General Merchandise",
@@ -222,6 +253,7 @@ def generate_pitch(
         exporter_profile=exporter_profile,
         tariff_data=tariff_data,
         channel=payload.channel,
+        pitch_angle=payload.pitch_angle,
         custom_notes=payload.custom_notes,
     )
 
@@ -243,6 +275,8 @@ def generate_pitch(
         event_type="outreach_draft_generated",
         payload={
             "channel": payload.channel,
+            "pitch_angle": payload.pitch_angle,
+            "recipient_name": resolved_name,
             "model_used": result.get("model_used"),
             "subject": result.get("subject"),
         },

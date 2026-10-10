@@ -5,7 +5,7 @@ Stores real bilateral trade flows, WCO HS code taxonomy, tariff matrices, and co
 
 import uuid
 from datetime import datetime
-from sqlalchemy import DateTime, Float, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Float, Index, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -121,6 +121,11 @@ class GlobalBuyerCatalog(Base):
     __tablename__ = "global_buyer_catalogs"
     __table_args__ = (
         UniqueConstraint("normalized_name", "country_code", name="uq_global_buyer_identity"),
+        Index("ix_buyer_country_sector", "country_code", "primary_sector"),
+        Index("ix_buyer_sector_volume", "primary_sector", "annual_import_volume_usd"),
+        Index("ix_buyer_country_volume", "country_code", "annual_import_volume_usd"),
+        Index("ix_buyer_volume", "annual_import_volume_usd"),
+        Index("ix_buyer_reliability", "reliability_score"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
@@ -133,12 +138,12 @@ class GlobalBuyerCatalog(Base):
     contact_email: Mapped[str | None] = mapped_column(String(320))
     primary_sector: Mapped[str] = mapped_column(String(100), index=True)
     hs_codes: Mapped[list] = mapped_column(JSON, default=list)
-    annual_import_volume_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    annual_import_volume_usd: Mapped[float] = mapped_column(Float, default=0.0, index=True)
     avg_order_tons: Mapped[float] = mapped_column(Float, default=0.0)
     required_certifications: Mapped[list] = mapped_column(JSON, default=list)
     preferred_incoterms: Mapped[str | None] = mapped_column(String(50), default="CIF")
     customs_manifest_provenance: Mapped[str] = mapped_column(String(200))
-    reliability_score: Mapped[float] = mapped_column(Float, default=85.0)  # 0 to 100
+    reliability_score: Mapped[float] = mapped_column(Float, default=85.0, index=True)  # 0 to 100
     shipment_frequency: Mapped[str | None] = mapped_column(String(50), default="Monthly (12x/yr)")
     avg_container_teu: Mapped[float | None] = mapped_column(Float, default=4.0)
     estimated_order_cycle_days: Mapped[int | None] = mapped_column(Integer, default=30)
@@ -167,7 +172,49 @@ class MarketDemandSignal(Base):
     intent_score: Mapped[float] = mapped_column(Float, default=0.85)  # 0.0 to 1.0
     urgency_level: Mapped[str] = mapped_column(String(30), default="High")  # Critical, High, Standard
     extracted_entities: Mapped[dict] = mapped_column(JSON, default=dict)
+    external_id: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True, unique=True)
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    buyer_name: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="ACTIVE", index=True)  # ACTIVE, CLOSING_SOON, EXPIRED, AWARDED
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EnrichedBuyerContact(Base):
+    """
+    Verified procurement & sourcing decision-maker contacts enriched for global buyers.
+    Integrates with Apollo.io B2B people API with smart localized simulation fallback.
+    """
+    __tablename__ = "enriched_buyer_contacts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
+    buyer_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    company_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    company_name: Mapped[str] = mapped_column(String(300), index=True)
+    domain: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True)
+
+    full_name: Mapped[str] = mapped_column(String(200))
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    job_title: Mapped[str] = mapped_column(String(200), index=True)
+    department: Mapped[str | None] = mapped_column(String(100), default="Procurement & Sourcing")
+    seniority: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "Director", "VP", "Head", "Manager"
+
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
+    email_status: Mapped[str] = mapped_column(String(50), default="verified")  # "verified", "extrapolated"
+    deliverability_score: Mapped[float] = mapped_column(Float, default=96.0)  # 0 to 100%
+
+    phone_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
+
+    source: Mapped[str] = mapped_column(String(50), default="apollo_enrichment")
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 
 

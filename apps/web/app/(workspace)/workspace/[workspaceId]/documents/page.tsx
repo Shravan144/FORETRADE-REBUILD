@@ -170,22 +170,22 @@ export default function DocumentStudioDashboardPage({
   }, 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8 text-slate-800">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs uppercase font-bold tracking-widest text-blue-400">Documentation</span>
-            <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> Customs Ready
+            <span className="text-[11px] uppercase font-bold tracking-widest text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Documentation</span>
+            <span className="text-xs text-slate-300">•</span>
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Customs Ready
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-blue-500" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5 mt-1.5">
+            <FileText className="w-6 h-6 text-blue-600" />
             <span>Export Document Studio</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
             Generate, customize, and issue official Proforma Invoices (P/I) and Commercial Packing Lists (CPL) with automated Incoterms, container TEUs, and bank wire remittance.
           </p>
         </div>
@@ -193,15 +193,15 @@ export default function DocumentStudioDashboardPage({
         <div className="flex items-center gap-3">
           <Link
             href={`/workspace/${workspaceId}/settings`}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg transition"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg shadow-2xs transition"
           >
-            <Settings className="w-3.5 h-3.5 text-blue-400" />
+            <Settings className="w-3.5 h-3.5 text-blue-600" />
             <span>Bank & EXIM Settings</span>
           </Link>
 
           <button
             onClick={openQuickGenerateModal}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-md shadow-blue-600/20 transition"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs hover:shadow-xs transition"
           >
             <Plus className="w-4 h-4" />
             <span>Generate Document</span>
@@ -211,39 +211,39 @@ export default function DocumentStudioDashboardPage({
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span>Total Documents</span>
-            <Layers className="w-4 h-4 text-blue-400" />
+            <Layers className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold text-white">{totalCount}</div>
+          <div className="text-2xl font-bold font-mono text-slate-900">{totalCount}</div>
           <div className="text-[11px] text-slate-500 mt-1">Across all trade leads</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span>Proforma Invoices</span>
-            <FileText className="w-4 h-4 text-emerald-400" />
+            <FileText className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-white">{piCount}</div>
-          <div className="text-[11px] text-emerald-400/80 mt-1">Commercial quotes issued</div>
+          <div className="text-2xl font-bold font-mono text-slate-900">{piCount}</div>
+          <div className="text-[11px] text-emerald-700 mt-1 font-medium">Commercial quotes issued</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span>Packing Lists</span>
-            <Package className="w-4 h-4 text-amber-400" />
+            <Package className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-white">{pklCount}</div>
+          <div className="text-2xl font-bold font-mono text-slate-900">{pklCount}</div>
           <div className="text-[11px] text-slate-500 mt-1">Container manifests</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span>Cumulative Value</span>
-            <DollarSign className="w-4 h-4 text-indigo-400" />
+            <DollarSign className="w-4 h-4 text-indigo-600" />
           </div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold font-mono text-slate-900">
             ${totalOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Documented export volume</div>
@@ -251,7 +251,7 @@ export default function DocumentStudioDashboardPage({
       </div>
 
       {/* Filters & Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-100/70 border border-slate-200/90 shadow-2xs">
         <div className="relative w-full md:w-96">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -259,33 +259,33 @@ export default function DocumentStudioDashboardPage({
             placeholder="Search by Document #, Buyer, or Destination Port..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-700 bg-slate-950 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+            className="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
           />
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           {/* Document Type Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shadow-2xs">
             <button
               onClick={() => setSelectedType("all")}
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                selectedType === "all" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              className={`px-3 py-1 rounded-md font-semibold transition ${
+                selectedType === "all" ? "bg-blue-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               All Types
             </button>
             <button
               onClick={() => setSelectedType("proforma_invoice")}
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                selectedType === "proforma_invoice" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              className={`px-3 py-1 rounded-md font-semibold transition ${
+                selectedType === "proforma_invoice" ? "bg-blue-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Invoices (P/I)
             </button>
             <button
               onClick={() => setSelectedType("packing_list")}
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                selectedType === "packing_list" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              className={`px-3 py-1 rounded-md font-semibold transition ${
+                selectedType === "packing_list" ? "bg-blue-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Packing Lists
@@ -296,7 +296,7 @@ export default function DocumentStudioDashboardPage({
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 text-xs rounded-lg border border-slate-700 bg-slate-950 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:outline-none focus:border-blue-600"
           >
             <option value="all">All Statuses</option>
             <option value="draft">Draft</option>
@@ -309,26 +309,26 @@ export default function DocumentStudioDashboardPage({
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="min-h-[40vh] flex flex-col items-center justify-center p-6 text-slate-400">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+        <div className="min-h-[40vh] flex flex-col items-center justify-center p-6 text-slate-500">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
           <p className="text-sm">Loading commercial export documents...</p>
         </div>
       ) : error ? (
-        <div className="p-4 rounded-xl bg-rose-950/70 border border-rose-800 text-xs text-rose-300 flex items-start gap-3">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-3 shadow-2xs">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold text-rose-200">Failed to load documents</div>
+            <div className="font-semibold text-rose-900">Failed to load documents</div>
             <div className="mt-0.5">{error}</div>
           </div>
         </div>
       ) : filteredDocs.length === 0 ? (
-        <div className="p-12 text-center rounded-xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto">
+        <div className="p-12 text-center rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto">
             <FileText className="w-6 h-6" />
           </div>
           <div className="max-w-md mx-auto">
-            <h3 className="text-base font-semibold text-white">No commercial documents found</h3>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <h3 className="text-base font-bold text-slate-900">No commercial documents found</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               {documents.length === 0
                 ? "You haven't generated any export paperwork yet. Click 'Generate Document' or navigate to your Lead Pipeline to issue your first Proforma Invoice!"
                 : "No documents matched your current search or filter criteria. Try clearing filters."}
@@ -337,16 +337,16 @@ export default function DocumentStudioDashboardPage({
           <div className="pt-2 flex items-center justify-center gap-3">
             <button
               onClick={openQuickGenerateModal}
-              className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow transition flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs transition flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
               <span>Generate Document</span>
             </button>
             <Link
               href={`/workspace/${workspaceId}/leads`}
-              className="px-4 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition flex items-center gap-1.5"
             >
-              <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+              <Briefcase className="w-3.5 h-3.5 text-blue-600" />
               <span>Go to Lead Pipeline</span>
             </Link>
           </div>
@@ -362,26 +362,26 @@ export default function DocumentStudioDashboardPage({
             return (
               <div
                 key={doc.id}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-5 shadow-sm transition flex flex-col justify-between group"
+                className="bg-white border border-slate-200/90 hover:border-blue-400 hover:shadow-xs rounded-xl p-5 shadow-2xs transition flex flex-col justify-between group"
               >
                 <div>
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                           isPI
-                            ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                            : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                            ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                            : "bg-amber-50 border border-amber-200 text-amber-700"
                         }`}
                       >
                         {isPI ? <FileText className="w-4 h-4" /> : <Package className="w-4 h-4" />}
                       </div>
                       <div>
-                        <div className="font-mono text-xs font-bold text-white group-hover:text-blue-400 transition">
+                        <div className="font-mono text-xs font-bold text-slate-900 group-hover:text-blue-600 transition">
                           {doc.document_number}
                         </div>
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wide">
+                        <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">
                           {isPI ? "Proforma Invoice" : "Packing List"}
                         </div>
                       </div>
@@ -390,10 +390,10 @@ export default function DocumentStudioDashboardPage({
                     <span
                       className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
                         doc.status === "paid"
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                           : doc.status === "issued"
-                          ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                          : "bg-slate-800 border-slate-700 text-slate-300"
+                          ? "bg-blue-50 border-blue-200 text-blue-800"
+                          : "bg-slate-100 border-slate-200 text-slate-700"
                       }`}
                     >
                       {doc.status}
@@ -401,39 +401,39 @@ export default function DocumentStudioDashboardPage({
                   </div>
 
                   {/* Buyer & Route */}
-                  <div className="space-y-2 py-3 border-y border-slate-800/80 text-xs">
+                  <div className="space-y-2 py-3 border-y border-slate-100 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-slate-500" /> Buyer:
+                      <span className="text-slate-500 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" /> Buyer:
                       </span>
-                      <span className="font-medium text-slate-200 truncate max-w-[180px] text-right">
+                      <span className="font-semibold text-slate-900 truncate max-w-[180px] text-right">
                         {buyerName}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Ship className="w-3.5 h-3.5 text-slate-500" /> Route & Port:
+                      <span className="text-slate-500 flex items-center gap-1.5">
+                        <Ship className="w-3.5 h-3.5 text-slate-400" /> Route & Port:
                       </span>
-                      <span className="font-medium text-slate-300 truncate max-w-[180px] text-right text-[11px]">
+                      <span className="font-medium text-slate-700 truncate max-w-[180px] text-right text-[11px]">
                         {doc.port_of_discharge || buyerCountry}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-slate-500" /> Incoterm:
+                      <span className="text-slate-500 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-slate-400" /> Incoterm:
                       </span>
-                      <span className="font-bold text-blue-400 font-mono">
+                      <span className="font-bold text-blue-700 font-mono">
                         {doc.incoterm || "CIF"}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-slate-400">Total Valuation:</span>
-                      <span className="font-bold text-white font-mono text-sm">
+                      <span className="text-slate-500">Total Valuation:</span>
+                      <span className="font-bold text-slate-900 font-mono text-sm">
                         ${docValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                        <span className="text-xs text-slate-400">{doc.currency || "USD"}</span>
+                        <span className="text-xs text-slate-500 font-normal">{doc.currency || "USD"}</span>
                       </span>
                     </div>
                   </div>
@@ -445,15 +445,15 @@ export default function DocumentStudioDashboardPage({
                     href={api.getDocumentPdfUrl(workspaceId, doc.id)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold transition flex items-center justify-center gap-1.5"
                   >
-                    <Download className="w-3.5 h-3.5 text-blue-400" />
+                    <Download className="w-3.5 h-3.5 text-blue-600" />
                     <span>PDF</span>
                   </a>
 
                   <Link
                     href={`/workspace/${workspaceId}/documents/${doc.id}`}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition flex items-center justify-center gap-1.5"
                   >
                     <span>Open Studio</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -467,21 +467,21 @@ export default function DocumentStudioDashboardPage({
 
       {/* Quick Generate Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
                   <span>Generate Commercial Document</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Select a pipeline lead to auto-populate shipping codes, container TEUs, and bank wire terms.
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-md"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-md"
               >
                 ✕
               </button>
@@ -489,22 +489,22 @@ export default function DocumentStudioDashboardPage({
 
             {/* Document Type Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Document Type</label>
+              <label className="text-xs font-bold text-slate-700">Document Type</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setNewDocType("proforma_invoice")}
                   className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 ${
                     newDocType === "proforma_invoice"
-                      ? "border-blue-500 bg-blue-500/10 text-white"
-                      : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700"
+                      ? "border-blue-600 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500/30"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
                   }`}
                 >
-                  <div className="font-semibold text-xs flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-blue-400" />
+                  <div className="font-bold text-xs flex items-center gap-1.5 text-slate-900">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
                     <span>Proforma Invoice (P/I)</span>
                   </div>
-                  <span className="text-[11px] text-slate-400 leading-tight">
+                  <span className="text-[11px] text-slate-500 leading-tight">
                     Official quote with payment wire terms & Incoterms
                   </span>
                 </button>
@@ -514,15 +514,15 @@ export default function DocumentStudioDashboardPage({
                   onClick={() => setNewDocType("packing_list")}
                   className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 ${
                     newDocType === "packing_list"
-                      ? "border-blue-500 bg-blue-500/10 text-white"
-                      : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700"
+                      ? "border-blue-600 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500/30"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
                   }`}
                 >
-                  <div className="font-semibold text-xs flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="font-bold text-xs flex items-center gap-1.5 text-slate-900">
+                    <Package className="w-3.5 h-3.5 text-amber-600" />
                     <span>Packing List (CPL)</span>
                   </div>
-                  <span className="text-[11px] text-slate-400 leading-tight">
+                  <span className="text-[11px] text-slate-500 leading-tight">
                     Net/Gross weights, CBM volumes & container TEU
                   </span>
                 </button>
@@ -531,20 +531,20 @@ export default function DocumentStudioDashboardPage({
 
             {/* Leads Selector */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300">Choose Target Pipeline Lead</label>
+              <label className="text-xs font-bold text-slate-700">Choose Target Pipeline Lead</label>
               {loadingLeads ? (
-                <div className="py-8 text-center text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                <div className="py-8 text-center text-slate-500 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                   <span className="text-xs">Loading active pipeline leads...</span>
                 </div>
               ) : leads.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-2">
-                  <p className="text-xs text-slate-400">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+                  <p className="text-xs text-slate-500">
                     No active pipeline leads found. Documents must be attached to an overseas buyer lead.
                   </p>
                   <Link
                     href={`/workspace/${workspaceId}/companies`}
-                    className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:underline font-semibold"
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-semibold"
                   >
                     <span>Add verified buyers from Directory</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -555,14 +555,14 @@ export default function DocumentStudioDashboardPage({
                   {leads.map((lead) => (
                     <div
                       key={lead.id}
-                      className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 transition"
+                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 flex items-center justify-between gap-3 transition"
                     >
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-white truncate">
+                        <div className="text-xs font-bold text-slate-900 truncate">
                           {lead.company_name}
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-800 font-mono">
+                        <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                          <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono font-semibold text-slate-700">
                             {lead.country_code}
                           </span>
                           <span className="capitalize">{lead.stage} Stage</span>
@@ -572,7 +572,7 @@ export default function DocumentStudioDashboardPage({
                       <button
                         onClick={() => handleGenerateFromLead(lead.id)}
                         disabled={generatingLeadId === lead.id}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow transition flex items-center gap-1.5 disabled:opacity-50 shrink-0"
+                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition flex items-center gap-1.5 disabled:opacity-50 shrink-0"
                       >
                         {generatingLeadId === lead.id ? (
                           <>
@@ -582,7 +582,7 @@ export default function DocumentStudioDashboardPage({
                         ) : (
                           <>
                             <span>Generate</span>
-                            <ArrowRight className="w-3 h-3" />
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </>
                         )}
                       </button>
@@ -592,11 +592,11 @@ export default function DocumentStudioDashboardPage({
               )}
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-end">
+            <div className="pt-2 border-t border-slate-200 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
               >
                 Close
               </button>

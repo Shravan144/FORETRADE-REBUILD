@@ -67,19 +67,19 @@ export default function AnalyticsPage({
   const importQuality = analytics?.import_quality || { jobs: 0, rows: 0, invalid_rows: 0 };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 text-slate-100">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 text-slate-800">
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Trade Analytics & Data Export
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               Verifiable Metrics
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Real SQL-aggregated funnel statistics, quality distributions, and auditable exports.
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function AnalyticsPage({
         <button
           onClick={handleExportCompanies}
           disabled={exporting}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-2xs hover:shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50"
         >
           {exporting ? (
             <>
@@ -105,15 +105,15 @@ export default function AnalyticsPage({
 
       {/* Download Alert if ready */}
       {downloadUrl && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4 text-xs text-emerald-300">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-4 text-xs text-emerald-900 shadow-2xs">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Company export generated with full trade provenance columns.</span>
           </div>
           <a
             href={downloadUrl}
             download="foretrade-companies.csv"
-            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shrink-0"
+            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-2xs transition shrink-0"
           >
             Download CSV File
           </a>
@@ -122,41 +122,41 @@ export default function AnalyticsPage({
 
       {/* Top High-Level Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08]">
-          <div className="text-xs font-medium text-slate-400 mb-1">Total Directory Entities</div>
-          <div className="text-2xl font-bold font-mono text-white mb-2">{analytics?.companies || 0}</div>
-          <p className="text-[11px] text-slate-400">Cleaned & deduplicated prospective buyers</p>
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 mb-1">Total Directory Entities</div>
+          <div className="text-2xl font-bold font-mono text-slate-900 mb-2">{analytics?.companies || 0}</div>
+          <p className="text-[11px] text-slate-500">Cleaned & deduplicated prospective buyers</p>
         </div>
 
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08]">
-          <div className="text-xs font-medium text-slate-400 mb-1">Active CRM Deals</div>
-          <div className="text-2xl font-bold font-mono text-indigo-400 mb-2">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 mb-1">Active CRM Deals</div>
+          <div className="text-2xl font-bold font-mono text-indigo-700 mb-2">
             {Object.values(pipeline).reduce((a: number, b: any) => a + (b || 0), 0)}
           </div>
-          <p className="text-[11px] text-slate-400">Verified through event progression gates</p>
+          <p className="text-[11px] text-slate-500">Verified through event progression gates</p>
         </div>
 
-        <div className="p-5 rounded-xl bg-[#111827] border border-white/[0.08]">
-          <div className="text-xs font-medium text-slate-400 mb-1">High-Fit Opportunity Ratio</div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mb-2">
+        <div className="p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 mb-1">High-Fit Opportunity Ratio</div>
+          <div className="text-2xl font-bold font-mono text-emerald-700 mb-2">
             {analytics?.companies ? Math.round(((scoreDist["high"] || 0) / analytics.companies) * 100) : 0}%
           </div>
-          <p className="text-[11px] text-slate-400 font-mono">{scoreDist["high"] || 0} companies with score ≥ 70</p>
+          <p className="text-[11px] text-slate-500 font-mono">{scoreDist["high"] || 0} companies with score ≥ 70</p>
         </div>
       </div>
 
       {/* Two Column Detailed Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pipeline Funnel */}
-        <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">
+        <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-900">
               Pipeline Stage Breakdown
             </h2>
-            <span className="text-xs text-slate-400 font-mono">Real Deals</span>
+            <span className="text-xs text-slate-500 font-mono font-semibold">Real Deals</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {[
               { key: "new", label: "New Prospects" },
               { key: "qualified", label: "Verified Qualified" },
@@ -171,13 +171,13 @@ export default function AnalyticsPage({
 
               return (
                 <div key={stage.key}>
-                  <div className="flex justify-between text-xs font-medium text-slate-300 mb-1">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                     <span>{stage.label}</span>
-                    <span className="font-mono text-white font-semibold">{count}</span>
+                    <span className="font-mono text-slate-900 font-bold">{count}</span>
                   </div>
-                  <div className="w-full bg-white/[0.06] h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                     <div
-                      className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                       style={{ width: `${pct}%` }}
                     ></div>
                   </div>
@@ -188,48 +188,48 @@ export default function AnalyticsPage({
         </div>
 
         {/* Import Quality & Score Tiers */}
-        <div className="p-6 rounded-xl bg-[#111827] border border-white/[0.08] space-y-6">
+        <div className="p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-white mb-1">
+            <h2 className="text-base font-bold text-slate-900 mb-1">
               Data Ingestion Integrity
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Audit metrics for raw CSV/XLSX imports into this workspace.
             </p>
 
             <div className="grid grid-cols-3 gap-3 mt-4 text-center font-mono">
-              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
-                <div className="text-[9px] text-slate-400 uppercase font-sans">Jobs Ran</div>
-                <div className="text-lg font-bold text-white mt-0.5">{importQuality.jobs}</div>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 shadow-2xs">
+                <div className="text-[10px] text-slate-500 font-bold uppercase font-sans">Jobs Ran</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{importQuality.jobs}</div>
               </div>
-              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                <div className="text-[9px] text-emerald-400 uppercase font-sans">Total Rows</div>
-                <div className="text-lg font-bold text-emerald-400 mt-0.5">{importQuality.rows}</div>
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 shadow-2xs">
+                <div className="text-[10px] text-emerald-700 font-bold uppercase font-sans">Total Rows</div>
+                <div className="text-lg font-bold text-emerald-800 mt-0.5">{importQuality.rows}</div>
               </div>
-              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-                <div className="text-[9px] text-amber-400 uppercase font-sans">Rejected</div>
-                <div className="text-lg font-bold text-amber-400 mt-0.5">{importQuality.invalid_rows}</div>
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 shadow-2xs">
+                <div className="text-[10px] text-amber-700 font-bold uppercase font-sans">Rejected</div>
+                <div className="text-lg font-bold text-amber-800 mt-0.5">{importQuality.invalid_rows}</div>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/[0.06]">
-            <h3 className="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">
+          <div className="pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3">
               Opportunity Score Distribution
             </h3>
 
             <div className="grid grid-cols-3 gap-3 text-center font-mono">
-              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                <div className="text-[9px] text-emerald-400 font-sans uppercase">High (≥70)</div>
-                <div className="text-xl font-bold text-emerald-400 mt-0.5">{scoreDist["high"] || 0}</div>
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 shadow-2xs">
+                <div className="text-[10px] text-emerald-700 font-sans font-bold uppercase">High (≥70)</div>
+                <div className="text-xl font-bold text-emerald-800 mt-0.5">{scoreDist["high"] || 0}</div>
               </div>
-              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-                <div className="text-[9px] text-amber-400 font-sans uppercase">Medium (45-69)</div>
-                <div className="text-xl font-bold text-amber-400 mt-0.5">{scoreDist["medium"] || 0}</div>
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 shadow-2xs">
+                <div className="text-[10px] text-amber-700 font-sans font-bold uppercase">Medium (45-69)</div>
+                <div className="text-xl font-bold text-amber-800 mt-0.5">{scoreDist["medium"] || 0}</div>
               </div>
-              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
-                <div className="text-[9px] text-slate-400 font-sans uppercase">Low (&lt;45)</div>
-                <div className="text-xl font-bold text-slate-300 mt-0.5">{scoreDist["low"] || 0}</div>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 shadow-2xs">
+                <div className="text-[10px] text-slate-500 font-sans font-bold uppercase">Low (&lt;45)</div>
+                <div className="text-xl font-bold text-slate-700 mt-0.5">{scoreDist["low"] || 0}</div>
               </div>
             </div>
           </div>

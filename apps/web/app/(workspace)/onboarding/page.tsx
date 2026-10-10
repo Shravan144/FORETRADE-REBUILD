@@ -12,7 +12,9 @@ import {
   Globe2,
   CheckCircle2,
   Loader2,
+  Ship,
 } from "lucide-react";
+import { INDIAN_PORTS_REGISTRY, validateIEC } from "@/lib/exim-validators";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -24,6 +26,8 @@ export default function OnboardingPage() {
   // Form fields
   const [companyName, setCompanyName] = useState("");
   const [capacityTons, setCapacityTons] = useState(100);
+  const [originPort, setOriginPort] = useState("INNSA - Nhava Sheva (JNPT), Maharashtra");
+  const [iecCode, setIecCode] = useState("");
   const [categories, setCategories] = useState<string[]>(["textiles", "apparel"]);
   const [targetCountries, setTargetCountries] = useState<string[]>(["US", "AE", "GB"]);
   const [certifications, setCertifications] = useState<string[]>(["ISO 9001"]);
@@ -105,6 +109,8 @@ export default function OnboardingPage() {
         product_categories: categories,
         target_countries: targetCountries,
         certifications: certifications,
+        origin_port: originPort,
+        iec_code: iecCode ? iecCode.trim().toUpperCase() : undefined,
       });
 
       // Direct full-page navigation to initialize cockpit state
@@ -132,9 +138,9 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="flex items-center gap-2 text-slate-400 text-sm">
-          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-slate-500 text-sm">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
           <span>Setting up exporter workspace...</span>
         </div>
       </div>
@@ -166,16 +172,16 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto w-full bg-slate-950/80 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-8">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto w-full bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xs space-y-8">
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 mb-2">
+          <div className="inline-flex p-3 rounded-2xl bg-blue-600 text-white shadow-2xs mb-2">
             <Compass className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Configure Your Exporter Profile
           </h1>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
             ForeTrade's matchmaking algorithm calibrates opportunity scores based on your
             actual manufacturing capacity, product line, and corridor preferences.
           </p>
@@ -184,7 +190,7 @@ export default function OnboardingPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Company Name */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Exporter Enterprise Name
             </label>
             <input
@@ -193,13 +199,13 @@ export default function OnboardingPage() {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="e.g. Bharat Textile & Garment Industries Ltd"
-              className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
             />
           </div>
 
           {/* Annual Capacity */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Annual Manufacturing Capacity (Metric Tons)
             </label>
             <div className="flex items-center gap-4">
@@ -210,17 +216,58 @@ export default function OnboardingPage() {
                 required
                 value={capacityTons}
                 onChange={(e) => setCapacityTons(parseInt(e.target.value) || 0)}
-                className="w-36 px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-36 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500">
                 Used to filter buyers whose average import orders match your supply velocity.
               </span>
             </div>
           </div>
 
+          {/* Port of Loading (UN/LOCODE) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span>Primary Port of Loading (POL)</span>
+              <span className="text-[10px] text-blue-600 font-mono font-medium">UN/LOCODE</span>
+            </label>
+            <select
+              value={originPort}
+              onChange={(e) => setOriginPort(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+            >
+              {INDIAN_PORTS_REGISTRY.map((p) => (
+                <option key={p.locode} value={`${p.locode} - ${p.name}, ${p.state}`}>
+                  {p.locode} — {p.name} ({p.state}) [{p.type}]
+                </option>
+              ))}
+            </select>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Default ocean terminal used to calculate ocean freight routes and shipping bills.
+            </span>
+          </div>
+
+          {/* DGFT IEC Code */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span>DGFT IEC Code <span className="text-slate-400 font-normal normal-case">(Optional now)</span></span>
+              <span className="text-[10px] text-slate-500 font-mono">10 Characters</span>
+            </label>
+            <input
+              type="text"
+              maxLength={10}
+              value={iecCode}
+              onChange={(e) => setIecCode(e.target.value.toUpperCase().trim())}
+              placeholder="0311029481 or PAN"
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono tracking-wider shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+            />
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Enter your DGFT Importer-Exporter Code now or complete it anytime in Settings.
+            </span>
+          </div>
+
           {/* Product Categories */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Export Product Categories
             </label>
             <div className="flex flex-wrap gap-2">
@@ -231,10 +278,10 @@ export default function OnboardingPage() {
                     type="button"
                     key={cat}
                     onClick={() => toggleCategory(cat)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize shadow-2xs ${
                       selected
-                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30 font-semibold"
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        ? "bg-blue-600 text-white shadow-2xs font-bold"
+                        : "bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
                     }`}
                   >
                     {selected ? "✓ " : "+ "}
@@ -247,7 +294,7 @@ export default function OnboardingPage() {
 
           {/* Target Corridors */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Target Destination Corridors
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -258,14 +305,14 @@ export default function OnboardingPage() {
                     type="button"
                     key={c.code}
                     onClick={() => toggleCountry(c.code)}
-                    className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-all ${
+                    className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-all shadow-2xs ${
                       selected
-                        ? "bg-blue-950/80 border-blue-500 text-blue-200"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800/60"
+                        ? "bg-blue-50 border-blue-500 text-blue-900 font-bold ring-1 ring-blue-500/30"
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    <div className="font-bold">{c.code}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{c.label}</div>
+                    <div className="font-bold text-slate-900">{c.code}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{c.label}</div>
                   </button>
                 );
               })}
@@ -273,11 +320,11 @@ export default function OnboardingPage() {
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4 border-t border-slate-800">
+          <div className="pt-4 border-t border-slate-200">
             <button
               type="submit"
               disabled={submitting || !companyName.trim() || categories.length === 0}
-              className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? (
                 <>

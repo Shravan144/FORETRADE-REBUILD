@@ -160,79 +160,79 @@ export function Sidebar({ workspaceId, workspaceName, userEmail }: SidebarProps)
     .toUpperCase() || "ED";
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 select-none">
+    <aside className="w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200 shrink-0 select-none shadow-xs">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
         <Link href={`/workspace/${workspaceId}`} className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 font-bold tracking-tight">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold tracking-tight">
             <Compass className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-semibold text-white tracking-tight leading-none text-base">
+            <h1 className="font-bold text-slate-900 tracking-tight leading-none text-base">
               ForeTrade
             </h1>
-            <span className="text-[10px] text-blue-400 font-medium tracking-wide uppercase">
-              EXIM Intelligence
+            <span className="text-[10px] text-blue-600 font-bold tracking-wide uppercase">
+              EXIM Operating System
             </span>
           </div>
         </Link>
       </div>
 
       {/* Workspace Indicator */}
-      <div className="px-4 py-3 bg-slate-950/60 border-b border-slate-800/80">
-        <div className="flex items-center gap-2 text-xs text-slate-400 mb-0.5">
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+        <div className="flex items-center gap-2 text-[11px] text-slate-500 font-semibold mb-0.5">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Active Workspace</span>
+          <span className="uppercase tracking-wider text-[10px]">Active Enterprise</span>
         </div>
-        <div className="font-medium text-sm text-slate-200 truncate">
+        <div className="font-bold text-xs text-slate-900 truncate">
           {activeOrgName || workspaceName || "Exporter Workspace"}
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 item.match
-                  ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  ? "bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className={`w-4 h-4 shrink-0 ${item.match ? "text-blue-600" : "text-slate-400"}`} />
               <span>{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Algo Badge */}
-      <div className="p-3 mx-3 mb-3 rounded-lg bg-slate-900 border border-slate-800 text-xs">
-        <div className="flex items-center gap-1.5 text-blue-400 font-medium mb-1">
+      {/* Intelligence Engine Status Pill */}
+      <div className="p-3 mx-3 mb-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+        <div className="flex items-center gap-1.5 text-blue-700 font-bold mb-0.5 text-[11px]">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Two-Tower & ML Suite</span>
+          <span>Intelligence Engine Active</span>
         </div>
-        <p className="text-[11px] text-slate-400 leading-snug">
-          Operational matchmaking, ARIMA corridor forecasts, and WTO landed costs.
+        <p className="text-[11px] text-slate-500 leading-snug font-normal">
+          Indexed for 3,200 verified importers across 15 corridors.
         </p>
       </div>
 
       {/* User & Settings Footer */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between gap-2">
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
         <Link
           href={`/workspace/${workspaceId}/settings`}
           title="Open Profile & Settings"
-          className="flex items-center gap-2.5 min-w-0 flex-1 p-1.5 rounded-lg hover:bg-slate-800/60 transition group"
+          className="flex items-center gap-2.5 min-w-0 flex-1 p-1.5 rounded-xl hover:bg-slate-100 transition group"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0 group-hover:border-blue-400 transition">
+          <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:border-blue-400 transition">
             {initials}
           </div>
           <div className="min-w-0 pr-1">
-            <div className="text-xs font-medium text-slate-200 truncate group-hover:text-blue-300 transition">
+            <div className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition">
               {displayName}
             </div>
             <div className="text-[10px] text-slate-500 truncate">{displayTitle}</div>
@@ -241,7 +241,7 @@ export function Sidebar({ workspaceId, workspaceName, userEmail }: SidebarProps)
         <button
           onClick={handleLogout}
           title="Sign Out"
-          className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors shrink-0"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>

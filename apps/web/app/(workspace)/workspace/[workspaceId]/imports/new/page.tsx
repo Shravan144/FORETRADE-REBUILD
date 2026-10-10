@@ -129,26 +129,26 @@ export default function ImportWizardPage({
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8 text-slate-100">
+    <div className="p-8 max-w-4xl mx-auto space-y-8 text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               4-Step Data Ingestion Wizard
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               Step {step} of 4
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Ingest buyer directories with formula injection protection, canonical mapping, and deduplication.
           </p>
         </div>
 
         <Link
           href={`/workspace/${workspaceId}/companies`}
-          className="text-xs font-semibold text-slate-400 hover:text-white transition"
+          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
         >
           Cancel & Exit
         </Link>
@@ -166,10 +166,10 @@ export default function ImportWizardPage({
             key={s.num}
             className={`py-2 px-3 rounded-lg border transition-all ${
               step === s.num
-                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                ? "bg-blue-600 text-white border-blue-600 shadow-2xs font-bold"
                 : step > s.num
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-white/[0.02] text-slate-500 border-white/[0.06]"
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold"
+                : "bg-slate-50 text-slate-400 border-slate-200 font-medium"
             }`}
           >
             <span>{s.num}. {s.label}</span>
@@ -179,22 +179,22 @@ export default function ImportWizardPage({
 
       {/* Step 1: Upload */}
       {step === 1 && (
-        <div className="p-8 rounded-xl bg-[#111827] border border-white/[0.08] space-y-6">
+        <div className="p-8 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-6">
           <div className="text-center max-w-md mx-auto space-y-2">
-            <div className="inline-flex p-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+            <div className="inline-flex p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 mb-2 shadow-2xs">
               <UploadCloud className="w-8 h-8" />
             </div>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-slate-900">
               Upload Buyer Directory (CSV or XLSX)
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 leading-relaxed">
               Upload up to 25MB. ForeTrade automatically scans rows for formula injection
-              (cells starting with <code className="bg-white/[0.08] px-1 py-0.5 rounded text-white">=</code>) to prevent spreadsheet security vulnerabilities.
+              (cells starting with <code className="bg-slate-100 border border-slate-200 px-1 py-0.5 rounded text-slate-800 font-mono">=</code>) to prevent spreadsheet security vulnerabilities.
             </p>
           </div>
 
           <form onSubmit={handleUpload} className="max-w-md mx-auto space-y-4">
-            <div className="border-2 border-dashed border-white/[0.12] rounded-xl p-8 text-center hover:border-blue-500 transition-colors bg-[#0B0F19]">
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors bg-slate-50/60">
               <input
                 type="file"
                 id="file-upload"
@@ -206,8 +206,8 @@ export default function ImportWizardPage({
                 htmlFor="file-upload"
                 className="cursor-pointer flex flex-col items-center gap-2"
               >
-                <FileSpreadsheet className="w-8 h-8 text-slate-500" />
-                <span className="text-sm font-semibold text-blue-400 hover:underline">
+                <FileSpreadsheet className="w-8 h-8 text-slate-400" />
+                <span className="text-sm font-semibold text-blue-600 hover:underline">
                   {file ? file.name : "Choose CSV or XLSX file"}
                 </span>
                 <span className="text-[11px] text-slate-500 font-mono">
@@ -219,7 +219,7 @@ export default function ImportWizardPage({
             <button
               type="submit"
               disabled={!file || uploading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-2xs hover:shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               {uploading ? (
                 <>
@@ -239,12 +239,12 @@ export default function ImportWizardPage({
 
       {/* Step 2: Mapping */}
       {step === 2 && (
-        <div className="p-8 rounded-xl bg-[#111827] border border-white/[0.08] space-y-6">
+        <div className="p-8 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-bold text-slate-900">
               Map File Columns to Canonical Fields
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Match the detected columns from your file with ForeTrade trade intelligence fields.
             </p>
           </div>
@@ -253,23 +253,23 @@ export default function ImportWizardPage({
             {sourceColumns.map((sourceCol) => (
               <div
                 key={sourceCol}
-                className="p-3 rounded-lg border border-white/[0.08] bg-[#0B0F19] flex items-center justify-between gap-4"
+                className="p-3 rounded-lg border border-slate-200 bg-slate-50/60 flex items-center justify-between gap-4"
               >
-                <div className="text-xs font-semibold text-slate-200 min-w-48 truncate">
+                <div className="text-xs font-semibold text-slate-800 min-w-48 truncate">
                   {sourceCol}
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
+                <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={mapping[sourceCol] || ""}
                   onChange={(e) => {
                     const val = e.target.value;
                     setMapping((prev) => ({ ...prev, [sourceCol]: val }));
                   }}
-                  className="flex-1 text-xs font-medium px-3 py-2 rounded-lg border border-white/[0.12] bg-[#111827] text-white focus:border-blue-500 outline-none"
+                  className="flex-1 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:border-blue-600 outline-none"
                 >
-                  <option value="" className="bg-[#111827]">-- Ignore this column --</option>
+                  <option value="">-- Ignore this column --</option>
                   {CANONICAL_TARGETS.map((target) => (
-                    <option key={target.key} value={target.key} className="bg-[#111827]">
+                    <option key={target.key} value={target.key}>
                       {target.label}
                     </option>
                   ))}
@@ -279,16 +279,16 @@ export default function ImportWizardPage({
           </div>
 
           {!Object.values(mapping).includes("company_name") && (
-            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2 shadow-2xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>Company name is required. Map at least one source column to Company Name.</span>
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-lg border border-white/[0.1] text-xs font-semibold text-slate-300 hover:bg-white/[0.05] transition flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-2xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -297,7 +297,7 @@ export default function ImportWizardPage({
             <button
               onClick={handleProceedToPreview}
               disabled={!Object.values(mapping).includes("company_name")}
-              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
             >
               <span>Review Row Validation</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -308,53 +308,53 @@ export default function ImportWizardPage({
 
       {/* Step 3: Integrity Review */}
       {step === 3 && (
-        <div className="p-8 rounded-xl bg-[#111827] border border-white/[0.08] space-y-6">
+        <div className="p-8 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-bold text-slate-900">
               Data Validation & Integrity Inspection
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Reviewing the first 50 rows staged for ingestion. Formula injection checks are enforced.
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-4 font-mono">
-            <div className="p-4 rounded-xl border border-white/[0.08] bg-[#0B0F19]">
-              <div className="text-[10px] text-slate-400 font-sans uppercase">Total Rows Scanned</div>
-              <div className="text-2xl font-bold text-white mt-1">{previewSummary.total}</div>
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 shadow-2xs">
+              <div className="text-[10px] text-slate-500 font-sans font-bold uppercase">Total Rows Scanned</div>
+              <div className="text-2xl font-bold text-slate-900 mt-1">{previewSummary.total}</div>
             </div>
-            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-              <div className="text-[10px] text-emerald-400 font-sans uppercase">Valid Rows</div>
-              <div className="text-2xl font-bold text-emerald-400 mt-1">{previewSummary.valid}</div>
+            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 shadow-2xs">
+              <div className="text-[10px] text-emerald-700 font-sans font-bold uppercase">Valid Rows</div>
+              <div className="text-2xl font-bold text-emerald-800 mt-1">{previewSummary.valid}</div>
             </div>
-            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-              <div className="text-[10px] text-amber-400 font-sans uppercase">Issues Detected</div>
-              <div className="text-2xl font-bold text-amber-400 mt-1">{previewSummary.invalid}</div>
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 shadow-2xs">
+              <div className="text-[10px] text-amber-700 font-sans font-bold uppercase">Issues Detected</div>
+              <div className="text-2xl font-bold text-amber-800 mt-1">{previewSummary.invalid}</div>
             </div>
           </div>
 
           {/* Sample Table Preview */}
-          <div className="border border-white/[0.08] rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+          <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto shadow-2xs">
             <table className="w-full text-xs text-left">
-              <thead className="bg-[#0B0F19] font-semibold text-slate-300 border-b border-white/[0.08]">
+              <thead className="bg-slate-50 font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-2 font-mono">Row #</th>
                   <th className="px-4 py-2">Company Name</th>
                   <th className="px-4 py-2">Issues / Security Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
+              <tbody className="divide-y divide-slate-100">
                 {previewRows.slice(0, 10).map((r) => (
-                  <tr key={r.row_number} className="hover:bg-white/[0.02]">
+                  <tr key={r.row_number} className="hover:bg-slate-50/50">
                     <td className="px-4 py-2 text-slate-500 font-mono">{r.row_number}</td>
-                    <td className="px-4 py-2 font-medium text-white">
+                    <td className="px-4 py-2 font-semibold text-slate-900">
                       {r.data?.company_name || Object.values(r.data || {})[0] || "—"}
                     </td>
                     <td className="px-4 py-2">
                       {r.issues && r.issues.length > 0 ? (
-                        <span className="text-amber-400 font-medium">{r.issues.join(", ")}</span>
+                        <span className="text-amber-700 font-semibold">{r.issues.join(", ")}</span>
                       ) : (
-                        <span className="text-emerald-400 font-medium">✓ Clean</span>
+                        <span className="text-emerald-700 font-semibold">✓ Clean</span>
                       )}
                     </td>
                   </tr>
@@ -363,10 +363,10 @@ export default function ImportWizardPage({
             </table>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-lg border border-white/[0.1] text-xs font-semibold text-slate-300 hover:bg-white/[0.05] transition flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-2xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Mapping</span>
@@ -375,11 +375,11 @@ export default function ImportWizardPage({
             <button
               onClick={handleCommit}
               disabled={committing}
-              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {committing ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Deduplicating & Ingesting...</span>
                 </>
               ) : (
@@ -395,31 +395,31 @@ export default function ImportWizardPage({
 
       {/* Step 4: Finished */}
       {step === 4 && (
-        <div className="p-8 rounded-xl bg-[#111827] border border-white/[0.08] text-center space-y-6">
-          <div className="inline-flex p-4 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <div className="p-8 rounded-xl bg-white border border-slate-200/90 shadow-2xs text-center space-y-6">
+          <div className="inline-flex p-4 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-2xs">
             <CheckCircle2 className="w-10 h-10" />
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-slate-900">
               Import Completed Successfully!
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Your buyer records have been deduplicated, scored, and mapped with source-row provenance.
             </p>
           </div>
 
-          <div className="max-w-md mx-auto grid grid-cols-3 gap-3 p-4 rounded-xl bg-[#0B0F19] border border-white/[0.08] font-mono">
+          <div className="max-w-md mx-auto grid grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200 font-mono shadow-2xs">
             <div>
-              <div className="text-[10px] text-slate-400 font-sans uppercase">Created</div>
-              <div className="text-xl font-bold text-emerald-400 mt-0.5">{commitResult?.created || 0}</div>
+              <div className="text-[10px] text-slate-500 font-sans font-bold uppercase">Created</div>
+              <div className="text-xl font-bold text-emerald-700 mt-0.5">{commitResult?.created || 0}</div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 font-sans uppercase">Updated</div>
-              <div className="text-xl font-bold text-blue-400 mt-0.5">{commitResult?.updated || 0}</div>
+              <div className="text-[10px] text-slate-500 font-sans font-bold uppercase">Updated</div>
+              <div className="text-xl font-bold text-blue-700 mt-0.5">{commitResult?.updated || 0}</div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 font-sans uppercase">Invalid</div>
+              <div className="text-[10px] text-slate-500 font-sans font-bold uppercase">Invalid</div>
               <div className="text-xl font-bold text-slate-500 mt-0.5">{commitResult?.invalid || 0}</div>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function ImportWizardPage({
           <div className="flex items-center justify-center gap-4 pt-4">
             <Link
               href={`/workspace/${workspaceId}/companies`}
-              className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+              className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition flex items-center gap-1.5"
             >
               <span>View Imported Companies</span>
               <ArrowRight className="w-4 h-4" />

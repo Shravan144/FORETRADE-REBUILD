@@ -101,3 +101,58 @@ def test_pitch_generator_proposal_channel():
     assert "COMMERCIAL EXPORT PROPOSAL" in result["body"]
     assert "Trans-Pacific Auto Spares" in result["body"]
     assert "IATF 16949" in result["body"]
+
+
+def test_pitch_generator_angles():
+    buyer = {
+        "company_name": "Target Sourcing USA",
+        "contact_name": "Sarah Connor",
+        "contact_title": "VP Global Procurement",
+        "country_code": "US",
+        "city": "Minneapolis / Port of NY",
+        "primary_sector": "Apparel & Textiles",
+        "annual_import_volume_usd": 12000000.0,
+        "avg_order_tons": 50.0,
+        "required_certifications": ["OEKO-TEX Standard 100", "WRAP"],
+        "preferred_incoterms": "CIF",
+        "customs_manifest_provenance": "US Customs Port of NY Entry",
+        "hs_codes": ["610910"],
+    }
+    exporter = {
+        "company_name": "Apex Garments Exports",
+        "capacity_tons": 250.0,
+        "certifications": ["OEKO-TEX Standard 100", "WRAP", "ISO 9001"],
+        "origin_port": "Nhava Sheva (JNPT)",
+    }
+
+    # Angle 1: Cost & Duty
+    res_cost = generate_export_pitch(
+        buyer_data=buyer,
+        exporter_profile=exporter,
+        tariff_data={"agreement_name": "US GSP/MFN", "tariff_savings_pct": 5.0, "preferential_rate_pct": 0.0},
+        channel="email",
+        pitch_angle="cost_duty",
+    )
+    assert "Sarah" in res_cost["body"]
+    assert "Arbitrage" in res_cost["body"] or "Tariff" in res_cost["body"] or "cost" in res_cost["body"].lower()
+
+    # Angle 2: Reliability & Compliance
+    res_comp = generate_export_pitch(
+        buyer_data=buyer,
+        exporter_profile=exporter,
+        channel="email",
+        pitch_angle="reliability_compliance",
+    )
+    assert "Sarah" in res_comp["body"]
+    assert "OEKO-TEX" in res_comp["body"] or "Compliance" in res_comp["subject"] or "Pre-Certified" in res_comp["subject"]
+
+    # Angle 3: Speed & Trial
+    res_trial = generate_export_pitch(
+        buyer_data=buyer,
+        exporter_profile=exporter,
+        channel="email",
+        pitch_angle="speed_trial",
+    )
+    assert "Sarah" in res_trial["body"]
+    assert "Pilot" in res_trial["subject"] or "Trial" in res_trial["subject"] or "test" in res_trial["body"].lower()
+

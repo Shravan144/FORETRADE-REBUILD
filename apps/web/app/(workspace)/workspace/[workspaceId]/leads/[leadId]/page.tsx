@@ -20,6 +20,17 @@ import {
   Download,
   ExternalLink,
   Ship,
+  Mail,
+  Phone,
+  UserCheck,
+  Users,
+  Calculator,
+  DollarSign,
+  Percent,
+  ShieldCheck,
+  Truck,
+  Anchor,
+  X,
 } from "lucide-react";
 
 export default function LeadDetailPage({
@@ -49,16 +60,36 @@ export default function LeadDetailPage({
   const [draftBody, setDraftBody] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
   const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
+  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null);
+  const [timelineFilter, setTimelineFilter] = useState<"all" | "outreach" | "stage">("all");
 
   // AI Generator states
   const [pitchNotes, setPitchNotes] = useState("");
+  const [pitchAngle, setPitchAngle] = useState<"cost_duty" | "reliability_compliance" | "speed_trial">("cost_duty");
   const [generatingPitch, setGeneratingPitch] = useState(false);
   const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
   const [pitchSuccessMsg, setPitchSuccessMsg] = useState<string | null>(null);
 
+  // Decision-Maker Contacts
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+
   // Stage change
   const [changingStage, setChangingStage] = useState(false);
   const [stageError, setStageError] = useState<string | null>(null);
+
+  // Commercial Quotation & IncoTerms Deal Calculator Modal States
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [quoteIncoterm, setQuoteIncoterm] = useState<"EXW" | "FOB" | "CFR" | "CIF" | "DDP">("CIF");
+  const [quoteBaseFactoryCost, setQuoteBaseFactoryCost] = useState<number>(950.0);
+  const [quoteTargetMarginPct, setQuoteTargetMarginPct] = useState<number>(18.0);
+  const [quoteQuantity, setQuoteQuantity] = useState<number>(25.0);
+  const [quoteUnit, setQuoteUnit] = useState<string>("Metric Tons (MT)");
+  const [quoteContainerType, setQuoteContainerType] = useState<"20ft" | "40ft_hc">("40ft_hc");
+  const [quotePaymentTerms, setQuotePaymentTerms] = useState<string>("30% Advance T/T, 70% against B/L Copy & Inspection Certificate");
+  const [quoteProductDesc, setQuoteProductDesc] = useState<string>("");
+  const [quoteDestPort, setQuoteDestPort] = useState<string>("");
 
   useEffect(() => {
     loadLead();
@@ -87,14 +118,40 @@ export default function LeadDetailPage({
         setLead(target);
         setCompany(compRes);
 
-        const [eventsRes, draftsRes, docsRes] = await Promise.all([
+        const [eventsRes, draftsRes, docsRes, contactsRes] = await Promise.all([
           api.listLeadEvents(workspaceId, leadId).catch(() => ({ items: [] })),
           api.listDrafts(workspaceId, leadId).catch(() => ({ items: [] })),
           api.listLeadDocuments(workspaceId, leadId).catch(() => ({ items: [] })),
+          compRes ? api.getCompanyContacts(workspaceId, compRes.id).catch(() => ({ contacts: [] })) : Promise.resolve({ contacts: [] }),
         ]);
         setEvents(eventsRes.items || []);
         setDrafts(draftsRes.items || []);
         setDocuments(docsRes.items || []);
+        const loadedContacts = contactsRes.contacts || [];
+        setContacts(loadedContacts);
+        if (loadedContacts.length > 0) {
+          const primary = loadedContacts.find((c: any) => c.is_primary) || loadedContacts[0];
+          setSelectedContact(primary);
+        }
+
+        if (compRes) {
+          const defaultDesc = compRes.product_or_industry || "Cold-Rolled Galvanized Industrial Steel Coils (Grade EN 10346)";
+          setQuoteProductDesc(defaultDesc);
+          const defaultTons = Number(compRes.attributes?.avg_order_tons) || 25.0;
+          setQuoteQuantity(defaultTons);
+          setQuoteContainerType(defaultTons <= 22 ? "20ft" : "40ft_hc");
+          const defaultPort = compRes.attributes?.preferred_destination_port ||
+            (compRes.country_code === "GB" ? "Port of Felixstowe / Southampton, UK" :
+             compRes.country_code === "US" ? "Port of Los Angeles / Long Beach, CA, USA" :
+             compRes.country_code === "DE" ? "Port of Hamburg, Germany" :
+             compRes.country_code === "NL" ? "Port of Rotterdam, Netherlands" :
+             compRes.country_code === "AE" ? "Port of Jebel Ali, Dubai, UAE" :
+             `Main Seaport, ${compRes.country_code}`);
+          setQuoteDestPort(defaultPort);
+          if (compRes.attributes?.preferred_incoterms) {
+            setQuoteIncoterm(compRes.attributes.preferred_incoterms);
+          }
+        }
 
         if (compRes && !draftSubject) {
           setDraftSubject(`Partnership Inquiry: Certified Indian Exports for ${compRes.name}`);
@@ -110,11 +167,18 @@ export default function LeadDetailPage({
     }
   }
 
-  async function handleGenerateDoc(docType: "proforma_invoice" | "packing_list") {
+  async function handleGenerateDoc(docType: "proforma_invoice" | "packing_list", customOptions?: any) {
     try {
       setGeneratingDoc(docType);
       setDocSuccessMsg(null);
-      const newDoc = await api.generateLeadDocument(workspaceId, leadId, docType);
+      const options = {
+        buyer_contact_name: selectedContact ? `${selectedContact.full_name}${selectedContact.job_title ? ` (${selectedContact.job_title})` : ""}` : undefined,
+        buyer_contact_email: selectedContact?.email || undefined,
+        buyer_contact_phone: selectedContact?.phone_number || undefined,
+        buyer_contact_title: selectedContact?.job_title || undefined,
+        ...(customOptions || {}),
+      };
+      const newDoc = await api.generateLeadDocument(workspaceId, leadId, docType, options);
       setDocuments((prev) => [newDoc, ...prev]);
 
       // Refresh events timeline
@@ -124,6 +188,7 @@ export default function LeadDetailPage({
       const label = docType === "proforma_invoice" ? "Proforma Invoice" : "Packing List";
       setDocSuccessMsg(`Successfully generated official ${label} ${newDoc.document_number}!`);
       setTimeout(() => setDocSuccessMsg(null), 5000);
+      return newDoc;
     } catch (err: any) {
       console.error("Document generation failed:", err);
       alert("Failed to generate document: " + (err.message || "Error"));
@@ -132,22 +197,70 @@ export default function LeadDetailPage({
     }
   }
 
+  async function handleIssueCalculatedProforma() {
+    // Determine the calculated unit price according to selected Incoterm
+    const oceanFreight = quoteContainerType === "20ft" ? 1900 : 2800;
+    const inlandTrucking = 350;
+    const terminalHandling = 180;
+    const insurance = Math.round(quoteBaseFactoryCost * quoteQuantity * 0.0035);
+
+    let unitAddon = 0;
+    if (quoteIncoterm === "FOB") {
+      unitAddon = (inlandTrucking + terminalHandling) / quoteQuantity;
+    } else if (quoteIncoterm === "CFR") {
+      unitAddon = (inlandTrucking + terminalHandling + oceanFreight) / quoteQuantity;
+    } else if (quoteIncoterm === "CIF") {
+      unitAddon = (inlandTrucking + terminalHandling + oceanFreight + insurance) / quoteQuantity;
+    } else if (quoteIncoterm === "DDP") {
+      unitAddon = (inlandTrucking + terminalHandling + oceanFreight + insurance + 850) / quoteQuantity;
+    }
+
+    const priceWithMargin = (quoteBaseFactoryCost * (1 + quoteTargetMarginPct / 100)) + unitAddon;
+    const finalUnitPrice = Math.round(priceWithMargin * 100) / 100;
+
+    await handleGenerateDoc("proforma_invoice", {
+      incoterm: quoteIncoterm,
+      unit_price: finalUnitPrice,
+      quantity: quoteQuantity,
+      unit: quoteUnit,
+      product_description: quoteProductDesc,
+      container_type: quoteContainerType,
+      destination_port: quoteDestPort,
+      payment_terms: quotePaymentTerms,
+      buyer_contact_name: selectedContact ? `${selectedContact.full_name}${selectedContact.job_title ? ` (${selectedContact.job_title})` : ""}` : undefined,
+      buyer_contact_email: selectedContact?.email || undefined,
+      buyer_contact_phone: selectedContact?.phone_number || undefined,
+      buyer_contact_title: selectedContact?.job_title || undefined,
+      notes: `1. Commercial Terms: ${quoteIncoterm} ${quoteDestPort}.\n2. Payment: ${quotePaymentTerms}.\n3. Target Lead Time: 14–21 business days post L/C confirmation.\n4. Quality Standard: ISO 9001:2015 with Certified Mill Test Report.`
+    });
+
+    setQuoteModalOpen(false);
+  }
+
   async function handleGeneratePitch() {
     setGeneratingPitch(true);
     setPitchSuccessMsg(null);
     try {
       const generated = await api.generatePitch(workspaceId, leadId, {
         channel: draftChannel,
+        pitch_angle: pitchAngle,
+        recipient_name: selectedContact?.full_name || undefined,
+        recipient_title: selectedContact?.job_title || undefined,
+        recipient_email: selectedContact?.email || undefined,
         custom_notes: pitchNotes || undefined,
       });
 
       setDraftSubject(generated.subject);
       setDraftBody(generated.body);
       setLastModelUsed(generated.model_used || "foretrade-commercial-engine");
+      const angleLabel =
+        pitchAngle === "cost_duty"
+          ? "Cost & Duty Arbitrage"
+          : pitchAngle === "reliability_compliance"
+          ? "Quality & Compliance"
+          : "Expedited Trial Order";
       setPitchSuccessMsg(
-        generated.model_used === "gemini-2.0-flash"
-          ? "AI Pitch Synthesized via Gemini 2.0 Flash!"
-          : "Tailored Pitch Synthesized via ForeTrade Commercial Rules Engine!"
+        `Personalized pitch generated for ${selectedContact?.first_name || "Decision-Maker"} (${angleLabel})!`
       );
 
       // Append to drafts list
@@ -227,6 +340,16 @@ export default function LeadDetailPage({
     navigator.clipboard.writeText(text);
     setCopiedDraftId(draftId);
     setTimeout(() => setCopiedDraftId(null), 3000);
+  }
+
+  function handleOpenMailClient() {
+    const toEmail = selectedContact?.email || company?.contact_email;
+    if (!toEmail) {
+      alert("No verified email address on file for this lead.");
+      return;
+    }
+    const mailtoUrl = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(draftSubject)}&body=${encodeURIComponent(draftBody)}`;
+    window.open(mailtoUrl, "_blank");
   }
 
   if (loading) {
@@ -316,61 +439,61 @@ export default function LeadDetailPage({
 
       {/* Verified Customs & Buyer Intelligence Banner */}
       {company?.attributes && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-sm border border-slate-800">
-          <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+        <div className="p-5 rounded-2xl bg-white text-slate-900 shadow-xs border border-slate-200/80">
+          <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 uppercase tracking-wider">
                 Customs Bill of Lading Verified
               </span>
-              <span className="text-xs text-slate-300 font-medium">
+              <span className="text-xs text-slate-600 font-medium">
                 {company.attributes.customs_provenance || "Verified Customs Manifest Flow"}
               </span>
             </div>
             {lead.score && (
-              <span className="text-xs font-semibold text-amber-300">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                 Fit Score: {lead.score.score?.toFixed(1)}% ({lead.score.tier})
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold mb-0.5">
+            <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/70">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold mb-1">
                 Annual Procurement
               </span>
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-slate-900">
                 {company.attributes.annual_import_volume_usd
                   ? `$${(company.attributes.annual_import_volume_usd / 1_000_000).toFixed(1)}M USD`
                   : "Multi-container"}
               </span>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold mb-0.5">
+            <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/70">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold mb-1">
                 Typical Order Size
               </span>
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-slate-900">
                 {company.attributes.avg_order_tons ? `${company.attributes.avg_order_tons} Tons` : "Batch"}
-                <span className="text-xs font-normal text-slate-400 ml-1">
+                <span className="text-xs font-normal text-slate-500 ml-1">
                   ({company.attributes.preferred_incoterms || "CIF"})
                 </span>
               </span>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold mb-0.5">
+            <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/70">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold mb-1">
                 Incoterms & Routing
               </span>
-              <span className="text-base font-bold text-white">
+              <span className="text-base font-bold text-slate-900">
                 {company.attributes.preferred_incoterms || "CIF"} terms
               </span>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold mb-0.5">
+            <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/70">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold mb-1">
                 Mandatory Standards
               </span>
-              <span className="text-xs font-semibold text-emerald-300 truncate block">
+              <span className="text-xs font-semibold text-emerald-700 truncate block">
                 {Array.isArray(company.attributes.required_certifications)
                   ? company.attributes.required_certifications.join(", ")
                   : "ISO 9001"}
@@ -404,30 +527,39 @@ export default function LeadDetailPage({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => setQuoteModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Quote & Calculate IncoTerms</span>
+            </button>
+
+            <button
+              type="button"
               disabled={generatingDoc !== null}
               onClick={() => handleGenerateDoc("proforma_invoice")}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+              className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-60"
             >
               {generatingDoc === "proforma_invoice" ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
               )}
-              <span>Generate Proforma Invoice</span>
+              <span>Quick Auto-Fill P/I</span>
             </button>
 
             <button
               type="button"
               disabled={generatingDoc !== null}
               onClick={() => handleGenerateDoc("packing_list")}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+              className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-60"
             >
               {generatingDoc === "packing_list" ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Ship className="w-3.5 h-3.5" />
+                <Ship className="w-3.5 h-3.5 text-emerald-600" />
               )}
-              <span>Generate Packing List</span>
+              <span>Quick Packing List</span>
             </button>
           </div>
         </div>
@@ -604,22 +736,60 @@ export default function LeadDetailPage({
 
           {/* Timeline Events List */}
           <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-base font-bold text-slate-900">
-              Interaction Timeline
-            </h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900">
+                  Interaction Timeline
+                </h2>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                  {events.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setTimelineFilter("all")}
+                  className={`px-2 py-1 rounded text-[10px] font-semibold transition ${timelineFilter === "all" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimelineFilter("outreach")}
+                  className={`px-2 py-1 rounded text-[10px] font-semibold transition ${timelineFilter === "outreach" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
+                >
+                  Pitches
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimelineFilter("stage")}
+                  className={`px-2 py-1 rounded text-[10px] font-semibold transition ${timelineFilter === "stage" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
+                >
+                  Stages
+                </button>
+              </div>
+            </div>
 
-            <div className="space-y-3">
-              {events.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">
-                  No activity events recorded yet.
-                </div>
-              ) : (
-                events.map((ev) => (
+            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+              {(() => {
+                const filtered = events.filter((ev) => {
+                  if (timelineFilter === "outreach") return ev.event_type.includes("outreach") || ev.payload?.channel;
+                  if (timelineFilter === "stage") return ev.event_type.includes("stage");
+                  return true;
+                });
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-6 text-center text-xs text-slate-400">
+                      No activity events found in this view.
+                    </div>
+                  );
+                }
+                return filtered.map((ev) => (
                   <div
                     key={ev.id}
-                    className="p-3.5 rounded-xl border border-slate-100 bg-slate-50 flex items-start gap-3"
+                    className="p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition-colors flex items-start gap-3"
                   >
-                    <div className="p-1.5 rounded-lg bg-blue-100 text-blue-700 shrink-0 mt-0.5">
+                    <div className="p-1 rounded-lg bg-blue-100 text-blue-700 shrink-0 mt-0.5">
                       <Clock className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -627,12 +797,12 @@ export default function LeadDetailPage({
                         <span className="font-bold text-slate-900 capitalize">
                           {ev.event_type.replace(/_/g, " ")}
                         </span>
-                        <span className="text-[10px] text-slate-400">
-                          {ev.occurred_at ? new Date(ev.occurred_at).toLocaleString() : ""}
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {ev.occurred_at ? new Date(ev.occurred_at).toLocaleDateString() : ""}
                         </span>
                       </div>
                       {ev.payload?.notes && (
-                        <p className="text-xs text-slate-600">{ev.payload.notes}</p>
+                        <p className="text-xs text-slate-600 line-clamp-2">{ev.payload.notes}</p>
                       )}
                       {ev.payload?.stage && (
                         <p className="text-xs text-blue-600 font-medium">Stage shifted to: {ev.payload.stage}</p>
@@ -644,8 +814,8 @@ export default function LeadDetailPage({
                       )}
                     </div>
                   </div>
-                ))
-              )}
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -718,6 +888,96 @@ export default function LeadDetailPage({
               </div>
             </div>
 
+            {/* Strategic Pitch Angle Selector */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Strategic Commercial Focus
+                </label>
+                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded">
+                  {pitchAngle === "cost_duty"
+                    ? "💰 Tariff & Landed Cost"
+                    : pitchAngle === "reliability_compliance"
+                    ? "🛡️ Zero-Defect QA & Specs"
+                    : "⚡ 1-Container Pilot Trial"}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPitchAngle("cost_duty")}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    pitchAngle === "cost_duty"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="text-xs font-bold flex items-center gap-1">
+                    <span>💰</span> Cost & Duty
+                  </div>
+                  <p className={`text-[10px] mt-0.5 line-clamp-1 ${pitchAngle === "cost_duty" ? "text-blue-100" : "text-slate-400"}`}>
+                    FTA savings & CIF price
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPitchAngle("reliability_compliance")}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    pitchAngle === "reliability_compliance"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="text-xs font-bold flex items-center gap-1">
+                    <span>🛡️</span> Compliance
+                  </div>
+                  <p className={`text-[10px] mt-0.5 line-clamp-1 ${pitchAngle === "reliability_compliance" ? "text-blue-100" : "text-slate-400"}`}>
+                    Lab assays & standards
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPitchAngle("speed_trial")}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    pitchAngle === "speed_trial"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="text-xs font-bold flex items-center gap-1">
+                    <span>⚡</span> Trial Order
+                  </div>
+                  <p className={`text-[10px] mt-0.5 line-clamp-1 ${pitchAngle === "speed_trial" ? "text-blue-100" : "text-slate-400"}`}>
+                    1-TEU pilot & CAD terms
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Target Recipient Indicator */}
+            <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider shrink-0">Target:</span>
+                <span className="font-bold text-slate-900 truncate">
+                  {selectedContact ? selectedContact.full_name : "Procurement Director"}
+                </span>
+                {selectedContact?.job_title && (
+                  <span className="text-[10px] text-slate-500 truncate hidden sm:inline">
+                    ({selectedContact.job_title})
+                  </span>
+                )}
+              </div>
+              {selectedContact?.email ? (
+                <span className="text-[10px] font-mono text-emerald-800 font-semibold bg-emerald-100 px-2 py-0.5 rounded shrink-0">
+                  {selectedContact.email}
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-400 italic">Generic inquiry</span>
+              )}
+            </div>
+
             {/* Custom Notes / Angle */}
             <div>
               <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
@@ -747,7 +1007,9 @@ export default function LeadDetailPage({
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Generate Tailored Pitch for {company?.name || "Buyer"}</span>
+                  <span>
+                    Generate {pitchAngle === "cost_duty" ? "Cost & Duty" : pitchAngle === "reliability_compliance" ? "Compliance" : "Trial"} Pitch for {selectedContact ? selectedContact.first_name : company?.name || "Buyer"}
+                  </span>
                 </>
               )}
             </button>
@@ -770,6 +1032,80 @@ export default function LeadDetailPage({
             </p>
 
             <form onSubmit={handleSaveDraft} className="space-y-3">
+              {/* Target Decision-Maker Recipient Panel */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    <span>Target Decision-Maker</span>
+                  </div>
+                  {contacts.length > 1 && (
+                    <select
+                      value={selectedContact?.id || ""}
+                      onChange={(e) => {
+                        const c = contacts.find((item: any) => item.id === e.target.value);
+                        if (c) {
+                          const prevName = selectedContact?.full_name || selectedContact?.first_name || "Laura Schneider";
+                          setSelectedContact(c);
+                          // Auto-replace the salutation in the active draft body
+                          setDraftBody((prev) => {
+                            if (!prev) return prev;
+                            const prevRegex = new RegExp(`Dear\\s+${prevName}(\\s*\\([^)]*\\))?`, "i");
+                            if (prevRegex.test(prev)) {
+                              return prev.replace(prevRegex, `Dear ${c.full_name}${c.job_title ? ` (${c.job_title})` : ""}`);
+                            }
+                            // Fallback replace any initial "Dear ...," line
+                            if (prev.startsWith("Dear ")) {
+                              const lines = prev.split("\n");
+                              lines[0] = `Dear ${c.full_name}${c.job_title ? ` (${c.job_title})` : ""},`;
+                              return lines.join("\n");
+                            }
+                            return prev;
+                          });
+                        }
+                      }}
+                      className="text-[11px] font-medium px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 outline-none"
+                    >
+                      {contacts.map((c: any) => (
+                        <option key={c.id} value={c.id}>
+                          {c.full_name} ({c.job_title})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {selectedContact ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs pt-1">
+                    <div>
+                      <div className="font-semibold text-slate-900 flex items-center gap-2">
+                        <span>{selectedContact.full_name}</span>
+                        <span className="text-slate-500 font-normal">({selectedContact.job_title})</span>
+                        {selectedContact.is_primary && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-800">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-3 mt-0.5">
+                        <span className="font-mono text-blue-600 font-medium">{selectedContact.email || "No email"}</span>
+                        {selectedContact.phone_number && (
+                          <span className="font-mono text-slate-600">{selectedContact.phone_number}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 self-start sm:self-auto">
+                      {selectedContact.deliverability_score || 96}% Verified
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500">
+                    Recipient: <strong className="text-slate-700">{company?.contact_name || "Procurement Director"}</strong> ({company?.contact_email || "Direct Inquiry"})
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   Subject Line
@@ -796,27 +1132,44 @@ export default function LeadDetailPage({
                 ></textarea>
               </div>
 
-              <button
-                type="submit"
-                disabled={savingDraft}
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
-              >
-                {savingDraft ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <span>Save Outreach Draft</span>
-                )}
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={savingDraft}
+                  className="w-full sm:flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {savingDraft ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>Save Outreach Draft</span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenMailClient}
+                  className="w-full sm:flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Open draft directly in default desktop email client (Outlook, Apple Mail, Gmail)"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Launch in Mail Client</span>
+                </button>
+              </div>
             </form>
           </div>
 
           {/* Saved Drafts */}
           <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-base font-bold text-slate-900">
-              Saved Drafts ({drafts.length})
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">
+                Saved Drafts
+              </h2>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                {drafts.length}
+              </span>
+            </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
               {drafts.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
                   No drafts saved for this deal. Click "Generate Tailored Pitch" above!
@@ -824,11 +1177,12 @@ export default function LeadDetailPage({
               ) : (
                 drafts.map((d) => {
                   const isCopied = copiedDraftId === d.id;
+                  const isExpanded = expandedDraftId === d.id;
 
                   return (
                     <div
                       key={d.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2.5"
+                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-colors space-y-2.5"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
@@ -844,37 +1198,57 @@ export default function LeadDetailPage({
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 font-mono text-[11px] whitespace-pre-wrap bg-white p-2.5 rounded border border-slate-200 max-h-48 overflow-y-auto">
-                        {d.body}
-                      </p>
+                      {/* Accordion or preview */}
+                      <div className="relative">
+                        <p className={`text-xs text-slate-600 font-mono text-[11px] whitespace-pre-wrap bg-white p-2.5 rounded border border-slate-200 transition-all ${
+                          isExpanded ? "max-h-96 overflow-y-auto" : "max-h-24 overflow-hidden"
+                        }`}>
+                          {d.body}
+                        </p>
+                        {!isExpanded && d.body?.length > 180 && (
+                          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b" />
+                        )}
+                      </div>
 
                       <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] text-slate-400">
-                          {isCopied ? (
-                            <span className="text-emerald-600 font-semibold">
-                              Draft exported to clipboard.
-                            </span>
-                          ) : (
-                            "Copy to send via your corporate mail client or CRM."
-                          )}
-                        </span>
-
                         <button
-                          onClick={() => handleCopyDraft(d.id, `${d.subject}\n\n${d.body}`)}
-                          className="px-2.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold flex items-center gap-1 transition-colors"
+                          type="button"
+                          onClick={() => setExpandedDraftId(isExpanded ? null : d.id)}
+                          className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
                         >
-                          {isCopied ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Export Draft</span>
-                            </>
-                          )}
+                          {isExpanded ? "Collapse Text" : "View Full Pitch"}
                         </button>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDraftSubject(d.subject || "");
+                              setDraftBody(d.body || "");
+                              if (d.channel) setDraftChannel(d.channel as any);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                          >
+                            Load into Editor
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyDraft(d.id, `${d.subject}\n\n${d.body}`)}
+                            className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1 transition"
+                          >
+                            {isCopied ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Export</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -884,6 +1258,377 @@ export default function LeadDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Commercial Quotation & IncoTerms Deal Calculator Modal */}
+      {quoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] overflow-y-auto flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Commercial IncoTerms & Landed Price Quotation Engine
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Live pricing build-up for <strong>{company?.name || "Target Importer"}</strong> ({quoteDestPort})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setQuoteModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6 flex-1">
+              {/* IncoTerms Selection Waterfall Bar */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Select Target Commercial IncoTerm (Incoterms 2020)
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {(["EXW", "FOB", "CFR", "CIF", "DDP"] as const).map((inc) => {
+                    const isSelected = quoteIncoterm === inc;
+                    return (
+                      <button
+                        key={inc}
+                        type="button"
+                        onClick={() => setQuoteIncoterm(inc)}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-600/30"
+                            : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="block text-sm font-extrabold">{inc}</span>
+                        <span
+                          className={`text-[10px] block mt-0.5 line-clamp-1 ${
+                            isSelected ? "text-blue-100" : "text-slate-400"
+                          }`}
+                        >
+                          {inc === "EXW" && "Factory Gate"}
+                          {inc === "FOB" && "Loaded on Vessel"}
+                          {inc === "CFR" && "Sea Freight Paid"}
+                          {inc === "CIF" && "Freight + Marine Ins."}
+                          {inc === "DDP" && "Landed & Cleared"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Target Decision-Maker Recipient in Modal */}
+              <div className="px-4 py-2.5 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Attention:</span>
+                  <strong className="text-slate-900 font-bold">
+                    {selectedContact ? `${selectedContact.full_name} (${selectedContact.job_title})` : (company?.contact_name || "Procurement Director")}
+                  </strong>
+                </div>
+                {selectedContact?.email && (
+                  <span className="font-mono text-[11px] text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                    {selectedContact.email}
+                  </span>
+                )}
+              </div>
+
+              {/* Calculator Input Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Base Factory Cost per MT (USD)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">$</span>
+                    <input
+                      type="number"
+                      min={10}
+                      step={10}
+                      value={quoteBaseFactoryCost}
+                      onChange={(e) => setQuoteBaseFactoryCost(Number(e.target.value) || 0)}
+                      className="w-full text-xs pl-7 pr-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Target Exporter Margin (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={quoteTargetMarginPct}
+                      onChange={(e) => setQuoteTargetMarginPct(Number(e.target.value) || 0)}
+                      className="w-full text-xs pl-3 pr-7 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Order Quantity ({quoteUnit})
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={quoteQuantity}
+                    onChange={(e) => {
+                      const q = Number(e.target.value) || 1;
+                      setQuoteQuantity(q);
+                      setQuoteContainerType(q <= 22 ? "20ft" : "40ft_hc");
+                    }}
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Merchandise / Cargo Description
+                  </label>
+                  <input
+                    type="text"
+                    value={quoteProductDesc}
+                    onChange={(e) => setQuoteProductDesc(e.target.value)}
+                    placeholder="e.g. 100% Combed Cotton Single Jersey Fabric (180 GSM)"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Container Configuration
+                  </label>
+                  <select
+                    value={quoteContainerType}
+                    onChange={(e) => setQuoteContainerType(e.target.value as any)}
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="20ft">1 x 20' FCL (Standard Container ~22 MT)</option>
+                    <option value="40ft_hc">1 x 40' HC (High Cube Container ~26.5 MT)</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Port of Discharge (Destination Seaport)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Anchor className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      value={quoteDestPort}
+                      onChange={(e) => setQuoteDestPort(e.target.value)}
+                      className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Commercial Payment Terms
+                  </label>
+                  <select
+                    value={quotePaymentTerms}
+                    onChange={(e) => setQuotePaymentTerms(e.target.value)}
+                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="30% Advance T/T, 70% against B/L Copy & Inspection Certificate">
+                      30% T/T Advance + 70% against B/L copy
+                    </option>
+                    <option value="100% Confirmed Irrevocable Letter of Credit (L/C at Sight)">
+                      100% Confirmed Irrevocable L/C at Sight
+                    </option>
+                    <option value="Cash Against Documents (CAD) via Prime International Bank">
+                      Cash Against Documents (CAD)
+                    </option>
+                    <option value="20% Advance T/T, 80% Net 30 Days (Credit Insured)">
+                      20% Advance, 80% Net 30 Days (Insured)
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Dynamic Cost Waterfall Calculations */}
+              {(() => {
+                const totalFactoryCost = quoteBaseFactoryCost * quoteQuantity;
+                const marginAmount = totalFactoryCost * (quoteTargetMarginPct / 100);
+                const exwTotal = totalFactoryCost + marginAmount;
+
+                const inlandTrucking = 350;
+                const originTHC = 180;
+                const fobTotal = exwTotal + inlandTrucking + originTHC;
+
+                const oceanFreight = quoteContainerType === "20ft" ? 1900 : 2800;
+                const cfrTotal = fobTotal + oceanFreight;
+
+                const marineInsurance = Math.round(exwTotal * 0.0035);
+                const cifTotal = cfrTotal + marineInsurance;
+
+                const ddpEstTotal = cifTotal + 850;
+
+                const activeTotal =
+                  quoteIncoterm === "EXW"
+                    ? exwTotal
+                    : quoteIncoterm === "FOB"
+                    ? fobTotal
+                    : quoteIncoterm === "CFR"
+                    ? cfrTotal
+                    : quoteIncoterm === "CIF"
+                    ? cifTotal
+                    : ddpEstTotal;
+
+                const activeUnitPrice = Math.round((activeTotal / quoteQuantity) * 100) / 100;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Visual Comparison Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          quoteIncoterm === "EXW"
+                            ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-600/20"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                          EXW Factory
+                        </span>
+                        <span className="text-base font-bold text-slate-900 block mt-0.5">
+                          ${(exwTotal / quoteQuantity).toFixed(2)}
+                          <span className="text-[10px] text-slate-500 font-normal ml-0.5">/MT</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Total: ${exwTotal.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          quoteIncoterm === "FOB"
+                            ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-600/20"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                          FOB Port of Lading
+                        </span>
+                        <span className="text-base font-bold text-slate-900 block mt-0.5">
+                          ${(fobTotal / quoteQuantity).toFixed(2)}
+                          <span className="text-[10px] text-slate-500 font-normal ml-0.5">/MT</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Total: ${fobTotal.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          quoteIncoterm === "CIF"
+                            ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-600/20"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                          CIF Landed (Recommended)
+                        </span>
+                        <span className="text-base font-bold text-blue-700 block mt-0.5">
+                          ${(cifTotal / quoteQuantity).toFixed(2)}
+                          <span className="text-[10px] text-slate-500 font-normal ml-0.5">/MT</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Total: ${cifTotal.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          quoteIncoterm === "DDP"
+                            ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-600/20"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                          DDP Door Delivery
+                        </span>
+                        <span className="text-base font-bold text-slate-900 block mt-0.5">
+                          ${(ddpEstTotal / quoteQuantity).toFixed(2)}
+                          <span className="text-[10px] text-slate-500 font-normal ml-0.5">/MT</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Total: ${ddpEstTotal.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Summary Banner for Selected Incoterm */}
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-500 text-white">
+                            Quotation Ready: {quoteIncoterm}
+                          </span>
+                          <span className="text-xs text-slate-300">
+                            {quoteQuantity} MT to {quoteDestPort}
+                          </span>
+                        </div>
+                        <div className="text-xl font-bold mt-1 text-white flex items-baseline gap-2">
+                          <span>
+                            Total: ${activeTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD
+                          </span>
+                          <span className="text-xs text-emerald-400 font-medium">
+                            (${activeUnitPrice.toFixed(2)} / MT • Margin ${marginAmount.toLocaleString()})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setQuoteModalOpen(false)}
+                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={generatingDoc !== null}
+                          onClick={handleIssueCalculatedProforma}
+                          className="px-5 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                        >
+                          {generatingDoc ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                          <span>Issue Official Proforma Invoice</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

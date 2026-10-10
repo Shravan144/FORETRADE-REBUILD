@@ -275,12 +275,14 @@ def list_demand_signals(
     target_country: Optional[str] = Query(None, max_length=2),
     hs_code: Optional[str] = Query(None, max_length=10),
     signal_type: Optional[str] = Query(None, max_length=50),
+    status: Optional[str] = Query(None, max_length=30),  # ACTIVE, CLOSING_SOON, EXPIRED, ALL
     user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """
     Model 4: Real-Time Demand Radar
     Returns live procurement tenders, quota openings, and demand surge alerts.
+    Supports filtering by active lifecycle status and direct links to gazettes.
     """
     from app.models.trade_intelligence import MarketDemandSignal
 
@@ -291,8 +293,13 @@ def list_demand_signals(
         query = query.where(MarketDemandSignal.hs_code.like(f"{hs_code}%"))
     if signal_type:
         query = query.where(MarketDemandSignal.signal_type == signal_type)
+    if status and status.upper() != "ALL":
+        query = query.where(MarketDemandSignal.status == status.upper())
+    elif not status:
+        # By default exclude expired notices from active feeds
+        query = query.where(or_(MarketDemandSignal.status != "EXPIRED", MarketDemandSignal.status.is_(None)))
 
-    signals = db.scalars(query.order_by(MarketDemandSignal.intent_score.desc())).all()
+    signals = db.scalars(query.order_by(MarketDemandSignal.intent_score.desc(), MarketDemandSignal.created_at.desc())).all()
     return {
         "total": len(signals),
         "items": [
@@ -310,12 +317,47 @@ def list_demand_signals(
                 "intent_score": s.intent_score,
                 "urgency_level": s.urgency_level,
                 "extracted_entities": s.extracted_entities,
+                "external_id": s.external_id,
+                "source_url": s.source_url,
+                "buyer_name": s.buyer_name,
+                "status": s.status or "ACTIVE",
+                "expires_at": s.expires_at.isoformat() if s.expires_at else None,
                 "published_at": s.published_at.isoformat() if s.published_at else None,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
             }
             for s in signals
         ],
     }
+
+
+@router.post("/demand-signals/sync")
+def sync_demand_signals_endpoint(
+    purge_expired: bool = Query(False),
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Triggers on-demand real-time synchronization from UK Find a Tender Service
+    and EU Tenders Electronic Daily (TED API), updating lifecycle statuses.
+    """
+    from app.services.procurement.live_tender_sync import sync_all_procurement_sources
+
+    result = sync_all_procurement_sources(db, purge_expired=purge_expired)
+    return result
+
+
+@router.post("/demand-signals/purge-expired")
+def purge_expired_demand_signals_endpoint(
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Purges past-deadline, expired procurement tenders from the database.
+    """
+    from app.services.procurement.live_tender_sync import evaluate_and_update_lifecycle_statuses
+
+    result = evaluate_and_update_lifecycle_statuses(db, purge_expired=True)
+    return result
 
 
 @router.post("/extract-signal")
@@ -477,6 +519,27 @@ def list_global_buyers(
     }
 
 
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+SECTOR_SEASONALITY_WEIGHTS: dict[str, list[float]] = {
+    "textiles": [6.0, 5.0, 7.0, 8.0, 9.0, 10.0, 14.0, 13.0, 11.0, 8.0, 5.0, 4.0],
+    "apparel": [6.0, 5.0, 7.0, 8.0, 9.0, 10.0, 14.0, 13.0, 11.0, 8.0, 5.0, 4.0],
+    "solar": [7.0, 8.0, 11.0, 12.0, 13.0, 12.0, 10.0, 8.0, 7.0, 5.0, 4.0, 3.0],
+    "renewables": [7.0, 8.0, 11.0, 12.0, 13.0, 12.0, 10.0, 8.0, 7.0, 5.0, 4.0, 3.0],
+    "agriculture": [11.0, 12.0, 12.0, 9.0, 7.0, 5.0, 5.0, 6.0, 7.0, 9.0, 11.0, 12.0],
+    "spices": [11.0, 12.0, 12.0, 9.0, 7.0, 5.0, 5.0, 6.0, 7.0, 9.0, 11.0, 12.0],
+    "automotive": [8.0, 8.0, 9.0, 9.0, 9.0, 9.0, 8.0, 6.0, 9.0, 9.0, 9.0, 7.0],
+    "pharmaceuticals": [8.0, 8.0, 9.0, 8.0, 9.0, 8.0, 8.0, 8.0, 9.0, 9.0, 8.0, 8.0],
+    "machinery": [7.0, 8.0, 10.0, 10.0, 9.0, 9.0, 8.0, 6.0, 9.0, 9.0, 8.0, 7.0],
+    "chemicals": [8.0, 8.0, 9.0, 9.0, 9.0, 9.0, 8.0, 7.0, 9.0, 9.0, 8.0, 7.0],
+    "leather": [6.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 12.0, 11.0, 8.0, 6.0, 5.0],
+    "ceramics": [7.0, 8.0, 10.0, 11.0, 11.0, 10.0, 9.0, 8.0, 8.0, 7.0, 6.0, 5.0],
+    "gems": [6.0, 7.0, 6.0, 6.0, 7.0, 7.0, 8.0, 8.0, 10.0, 13.0, 12.0, 10.0],
+    "electronics": [7.0, 7.0, 8.0, 8.0, 9.0, 9.0, 10.0, 11.0, 12.0, 11.0, 8.0, 6.0],
+    "medical": [8.0, 8.0, 8.0, 9.0, 8.0, 9.0, 8.0, 8.0, 9.0, 9.0, 8.0, 8.0],
+}
+
+
 @router.get("/buyers/{buyer_id}")
 def get_buyer_bol_manifest(
     buyer_id: str,
@@ -489,6 +552,51 @@ def get_buyer_bol_manifest(
     buyer = db.scalar(select(GlobalBuyerCatalog).where(GlobalBuyerCatalog.id == buyer_id))
     if not buyer:
         raise HTTPException(status_code=404, detail="Buyer profile not found in master catalog.")
+
+    # 1. Compute 12-month BoL Shipment Seasonality Curve
+    sec_key = "textiles"
+    norm_sector = (buyer.primary_sector or "").lower()
+    for k in SECTOR_SEASONALITY_WEIGHTS:
+        if k in norm_sector:
+            sec_key = k
+            break
+
+    weights = SECTOR_SEASONALITY_WEIGHTS.get(sec_key, [8.33] * 12)
+    cycle_days = buyer.estimated_order_cycle_days or 30
+    shipments_per_year = max(1, int(round(365.0 / cycle_days)))
+    teu_per_shipment = buyer.avg_container_teu or 4.0
+    total_annual_teu = shipments_per_year * teu_per_shipment
+
+    seasonality_curve = []
+    for idx, (m_name, wt) in enumerate(zip(MONTH_NAMES, weights)):
+        month_teu = round(total_annual_teu * (wt / 100.0), 1)
+        month_shipments = max(1 if wt >= 8.0 else 0, int(round(shipments_per_year * (wt / 100.0))))
+        seasonality_curve.append({
+            "month_index": idx + 1,
+            "month_name": m_name,
+            "volume_share_pct": wt,
+            "estimated_teu": month_teu,
+            "estimated_shipments": month_shipments,
+            "is_peak": wt >= 10.0,
+        })
+
+    # 2. Compute Supplier Origin Breakdown
+    origin_map: dict[str, float] = {}
+    suppliers = buyer.top_historical_suppliers or []
+    for s in suppliers:
+        c_code = s.get("origin_country", "Other")
+        share = float(s.get("share_pct", 0.0))
+        origin_map[c_code] = origin_map.get(c_code, 0.0) + share
+
+    origin_breakdown = [
+        {
+            "country_code": c,
+            "share_pct": round(pct, 1),
+            "is_indian_origin": c.upper() == "IN",
+            "displacement_opportunity": c.upper() != "IN" and pct >= 20.0,
+        }
+        for c, pct in sorted(origin_map.items(), key=lambda x: x[1], reverse=True)
+    ]
 
     return {
         "id": buyer.id,
@@ -509,8 +617,42 @@ def get_buyer_bol_manifest(
         "shipment_frequency": buyer.shipment_frequency,
         "avg_container_teu": buyer.avg_container_teu,
         "estimated_order_cycle_days": buyer.estimated_order_cycle_days,
+        "annual_estimated_teu": total_annual_teu,
         "top_historical_suppliers": buyer.top_historical_suppliers,
+        "seasonality_curve": seasonality_curve,
+        "origin_breakdown": origin_breakdown,
     }
+
+
+@router.get("/buyers/{buyer_id}/contacts")
+def get_buyer_contacts_endpoint(
+    buyer_id: str,
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Retrieves or enriches verified procurement & sourcing decision-makers for a buyer.
+    Uses local cache or executes on-demand B2B contact enrichment.
+    """
+    from app.services.contact_enrichment import get_or_enrich_buyer_contacts
+
+    contacts = get_or_enrich_buyer_contacts(db, buyer_id=buyer_id, force_refresh=False)
+    return {"buyer_id": buyer_id, "total": len(contacts), "contacts": contacts}
+
+
+@router.post("/buyers/{buyer_id}/enrich-contacts")
+def enrich_buyer_contacts_endpoint(
+    buyer_id: str,
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Forces a live re-enrichment of verified procurement & sourcing decision-makers for a buyer.
+    """
+    from app.services.contact_enrichment import get_or_enrich_buyer_contacts
+
+    contacts = get_or_enrich_buyer_contacts(db, buyer_id=buyer_id, force_refresh=True)
+    return {"buyer_id": buyer_id, "total": len(contacts), "contacts": contacts}
 
 
 @router.post("/demand-signals/{signal_id}/convert")
