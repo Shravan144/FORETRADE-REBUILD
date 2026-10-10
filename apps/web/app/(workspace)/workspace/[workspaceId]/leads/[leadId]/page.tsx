@@ -336,8 +336,52 @@ export default function LeadDetailPage({
         body: draftBody,
       });
       setDrafts((prev) => [newDraft, ...prev]);
+
+      // Reload proposal in case it was linked or updated
+      const propRes = await api.getLeadProposal(workspaceId, leadId).catch(() => null);
+      if (propRes) {
+        setProposal(propRes);
+        const msgsRes = await api.getNegotiationMessages(workspaceId, propRes.id).catch(() => ({ items: [] }));
+        setNegotiationMessages(msgsRes.items || []);
+      }
     } catch (err) {
       alert("Failed to save draft.");
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  async function handleSendDirectProposal() {
+    if (!draftSubject.trim() || !draftBody.trim()) {
+      alert("Please ensure both subject line and proposal body are filled before sending.");
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      const newDraft = await api.createDraft(workspaceId, leadId, {
+        channel: draftChannel,
+        subject: draftSubject,
+        body: draftBody,
+      });
+      setDrafts((prev) => [newDraft, ...prev]);
+
+      const propRes = await api.getLeadProposal(workspaceId, leadId).catch(() => null);
+      if (propRes) {
+        setProposal(propRes);
+        // Also post opening message into the deal room
+        await api.sendNegotiationMessage(workspaceId, propRes.id, {
+          message_text: `Official Outreach Proposal dispatched:\n\n${draftBody}`,
+          message_type: "text",
+        }).catch(() => null);
+
+        const msgsRes = await api.getNegotiationMessages(workspaceId, propRes.id).catch(() => ({ items: [] }));
+        setNegotiationMessages(msgsRes.items || []);
+        alert("Commercial Proposal successfully delivered to the Buyer's Proposal Inbox & Bilateral Deal Room!");
+      } else {
+        alert("Draft saved to CRM. (Target importer is not yet registered on ForeTrade direct network).");
+      }
+    } catch (err: any) {
+      alert("Failed to send direct proposal: " + (err.message || "Error"));
     } finally {
       setSavingDraft(false);
     }
@@ -1290,18 +1334,29 @@ export default function LeadDetailPage({
                   {savingDraft ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <span>Save Outreach Draft</span>
+                    <span>Save CRM Draft</span>
                   )}
                 </button>
 
                 <button
                   type="button"
+                  disabled={savingDraft}
+                  onClick={handleSendDirectProposal}
+                  className="w-full sm:flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Deliver this proposal directly into the Importer's Factory Proposal Inbox and Bilateral Deal Room"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Send to Buyer Inbox & Deal Room</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleOpenMailClient}
-                  className="w-full sm:flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   title="Open draft directly in default desktop email client (Outlook, Apple Mail, Gmail)"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Launch in Mail Client</span>
+                  <Send className="w-3.5 h-3.5 text-blue-600" />
+                  <span>External Email</span>
                 </button>
               </div>
             </form>

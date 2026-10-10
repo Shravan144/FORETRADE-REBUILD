@@ -624,7 +624,7 @@ def get_lead_proposal(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Fetches the active commercial proposal linked to a CRM lead (for Exporter view)."""
+    """Fetches or initializes the active commercial proposal linked to a CRM lead (for Exporter view)."""
     require_workspace_role(workspace_id, user, db, "viewer")
     prop = db.scalar(
         select(InboundProposal)
@@ -634,8 +634,70 @@ def get_lead_proposal(
         )
         .order_by(InboundProposal.created_at.desc())
     )
-    if not prop:
+    if prop:
+        return serialize_proposal(prop)
+
+    # Check if this lead corresponds to a registered Importer in ForeTrade
+    from app.models.domain import Lead, Company
+    from app.services.exporter_profile_service import get_latest_profile_version
+    import uuid
+
+    lead = db.scalar(select(Lead).where(Lead.id == lead_id, Lead.workspace_id == workspace_id))
+    if not lead:
+        raise HTTPException(status_code=404, detail="lead_not_found")
+
+    company = db.scalar(select(Company).where(Company.id == lead.company_id, Company.workspace_id == workspace_id))
+    if not company:
         raise HTTPException(status_code=404, detail="no_proposal_for_this_lead")
+
+    # Match company to registered ImporterProfile
+    target_importer = None
+    if company.normalized_name:
+        target_importer = db.scalar(
+            select(ImporterProfile).where(
+                ImporterProfile.company_name.ilike(company.name.strip())
+            )
+        )
+    if not target_importer:
+        # Match by email or domain
+        if company.contact_email:
+            target_importer = db.scalar(
+                select(ImporterProfile).where(
+                    ImporterProfile.contact_email.ilike(company.contact_email.strip())
+                )
+            )
+
+    if not target_importer:
+        raise HTTPException(status_code=404, detail="no_proposal_for_this_lead")
+
+    # Auto-initialize bilateral proposal link
+    prof_rec = get_latest_profile_version(db, workspace_id)
+    prof_payload = prof_rec.payload if prof_rec else {}
+    exp_name = prof_payload.get("company_name", "Indian Exporters Network")
+    exp_country = (prof_payload.get("origin_country") or "IN").upper()
+    exp_port = prof_payload.get("origin_port", "Nhava Sheva (JNPT) / Mundra")
+
+    prop = InboundProposal(
+        id=str(uuid.uuid4()),
+        importer_workspace_id=target_importer.workspace_id,
+        exporter_workspace_id=workspace_id,
+        lead_id=lead.id,
+        exporter_company_name=exp_name,
+        exporter_country_code=exp_country,
+        exporter_origin_port=exp_port,
+        exporter_readiness_score=92.0,
+        proposal_channel="bilateral_deal_room",
+        subject=f"Export Procurement Inquiry & Factory Direct Channel for {target_importer.company_name}",
+        proposal_body=f"Bilateral trade channel initiated between {exp_name} ({exp_country}) and {target_importer.company_name} ({target_importer.country_code}).",
+        offered_unit_price_usd=target_importer.annual_sourcing_budget_usd / max(1.0, (target_importer.min_order_quantity_mt * 100)) if target_importer.min_order_quantity_mt else 1250.0,
+        offered_incoterm=target_importer.preferred_incoterm or "CIF",
+        status="pending",
+        negotiation_thread_id=f"thread_{uuid.uuid4().hex[:12]}",
+    )
+    db.add(prop)
+    db.commit()
+    db.refresh(prop)
     return serialize_proposal(prop)
+
 
 

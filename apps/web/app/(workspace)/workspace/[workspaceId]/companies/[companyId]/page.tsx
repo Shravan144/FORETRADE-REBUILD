@@ -235,10 +235,17 @@ export default function CompanyDetailPage({
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
               {primarySector}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Verified Customs Manifest</span>
-            </span>
+            {provenance.includes("ForeTrade Network") || provenance.includes("Verified Direct") ? (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>ForeTrade Network Direct Buyer</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Verified Customs Manifest</span>
+              </span>
+            )}
           </div>
 
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
@@ -246,9 +253,9 @@ export default function CompanyDetailPage({
           </h1>
 
           <p className="text-xs text-slate-500 font-mono flex items-center gap-3 flex-wrap">
-            <span>Discharge Port: <strong className="text-slate-800 font-sans">{profile.city || "Major Container Terminal"}</strong></span>
+            <span>Destination Port: <strong className="text-slate-800 font-sans">{profile.primary_discharge_port || profile.city || "Major Container Terminal"}</strong></span>
             <span>•</span>
-            <span>Annual Demand: <strong className="text-slate-900 font-bold">${(annualVolume / 1_000_000).toFixed(1)}M USD</strong></span>
+            <span>Annual Sourcing Budget: <strong className="text-slate-900 font-bold">${(annualVolume / 1_000_000).toFixed(1)}M USD</strong></span>
             <span>•</span>
             <span>Incoterm: <strong className="text-blue-700 font-bold">{incoterm}</strong></span>
           </p>

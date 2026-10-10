@@ -365,6 +365,66 @@ def create_draft(workspace_id: str, lead_id: str, payload: DraftWrite, user: Use
     lead = get_lead(db, workspace_id, lead_id)
     draft = OutreachDraft(lead_id=lead.id, created_by_user_id=user.id, channel=payload.channel, subject=payload.subject, body=payload.body, status="draft")
     db.add(draft)
+    db.flush()
+
+    # Deliver to registered importer's Inbound Proposals & Deal Room if applicable
+    try:
+        from app.models.importer import ImporterProfile, InboundProposal
+        from app.services.exporter_profile_service import get_latest_profile_version
+
+        company = db.scalar(select(Company).where(Company.id == lead.company_id, Company.workspace_id == workspace_id))
+        if company:
+            target_importer = db.scalar(
+                select(ImporterProfile).where(
+                    ImporterProfile.company_name.ilike(company.name.strip())
+                )
+            )
+            if not target_importer and company.contact_email:
+                target_importer = db.scalar(
+                    select(ImporterProfile).where(
+                        ImporterProfile.contact_email.ilike(company.contact_email.strip())
+                    )
+                )
+
+            if target_importer:
+                prof_rec = get_latest_profile_version(db, workspace_id)
+                prof_payload = prof_rec.payload if prof_rec else {}
+                exp_name = prof_payload.get("company_name", "Indian Export Manufacturer")
+                exp_country = (prof_payload.get("origin_country") or "IN").upper()
+                exp_port = prof_payload.get("origin_port", "Nhava Sheva (JNPT) / Mundra")
+
+                # Check if proposal exists or create new one
+                existing_prop = db.scalar(
+                    select(InboundProposal).where(
+                        InboundProposal.lead_id == lead.id,
+                        InboundProposal.exporter_workspace_id == workspace_id,
+                    )
+                )
+                if existing_prop:
+                    existing_prop.subject = payload.subject
+                    existing_prop.proposal_body = payload.body
+                    existing_prop.outreach_draft_id = draft.id
+                    existing_prop.status = "pending"
+                else:
+                    new_prop = InboundProposal(
+                        importer_workspace_id=target_importer.workspace_id,
+                        exporter_workspace_id=workspace_id,
+                        lead_id=lead.id,
+                        outreach_draft_id=draft.id,
+                        exporter_company_name=exp_name,
+                        exporter_country_code=exp_country,
+                        exporter_origin_port=exp_port,
+                        exporter_readiness_score=92.0,
+                        proposal_channel=payload.channel,
+                        subject=payload.subject,
+                        proposal_body=payload.body,
+                        offered_incoterm="CIF",
+                        status="pending",
+                    )
+                    db.add(new_prop)
+    except Exception as exc:
+        print(f"Error syncing draft to bilateral proposal: {exc}")
+
     db.commit()
     db.refresh(draft)
     return serialize_draft(draft)

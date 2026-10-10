@@ -597,6 +597,49 @@ def get_or_enrich_company_contacts(
         if buyer_contacts:
             return buyer_contacts
 
+    # Check if this company is a registered ForeTrade ImporterProfile
+    from app.models.importer import ImporterProfile
+    target_importer = db.scalar(
+        select(ImporterProfile).where(
+            ImporterProfile.company_name.ilike(company.name.strip())
+        )
+    )
+    if not target_importer and company.contact_email:
+        target_importer = db.scalar(
+            select(ImporterProfile).where(
+                ImporterProfile.contact_email.ilike(company.contact_email.strip())
+            )
+        )
+
+    if target_importer:
+        # Return the actual real-world registered human contact
+        real_contact = {
+            "id": f"real_contact_{target_importer.id}",
+            "buyer_id": target_importer.catalog_buyer_id,
+            "company_id": company.id,
+            "company_name": target_importer.company_name,
+            "domain": clean_domain(target_importer.corporate_website or target_importer.company_name),
+            "full_name": target_importer.contact_name,
+            "first_name": target_importer.contact_name.split()[0] if target_importer.contact_name else "Procurement",
+            "last_name": target_importer.contact_name.split()[-1] if len(target_importer.contact_name.split()) > 1 else "Officer",
+            "job_title": target_importer.contact_title or "Global Sourcing Director",
+            "department": "Procurement & Sourcing",
+            "seniority": "Director",
+            "email": target_importer.contact_email,
+            "email_status": "verified",
+            "deliverability_score": 100.0,
+            "phone_number": target_importer.contact_phone,
+            "linkedin_url": None,
+            "photo_url": None,
+            "city": target_importer.city,
+            "country_code": target_importer.country_code,
+            "source": "verified_foretrade_registered_buyer",
+            "is_primary": True,
+            "created_at": target_importer.created_at.isoformat() if target_importer.created_at else None,
+            "updated_at": target_importer.updated_at.isoformat() if target_importer.updated_at else None,
+        }
+        return [real_contact]
+
     # 2. Enrich for company directly
     domain = clean_domain(company.website or company.name)
     company_name = company.name
