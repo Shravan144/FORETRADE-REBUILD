@@ -262,7 +262,14 @@ export default function GlobalBuyerDirectoryPage({
         sort_by: sortBy,
       });
 
-      setBuyers(res.items || []);
+      const items = res.items || [];
+      items.sort((a: BuyerProfile, b: BuyerProfile) => {
+        const aVerified = a.customs_manifest_provenance?.includes("Verified ForeTrade Network Direct Buyer") ? 1 : 0;
+        const bVerified = b.customs_manifest_provenance?.includes("Verified ForeTrade Network Direct Buyer") ? 1 : 0;
+        return bVerified - aVerified;
+      });
+
+      setBuyers(items);
       setTotalCount(res.total || 0);
     } catch (err) {
       console.error("Failed to load buyers:", err);
@@ -722,6 +729,13 @@ export default function GlobalBuyerDirectoryPage({
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                         {b.primary_sector}
                       </span>
+
+                      {b.customs_manifest_provenance?.includes("Verified ForeTrade Network Direct Buyer") && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-xs">
+                          <Sparkles className="w-3 h-3 text-indigo-600" />
+                          <span>Direct ForeTrade Buyer</span>
+                        </span>
+                      )}
 
                       {/* CRM Status Badge */}
                       {crmInfo ? (

@@ -91,6 +91,12 @@ export default function LeadDetailPage({
   const [quoteProductDesc, setQuoteProductDesc] = useState<string>("");
   const [quoteDestPort, setQuoteDestPort] = useState<string>("");
 
+  // Bilateral Negotiation Deal Room
+  const [proposal, setProposal] = useState<any>(null);
+  const [negotiationMessages, setNegotiationMessages] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+
   useEffect(() => {
     loadLead();
   }, [workspaceId, leadId]);
@@ -118,15 +124,22 @@ export default function LeadDetailPage({
         setLead(target);
         setCompany(compRes);
 
-        const [eventsRes, draftsRes, docsRes, contactsRes] = await Promise.all([
+        const [eventsRes, draftsRes, docsRes, contactsRes, propRes] = await Promise.all([
           api.listLeadEvents(workspaceId, leadId).catch(() => ({ items: [] })),
           api.listDrafts(workspaceId, leadId).catch(() => ({ items: [] })),
           api.listLeadDocuments(workspaceId, leadId).catch(() => ({ items: [] })),
           compRes ? api.getCompanyContacts(workspaceId, compRes.id).catch(() => ({ contacts: [] })) : Promise.resolve({ contacts: [] }),
+          api.getLeadProposal(workspaceId, leadId).catch(() => null),
         ]);
         setEvents(eventsRes.items || []);
         setDrafts(draftsRes.items || []);
         setDocuments(docsRes.items || []);
+        setProposal(propRes);
+        if (propRes) {
+          const msgsRes = await api.getNegotiationMessages(workspaceId, propRes.id).catch(() => ({ items: [] }));
+          setNegotiationMessages(msgsRes.items || []);
+        }
+
         const loadedContacts = contactsRes.contacts || [];
         setContacts(loadedContacts);
         if (loadedContacts.length > 0) {
@@ -164,6 +177,24 @@ export default function LeadDetailPage({
       console.error("Failed to load lead:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSendDealRoomMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!replyText.trim() || !proposal) return;
+    try {
+      setSendingReply(true);
+      const msg = await api.sendNegotiationMessage(workspaceId, proposal.id, {
+        message_text: replyText.trim(),
+        message_type: "text",
+      });
+      setNegotiationMessages((prev) => [...prev, msg]);
+      setReplyText("");
+    } catch (err: any) {
+      alert("Failed to send message: " + (err.message || "Error"));
+    } finally {
+      setSendingReply(false);
     }
   }
 
@@ -679,6 +710,124 @@ export default function LeadDetailPage({
           </div>
         )}
       </div>
+
+      {/* Bilateral Trade Deal Room (Live Buyer Negotiation) */}
+      {proposal && (
+        <div className="p-6 rounded-2xl bg-white border border-indigo-200/90 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Bilateral Trade Deal Room (Live Buyer Negotiation)
+                </h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  proposal.status === "accepted" ? "bg-emerald-100 text-emerald-800" :
+                  proposal.status === "sample_requested" ? "bg-blue-100 text-blue-800" :
+                  proposal.status === "declined" ? "bg-rose-100 text-rose-800" :
+                  "bg-amber-100 text-amber-800"
+                }`}>
+                  Buyer Status: {proposal.status.replace("_", " ")}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Direct bilateral communication thread between your export dispatch desk and the overseas importer.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+              <span>Offered: <strong>${proposal.offered_unit_price_usd || "N/A"}/MT ({proposal.offered_incoterm || "CIF"})</strong></span>
+              <span>•</span>
+              <span className="text-emerald-600 font-bold">Duty Savings: ${proposal.duty_savings_usd?.toLocaleString() || 0}</span>
+            </div>
+          </div>
+
+          {/* Importer Feedback Note if available */}
+          {proposal.importer_feedback_notes && (
+            <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900">
+              <span className="font-bold block mb-0.5">Buyer Requirements Note:</span>
+              <span>"{proposal.importer_feedback_notes}"</span>
+            </div>
+          )}
+
+          {/* Deal Room Messages Scroll Area */}
+          <div className="h-64 overflow-y-auto space-y-3 p-4 bg-slate-50/70 border border-slate-200 rounded-2xl">
+            {negotiationMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-1">
+                <MessageSquare className="w-7 h-7 text-slate-300" />
+                <p className="text-xs font-semibold text-slate-600">No negotiation messages yet</p>
+                <p className="text-[11px] text-slate-400 max-w-sm">
+                  Send a message to the buyer regarding sampling, batch dates, or technical certifications.
+                </p>
+              </div>
+            ) : (
+              negotiationMessages.map((m: any) => {
+                const isExporter = m.sender_role === "exporter";
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex flex-col ${isExporter ? "items-end" : "items-start"}`}
+                  >
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5">
+                      <span className="font-bold text-slate-700">{m.sender_name}</span>
+                      <span>({isExporter ? "You / Exporter" : "Overseas Importer"})</span>
+                      <span>•</span>
+                      <span>
+                        {m.created_at
+                          ? new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                          : "Now"}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`p-3 rounded-2xl max-w-md text-xs leading-relaxed shadow-2xs ${
+                        isExporter
+                          ? "bg-blue-600 text-white rounded-br-xs"
+                          : "bg-white text-slate-800 border border-slate-200 rounded-bl-xs"
+                      }`}
+                    >
+                      {m.message_type === "counter_offer" ? (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 block">Buyer Counter-Offer</span>
+                          <p className="font-mono font-bold">{m.message_text}</p>
+                        </div>
+                      ) : m.message_type === "sample_request" ? (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200 block">Sample Dispatch Request</span>
+                          <p>{m.message_text}</p>
+                        </div>
+                      ) : (
+                        <p>{m.message_text}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Exporter Reply Bar */}
+          <form onSubmit={handleSendDealRoomMessage} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Reply to overseas procurement desk (e.g. 'Lab dip dispatched via DHL tracking #994821')..."
+              className="flex-1 px-3.5 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-hidden"
+            />
+            <button
+              type="submit"
+              disabled={sendingReply || !replyText.trim()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Reply</span>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Two Column Section: Timeline (Left) & Outreach Drafts (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

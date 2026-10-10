@@ -267,6 +267,38 @@ def generate_pitch(
         status="draft",
     )
     db.add(draft)
+    db.flush()
+
+    # Bilateral network sync: if this buyer is an active registered importer, deliver to their InboundProposal inbox
+    try:
+        from app.models.importer import ImporterProfile, InboundProposal
+        target_importer = None
+        if buyer_catalog:
+            target_importer = db.scalar(select(ImporterProfile).where(ImporterProfile.catalog_buyer_id == buyer_catalog.id))
+        if not target_importer:
+            c_name_norm = (company.name or "").strip().lower()
+            target_importer = db.scalar(select(ImporterProfile).where(func.lower(ImporterProfile.company_name) == c_name_norm))
+        
+        if target_importer:
+            proposal = InboundProposal(
+                importer_workspace_id=target_importer.workspace_id,
+                exporter_workspace_id=workspace_id,
+                lead_id=lead.id,
+                outreach_draft_id=draft.id,
+                exporter_company_name=exporter_profile.get("company_name", "Indian Export Manufacturer"),
+                exporter_country_code=exporter_country,
+                exporter_origin_port=exporter_profile.get("origin_port", "Nhava Sheva (JNPT)"),
+                exporter_readiness_score=88.0,
+                proposal_channel=payload.channel,
+                subject=result.get("subject", "Commercial Supply Proposal"),
+                proposal_body=result.get("body", ""),
+                offered_incoterm="CIF",
+                duty_savings_usd=tariff_data.get("tariff_savings_pct", 0.0) * 1000.0 if tariff_data else 0.0,
+                status="pending",
+            )
+            db.add(proposal)
+    except Exception as e:
+        print(f"Bilateral proposal sync error: {e}")
 
     # Record LeadEvent
     event = LeadEvent(

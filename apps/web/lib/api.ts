@@ -1175,7 +1175,180 @@ export const api = {
   getDocumentPdfUrl(workspaceId: string, documentId: string) {
     return `/api/v1/workspaces/${workspaceId}/documents/${documentId}/pdf`;
   },
+
+  // Importer Desk Endpoints
+  async getImporterProfile(workspaceId: string): Promise<ImporterProfile> {
+    return fetchApi<ImporterProfile>(`/api/v1/workspaces/${workspaceId}/importer-profile`);
+  },
+
+  async saveImporterProfile(workspaceId: string, payload: Partial<ImporterProfile>): Promise<ImporterProfile> {
+    return fetchApi<ImporterProfile>(`/api/v1/workspaces/${workspaceId}/importer-profile`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async listRfqs(workspaceId: string, status?: string): Promise<{ items: SourcingRfq[]; total: number }> {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    return fetchApi<{ items: SourcingRfq[]; total: number }>(`/api/v1/workspaces/${workspaceId}/rfqs${qs}`);
+  },
+
+  async publishRfq(workspaceId: string, payload: Partial<SourcingRfq>): Promise<SourcingRfq> {
+    return fetchApi<SourcingRfq>(`/api/v1/workspaces/${workspaceId}/rfqs`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async listInboundProposals(workspaceId: string, status?: string): Promise<{ items: InboundProposal[]; total: number }> {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    return fetchApi<{ items: InboundProposal[]; total: number }>(`/api/v1/workspaces/${workspaceId}/inbound-proposals${qs}`);
+  },
+
+  async respondToProposal(
+    workspaceId: string,
+    proposalId: string,
+    payload: { status: "reviewed" | "sample_requested" | "accepted" | "declined"; feedback_notes?: string }
+  ): Promise<InboundProposal> {
+    return fetchApi<InboundProposal>(`/api/v1/workspaces/${workspaceId}/inbound-proposals/${proposalId}/respond`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getNegotiationMessages(
+    workspaceId: string,
+    proposalId: string
+  ): Promise<{ items: NegotiationMessage[]; total: number }> {
+    return fetchApi<{ items: NegotiationMessage[]; total: number }>(
+      `/api/v1/workspaces/${workspaceId}/negotiations/${proposalId}/messages`
+    );
+  },
+
+  async sendNegotiationMessage(
+    workspaceId: string,
+    proposalId: string,
+    payload: { message_text: string; message_type?: string; payload?: any }
+  ): Promise<NegotiationMessage> {
+    return fetchApi<NegotiationMessage>(
+      `/api/v1/workspaces/${workspaceId}/negotiations/${proposalId}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  async getLeadProposal(workspaceId: string, leadId: string): Promise<InboundProposal | null> {
+    return fetchApi<InboundProposal>(`/api/v1/workspaces/${workspaceId}/leads/${leadId}/proposal`).catch(() => null);
+  },
 };
+
+export interface NegotiationMessage {
+  id: string;
+  proposal_id: string;
+  thread_id: string;
+  sender_workspace_id: string;
+  sender_user_id: string;
+  sender_role: "exporter" | "importer";
+  sender_name: string;
+  sender_company_name: string;
+  message_text: string;
+  message_type: "text" | "counter_offer" | "sample_request" | "commercial_document";
+  payload?: any;
+  created_at?: string;
+}
+
+export interface ImporterProfile {
+  id?: string;
+  workspace_id?: string;
+  company_name: string;
+  trade_name_dba?: string | null;
+  country_code: string;
+  city: string;
+  headquarters_address?: string | null;
+  corporate_website?: string | null;
+  duns_number?: string | null;
+  tax_identifier_type: string;
+  tax_identifier_value: string;
+  contact_name: string;
+  contact_title?: string | null;
+  contact_email: string;
+  contact_phone?: string | null;
+  primary_discharge_port: string;
+  secondary_discharge_port?: string | null;
+  customs_broker_name?: string | null;
+  preferred_container_type: string;
+  warehouse_dock_type?: string | null;
+  primary_sector: string;
+  target_hs_codes: string[];
+  annual_sourcing_budget_usd: number;
+  order_cycle_days: number;
+  min_order_quantity_mt: number;
+  consignee_name_on_bol?: string | null;
+  required_certifications: string[];
+  preferred_incoterm: string;
+  payment_terms: string;
+  issuing_bank_name?: string | null;
+  issuing_bank_swift?: string | null;
+  currency: string;
+  is_publicly_discoverable: boolean;
+  catalog_buyer_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SourcingRfq {
+  id: string;
+  workspace_id: string;
+  importer_profile_id?: string;
+  title: string;
+  commodity_description: string;
+  product_category: string;
+  hs_code: string;
+  target_quantity: number;
+  quantity_unit: string;
+  target_budget_usd?: number | null;
+  target_unit_price_usd?: number | null;
+  destination_country?: string | null;
+  destination_port?: string | null;
+  preferred_incoterm?: string | null;
+  preferred_container_type?: string | null;
+  required_certifications: string[];
+  inspection_agency_allowed?: string | null;
+  special_technical_clauses?: string | null;
+  deadline_date?: string | null;
+  target_delivery_date?: string | null;
+  status: string;
+  created_at?: string;
+}
+
+export interface InboundProposal {
+  id: string;
+  importer_workspace_id: string;
+  exporter_workspace_id: string;
+  rfq_id?: string | null;
+  lead_id?: string | null;
+  outreach_draft_id?: string | null;
+  commercial_document_id?: string | null;
+  exporter_company_name: string;
+  exporter_country_code: string;
+  exporter_origin_port?: string | null;
+  exporter_readiness_score?: number | null;
+  proposal_channel: string;
+  subject: string;
+  proposal_body: string;
+  offered_unit_price_usd?: number | null;
+  offered_incoterm?: string | null;
+  estimated_transit_days?: number | null;
+  duty_savings_usd?: number | null;
+  status: "pending" | "reviewed" | "sample_requested" | "accepted" | "declined";
+  importer_feedback_notes?: string | null;
+  negotiation_thread_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
 
 

@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Loader2,
   Ship,
+  PackageCheck,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import { INDIAN_PORTS_REGISTRY, validateIEC } from "@/lib/exim-validators";
 
@@ -23,14 +26,37 @@ export default function OnboardingPage() {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form fields
+  // Role Selection
+  const [tradeRole, setTradeRole] = useState<"exporter" | "importer" | "both">("exporter");
+
+  // Common Fields
   const [companyName, setCompanyName] = useState("");
+
+  // Exporter Fields
   const [capacityTons, setCapacityTons] = useState(100);
   const [originPort, setOriginPort] = useState("INNSA - Nhava Sheva (JNPT), Maharashtra");
   const [iecCode, setIecCode] = useState("");
   const [categories, setCategories] = useState<string[]>(["textiles", "apparel"]);
   const [targetCountries, setTargetCountries] = useState<string[]>(["US", "AE", "GB"]);
   const [certifications, setCertifications] = useState<string[]>(["ISO 9001"]);
+
+  // Importer Fields
+  const [importerCountry, setImporterCountry] = useState("US");
+  const [importerCity, setImporterCity] = useState("Los Angeles");
+  const [dischargePort, setDischargePort] = useState("USLAX");
+  const [taxIdentifierType, setTaxIdentifierType] = useState("EIN");
+  const [taxIdentifierValue, setTaxIdentifierValue] = useState("12-3456789");
+  const [primarySector, setPrimarySector] = useState("Textiles & Apparel");
+  const [sourcingBudgetUsd, setSourcingBudgetUsd] = useState(5000000);
+  const [preferredIncoterm, setPreferredIncoterm] = useState("CIF");
+
+  useEffect(() => {
+    if (importerCountry === "US") setTaxIdentifierType("EIN");
+    else if (["DE", "FR", "NL", "IT", "ES", "BE", "PL"].includes(importerCountry)) setTaxIdentifierType("EORI");
+    else if (importerCountry === "GB") setTaxIdentifierType("UK_EORI");
+    else if (importerCountry === "AE") setTaxIdentifierType("TRN");
+    else if (importerCountry === "AU") setTaxIdentifierType("ABN");
+  }, [importerCountry]);
 
   useEffect(() => {
     async function init() {
@@ -66,15 +92,19 @@ export default function OnboardingPage() {
         const res = await api.listWorkspaces();
         if (res.items && res.items.length > 0) {
           setWorkspaceId(res.items[0].id);
-          // Check if profile already exists
-          const existing = await api.getExporterProfile(res.items[0].id).catch(() => null);
-          if (existing?.payload?.company_name) {
+          // Check if exporter or importer profile already exists
+          const existingExp = await api.getExporterProfile(res.items[0].id).catch(() => null);
+          const existingImp = await api.getImporterProfile(res.items[0].id).catch(() => null);
+
+          if (existingExp?.payload?.company_name) {
             window.location.href = `/workspace/${res.items[0].id}`;
+            return;
+          } else if (existingImp?.company_name) {
+            window.location.href = `/workspace/${res.items[0].id}/importer`;
             return;
           }
         } else {
-          // Create default workspace if none
-          const newWs = await api.createWorkspace("My Export Operations");
+          const newWs = await api.createWorkspace("My Trade Operations");
           setWorkspaceId(newWs.id);
         }
       } catch (err) {
@@ -92,32 +122,57 @@ export default function OnboardingPage() {
     try {
       let targetWsId = workspaceId;
       if (!targetWsId) {
-        // Dynamically resolve or create workspace if not set yet
         const wsRes = await api.listWorkspaces();
         if (wsRes.items && wsRes.items.length > 0) {
           targetWsId = wsRes.items[0].id;
         } else {
-          const newWs = await api.createWorkspace("My Export Operations");
+          const newWs = await api.createWorkspace("My Trade Operations");
           targetWsId = newWs.id;
         }
         setWorkspaceId(targetWsId);
       }
 
-      await api.saveExporterProfile(targetWsId, {
-        company_name: companyName || "My Export Enterprise",
-        capacity_tons: capacityTons,
-        product_categories: categories,
-        target_countries: targetCountries,
-        certifications: certifications,
-        origin_port: originPort,
-        iec_code: iecCode ? iecCode.trim().toUpperCase() : undefined,
-      });
+      if (tradeRole === "exporter" || tradeRole === "both") {
+        await api.saveExporterProfile(targetWsId, {
+          company_name: companyName || "My Export Enterprise",
+          capacity_tons: capacityTons,
+          product_categories: categories,
+          target_countries: targetCountries,
+          certifications: certifications,
+          origin_port: originPort,
+          iec_code: iecCode ? iecCode.trim().toUpperCase() : undefined,
+        });
+      }
 
-      // Direct full-page navigation to initialize cockpit state
-      window.location.href = `/workspace/${targetWsId}`;
+      if (tradeRole === "importer" || tradeRole === "both") {
+        await api.saveImporterProfile(targetWsId, {
+          company_name: companyName || "My Import Enterprise",
+          country_code: importerCountry,
+          city: importerCity || "Los Angeles",
+          primary_discharge_port: dischargePort.toUpperCase(),
+          tax_identifier_type: taxIdentifierType,
+          tax_identifier_value: taxIdentifierValue.trim(),
+          contact_name: companyName ? `${companyName} Sourcing` : "Procurement Director",
+          contact_email: "sourcing@enterprise.com",
+          primary_sector: primarySector,
+          annual_sourcing_budget_usd: Number(sourcingBudgetUsd),
+          preferred_incoterm: preferredIncoterm,
+          preferred_container_type: "40ft_hc",
+          order_cycle_days: 30,
+          min_order_quantity_mt: 20.0,
+          payment_terms: "letter_of_credit",
+        });
+      }
+
+      // Route to destination desk
+      if (tradeRole === "importer") {
+        window.location.href = `/workspace/${targetWsId}/importer`;
+      } else {
+        window.location.href = `/workspace/${targetWsId}`;
+      }
     } catch (err: any) {
-      console.error("Failed to save exporter profile:", err);
-      const msg = err?.message || err?.detail || "Failed to save exporter profile. Please try again.";
+      console.error("Failed to save profile:", err);
+      const msg = err?.message || err?.detail || "Failed to configure trade workspace. Please try again.";
       alert(msg);
     } finally {
       setSubmitting(false);
@@ -141,7 +196,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="flex items-center gap-2 text-slate-500 text-sm">
           <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-          <span>Setting up exporter workspace...</span>
+          <span>Setting up trade workspace...</span>
         </div>
       </div>
     );
@@ -179,161 +234,274 @@ export default function OnboardingPage() {
             <Compass className="w-6 h-6" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Configure Your Exporter Profile
+            Configure Your Trade Workspace
           </h1>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            ForeTrade's matchmaking algorithm calibrates opportunity scores based on your
-            actual manufacturing capacity, product line, and corridor preferences.
+            ForeTrade powers bilateral cross-border trade. Choose whether you're exporting from India, sourcing internationally, or operating both.
           </p>
         </div>
 
+        {/* Step 1: Select Trade Role */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Select Your Primary Operation
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => setTradeRole("exporter")}
+              className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between gap-3 cursor-pointer ${
+                tradeRole === "exporter"
+                  ? "bg-blue-50/70 border-blue-500 ring-2 ring-blue-100 shadow-xs"
+                  : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <Factory className={`w-5 h-5 ${tradeRole === "exporter" ? "text-blue-600" : "text-slate-500"}`} />
+                {tradeRole === "exporter" && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Indian Exporter</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Manufacture & export to global corridors</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTradeRole("importer")}
+              className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between gap-3 cursor-pointer ${
+                tradeRole === "importer"
+                  ? "bg-indigo-50/70 border-indigo-500 ring-2 ring-indigo-100 shadow-xs"
+                  : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <PackageCheck className={`w-5 h-5 ${tradeRole === "importer" ? "text-indigo-600" : "text-slate-500"}`} />
+                {tradeRole === "importer" && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Global Importer</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Source wholesale goods & publish RFQs</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTradeRole("both")}
+              className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between gap-3 cursor-pointer ${
+                tradeRole === "both"
+                  ? "bg-purple-50/70 border-purple-500 ring-2 ring-purple-100 shadow-xs"
+                  : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <Layers className={`w-5 h-5 ${tradeRole === "both" ? "text-purple-600" : "text-slate-500"}`} />
+                {tradeRole === "both" && <CheckCircle2 className="w-4 h-4 text-purple-600" />}
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Bilateral Both</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Two-way trading house & merchant</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Company Name */}
+          {/* Company Legal Name */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Exporter Enterprise Name
+              Legal Enterprise Name <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="e.g. Bharat Textile & Garment Industries Ltd"
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+              placeholder={
+                tradeRole === "importer"
+                  ? "e.g., Pacific Global Sourcing LLC"
+                  : "e.g., Bharat Textile & Garment Industries Ltd"
+              }
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
             />
           </div>
 
-          {/* Annual Capacity */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Annual Manufacturing Capacity (Metric Tons)
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                min={1}
-                max={50000}
-                required
-                value={capacityTons}
-                onChange={(e) => setCapacityTons(parseInt(e.target.value) || 0)}
-                className="w-36 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-              />
-              <span className="text-xs text-slate-500">
-                Used to filter buyers whose average import orders match your supply velocity.
-              </span>
-            </div>
-          </div>
+          {/* Importer Section */}
+          {(tradeRole === "importer" || tradeRole === "both") && (
+            <div className="space-y-4 p-5 bg-indigo-50/40 border border-indigo-100 rounded-2xl">
+              <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs pb-2 border-b border-indigo-100">
+                <PackageCheck className="w-4 h-4 text-indigo-600" />
+                <span>Importer Procurement Coordinates</span>
+              </div>
 
-          {/* Port of Loading (UN/LOCODE) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>Primary Port of Loading (POL)</span>
-              <span className="text-[10px] text-blue-600 font-mono font-medium">UN/LOCODE</span>
-            </label>
-            <select
-              value={originPort}
-              onChange={(e) => setOriginPort(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-            >
-              {INDIAN_PORTS_REGISTRY.map((p) => (
-                <option key={p.locode} value={`${p.locode} - ${p.name}, ${p.state}`}>
-                  {p.locode} — {p.name} ({p.state}) [{p.type}]
-                </option>
-              ))}
-            </select>
-            <span className="text-[11px] text-slate-500 mt-1 block">
-              Default ocean terminal used to calculate ocean freight routes and shipping bills.
-            </span>
-          </div>
-
-          {/* DGFT IEC Code */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>DGFT IEC Code <span className="text-slate-400 font-normal normal-case">(Optional now)</span></span>
-              <span className="text-[10px] text-slate-500 font-mono">10 Characters</span>
-            </label>
-            <input
-              type="text"
-              maxLength={10}
-              value={iecCode}
-              onChange={(e) => setIecCode(e.target.value.toUpperCase().trim())}
-              placeholder="0311029481 or PAN"
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono tracking-wider shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-            />
-            <span className="text-[11px] text-slate-500 mt-1 block">
-              Enter your DGFT Importer-Exporter Code now or complete it anytime in Settings.
-            </span>
-          </div>
-
-          {/* Product Categories */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Export Product Categories
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {availableCategories.map((cat) => {
-                const selected = categories.includes(cat);
-                return (
-                  <button
-                    type="button"
-                    key={cat}
-                    onClick={() => toggleCategory(cat)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize shadow-2xs ${
-                      selected
-                        ? "bg-blue-600 text-white shadow-2xs font-bold"
-                        : "bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
-                    }`}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Country Jurisdiction
+                  </label>
+                  <select
+                    value={importerCountry}
+                    onChange={(e) => setImporterCountry(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 bg-white"
                   >
-                    {selected ? "✓ " : "+ "}
-                    {cat.replace(/_/g, " ")}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    <option value="US">🇺🇸 United States (US)</option>
+                    <option value="DE">🇩🇪 Germany (DE)</option>
+                    <option value="GB">🇬🇧 United Kingdom (GB)</option>
+                    <option value="AE">🇦🇪 United Arab Emirates (AE)</option>
+                    <option value="AU">🇦🇺 Australia (AU)</option>
+                  </select>
+                </div>
 
-          {/* Target Corridors */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Target Destination Corridors
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {availableCountries.map((c) => {
-                const selected = targetCountries.includes(c.code);
-                return (
-                  <button
-                    type="button"
-                    key={c.code}
-                    onClick={() => toggleCountry(c.code)}
-                    className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-all shadow-2xs ${
-                      selected
-                        ? "bg-blue-50 border-blue-500 text-blue-900 font-bold ring-1 ring-blue-500/30"
-                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <div className="font-bold text-slate-900">{c.code}</div>
-                    <div className="text-[10px] text-slate-500 truncate">{c.label}</div>
-                  </button>
-                );
-              })}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Primary Discharge Port (UN/LOCODE)
+                  </label>
+                  <input
+                    type="text"
+                    value={dischargePort}
+                    onChange={(e) => setDischargePort(e.target.value.toUpperCase())}
+                    placeholder="USLAX"
+                    className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Statutory Tax Credential ({taxIdentifierType})
+                  </label>
+                  <input
+                    type="text"
+                    value={taxIdentifierValue}
+                    onChange={(e) => setTaxIdentifierValue(e.target.value)}
+                    placeholder="12-3456789"
+                    className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 bg-white"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Annual Sourcing Budget (USD)
+                  </label>
+                  <input
+                    type="number"
+                    value={sourcingBudgetUsd}
+                    onChange={(e) => setSourcingBudgetUsd(Number(e.target.value))}
+                    min={10000}
+                    step={100000}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 bg-white"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Exporter Section */}
+          {(tradeRole === "exporter" || tradeRole === "both") && (
+            <div className="space-y-4 p-5 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-xs pb-2 border-b border-slate-200">
+                <Factory className="w-4 h-4 text-blue-600" />
+                <span>Exporter Manufacturing Coordinates</span>
+              </div>
+
+              {/* Annual Capacity */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Annual Manufacturing Capacity (MT)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50000}
+                  value={capacityTons}
+                  onChange={(e) => setCapacityTons(parseInt(e.target.value) || 0)}
+                  className="w-36 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono"
+                />
+              </div>
+
+              {/* Port of Loading */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Primary Port of Loading (POL)
+                </label>
+                <select
+                  value={originPort}
+                  onChange={(e) => setOriginPort(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs"
+                >
+                  {INDIAN_PORTS_REGISTRY.map((p) => (
+                    <option key={p.locode} value={`${p.locode} - ${p.name}, ${p.state}`}>
+                      {p.locode} — {p.name} ({p.state}) [{p.type}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DGFT IEC Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  DGFT IEC Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  maxLength={10}
+                  value={iecCode}
+                  onChange={(e) => setIecCode(e.target.value.toUpperCase().trim())}
+                  placeholder="0311029481 or PAN"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono"
+                />
+              </div>
+
+              {/* Product Categories */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Product Categories
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableCategories.map((cat) => {
+                    const selected = categories.includes(cat);
+                    return (
+                      <button
+                        type="button"
+                        key={cat}
+                        onClick={() => toggleCategory(cat)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition capitalize cursor-pointer ${
+                          selected
+                            ? "bg-blue-600 text-white font-bold"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {selected ? "✓ " : "+ "}
+                        {cat.replace(/_/g, " ")}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-4 border-t border-slate-200">
             <button
               type="submit"
-              disabled={submitting || !companyName.trim() || categories.length === 0}
-              className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={submitting || !companyName.trim()}
+              className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Calibrating Algorithmic Workspace...</span>
+                  <span>Configuring Trade Operations...</span>
                 </>
               ) : (
                 <>
-                  <span>Save Profile & Enter Cockpit</span>
+                  <span>
+                    {tradeRole === "importer"
+                      ? "Enter Importer Procurement Desk"
+                      : tradeRole === "both"
+                      ? "Enter Bilateral Trade OS"
+                      : "Enter Exporter Cockpit"}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
