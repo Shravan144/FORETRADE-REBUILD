@@ -101,6 +101,28 @@ export default function LeadDetailPage({
     loadLead();
   }, [workspaceId, leadId]);
 
+  // Live polling for Deal Room negotiation messages
+  useEffect(() => {
+    if (!proposal?.id) return;
+    let isMounted = true;
+
+    const timer = setInterval(async () => {
+      try {
+        const msgsRes = await api.getNegotiationMessages(workspaceId, proposal.id).catch(() => ({ items: [] }));
+        if (isMounted && msgsRes.items) {
+          setNegotiationMessages(msgsRes.items);
+        }
+      } catch {
+        // silent background poll
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [workspaceId, proposal?.id]);
+
   async function loadLead() {
     try {
       setLoading(true);

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 
 export default function LeadsBoardPage({
@@ -216,12 +217,21 @@ export default function LeadsBoardPage({
                           </div>
 
                           <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                            <Link
-                              href={`/workspace/${workspaceId}/leads/${lead.id}`}
-                              className="text-[11px] text-slate-500 hover:text-blue-600 font-medium transition"
-                            >
-                              Details
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/workspace/${workspaceId}/leads/${lead.id}`}
+                                className="text-[11px] text-slate-500 hover:text-blue-600 font-medium transition"
+                              >
+                                Details
+                              </Link>
+                              <Link
+                                href={`/workspace/${workspaceId}/leads/${lead.id}`}
+                                className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition border border-indigo-200/60"
+                              >
+                                <MessageSquare className="w-2.5 h-2.5 text-indigo-600" />
+                                <span>Deal Room</span>
+                              </Link>
+                            </div>
 
                             {col.key !== "won" && (
                               <button

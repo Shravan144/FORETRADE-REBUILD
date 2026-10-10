@@ -178,6 +178,18 @@ export function Sidebar({ workspaceId, workspaceName, userEmail }: SidebarProps)
       icon: Mail,
       match: pathname.startsWith(`/workspace/${workspaceId}/importer/inbox`),
     },
+    {
+      name: "Import Landed Cost Estimator",
+      href: `/workspace/${workspaceId}/importer/cost-estimation`,
+      icon: Ship,
+      match: pathname.startsWith(`/workspace/${workspaceId}/importer/cost-estimation`),
+    },
+    {
+      name: "Settings & Compliance",
+      href: `/workspace/${workspaceId}/importer/profile`,
+      icon: Settings,
+      match: pathname.startsWith(`/workspace/${workspaceId}/importer/settings`),
+    },
   ];
 
   const navItems = isImporterMode ? importerNavItems : exporterNavItems;

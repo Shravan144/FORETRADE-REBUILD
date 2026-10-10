@@ -77,22 +77,38 @@ export default function ImporterInboxPage({
     loadProposals();
   }, [workspaceId]);
 
-  // Load negotiation messages when selected proposal changes
+  // Load negotiation messages and poll live updates when selected proposal changes
   useEffect(() => {
     if (!selectedProposal) return;
-    async function loadThread() {
+    let isMounted = true;
+
+    async function loadThread(isBackground = false) {
       try {
-        setLoadingMessages(true);
+        if (!isBackground) setLoadingMessages(true);
         const res = await api.getNegotiationMessages(workspaceId, selectedProposal!.id).catch(() => ({ items: [], total: 0 }));
-        setMessages(res.items || []);
+        if (isMounted && res.items) {
+          setMessages(res.items);
+        }
       } catch {
-        // Fallback if no messages yet
-        setMessages([]);
+        if (isMounted && !isBackground) {
+          setMessages([]);
+        }
       } finally {
-        setLoadingMessages(false);
+        if (isMounted && !isBackground) {
+          setLoadingMessages(false);
+        }
       }
     }
+
     loadThread();
+    const timer = setInterval(() => {
+      loadThread(true);
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, [workspaceId, selectedProposal?.id]);
 
   async function handleSendMessage(e?: React.FormEvent) {
@@ -364,14 +380,24 @@ export default function ImporterInboxPage({
                   </button>
                   <button
                     onClick={() => setActiveTab("deal_room")}
-                    className={`pb-2.5 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border-b-2 ${
+                    className={`pb-2.5 text-xs font-bold transition flex items-center gap-2 cursor-pointer border-b-2 ${
                       activeTab === "deal_room"
                         ? "border-indigo-600 text-indigo-700"
                         : "border-transparent text-slate-400 hover:text-slate-700"
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Bilateral Deal Room ({messages.length})</span>
+                    <span>Bilateral Deal Room</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      activeTab === "deal_room"
+                        ? "bg-indigo-100 text-indigo-700"
+                        : "bg-slate-100 text-slate-600"
+                    }`}>
+                      {messages.length}
+                    </span>
+                    {messages.length > 0 && activeTab !== "deal_room" && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" title="Active conversation thread" />
+                    )}
                   </button>
                 </div>
 

@@ -179,6 +179,25 @@ def generate_pitch(
     resolved_name = payload.recipient_name
     resolved_title = payload.recipient_title
 
+    # Check for direct registered ImporterProfile match FIRST
+    registered_importer = None
+    try:
+        from app.models.importer import ImporterProfile
+        from app.services.deduplication import normalized_name
+        target_name_norm = normalized_name(company.name) if company else None
+        all_imps = db.scalars(select(ImporterProfile)).all()
+        for imp in all_imps:
+            if (target_name_norm and normalized_name(imp.company_name) == target_name_norm) or (imp.trade_name_dba and normalized_name(imp.trade_name_dba) == target_name_norm):
+                registered_importer = imp
+                break
+    except Exception:
+        pass
+
+    if registered_importer:
+        if not resolved_name and registered_importer.contact_name:
+            resolved_name = registered_importer.contact_name
+            resolved_title = registered_importer.contact_title or "Global Sourcing Director"
+
     if not resolved_name:
         from app.models.trade_intelligence import EnrichedBuyerContact
         contact_record = None
@@ -203,18 +222,26 @@ def generate_pitch(
 
     # Assemble buyer_data dict
     attrs = company.attributes or {}
+    import json
+    importer_certs = []
+    if registered_importer and registered_importer.required_certifications:
+        try:
+            importer_certs = json.loads(registered_importer.required_certifications) if isinstance(registered_importer.required_certifications, str) else registered_importer.required_certifications
+        except Exception:
+            importer_certs = []
+
     buyer_data = {
-        "company_name": buyer_catalog.company_name if buyer_catalog else company.name,
+        "company_name": registered_importer.company_name if registered_importer else (buyer_catalog.company_name if buyer_catalog else company.name),
         "contact_name": resolved_name,
         "contact_title": resolved_title or "Global Sourcing Director",
-        "country_code": (buyer_catalog.country_code if buyer_catalog else None) or company.country_code or "Target Market",
-        "city": (buyer_catalog.city if buyer_catalog else None) or attrs.get("city") or "Main Port",
-        "primary_sector": (buyer_catalog.primary_sector if buyer_catalog else None) or company.product_or_industry or "General Merchandise",
-        "annual_import_volume_usd": (buyer_catalog.annual_import_volume_usd if buyer_catalog else None) or attrs.get("annual_import_volume_usd", 0.0),
-        "avg_order_tons": (buyer_catalog.avg_order_tons if buyer_catalog else None) or attrs.get("avg_order_tons", 50.0),
-        "required_certifications": (buyer_catalog.required_certifications if buyer_catalog else None) or attrs.get("required_certifications", ["ISO 9001"]),
-        "preferred_incoterms": (buyer_catalog.preferred_incoterms if buyer_catalog else None) or attrs.get("preferred_incoterms", "CIF"),
-        "customs_manifest_provenance": (buyer_catalog.customs_manifest_provenance if buyer_catalog else None) or attrs.get("customs_provenance", "Customs Bill of Lading Manifest"),
+        "country_code": (registered_importer.country_code if registered_importer else (buyer_catalog.country_code if buyer_catalog else None)) or company.country_code or "Target Market",
+        "city": (registered_importer.city if registered_importer else (buyer_catalog.city if buyer_catalog else None)) or attrs.get("city") or "Main Port",
+        "primary_sector": (registered_importer.primary_sector if registered_importer else (buyer_catalog.primary_sector if buyer_catalog else None)) or company.product_or_industry or "General Merchandise",
+        "annual_import_volume_usd": (registered_importer.annual_sourcing_budget_usd if registered_importer else (buyer_catalog.annual_import_volume_usd if buyer_catalog else None)) or attrs.get("annual_import_volume_usd", 0.0),
+        "avg_order_tons": (registered_importer.min_order_quantity_mt if registered_importer else (buyer_catalog.avg_order_tons if buyer_catalog else None)) or attrs.get("avg_order_tons", 50.0),
+        "required_certifications": (importer_certs if importer_certs else ((buyer_catalog.required_certifications if buyer_catalog else None) or attrs.get("required_certifications", ["ISO 9001"]))),
+        "preferred_incoterms": (registered_importer.preferred_incoterm if registered_importer else (buyer_catalog.preferred_incoterms if buyer_catalog else None)) or attrs.get("preferred_incoterms", "CIF"),
+        "customs_manifest_provenance": "Verified ForeTrade Network Direct Buyer" if registered_importer else ((buyer_catalog.customs_manifest_provenance if buyer_catalog else None) or attrs.get("customs_provenance", "Customs Bill of Lading Manifest")),
         "hs_codes": (buyer_catalog.hs_codes if buyer_catalog else None) or attrs.get("hs_codes", []),
     }
 
