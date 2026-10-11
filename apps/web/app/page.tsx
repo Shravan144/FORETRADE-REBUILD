@@ -100,14 +100,14 @@ export default function HomePage() {
       {/* Top Navbar */}
       <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-slate-950 p-1 flex items-center justify-center text-white shadow-xs font-bold transition-transform group-hover:scale-105 ring-1 ring-slate-800">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-11 h-11 rounded-xl bg-slate-950 p-1.5 flex items-center justify-center text-white shadow-xs font-bold transition-transform group-hover:scale-105 ring-1 ring-slate-800 shrink-0">
               <Image
                 src="/foretrade-icon.png"
                 alt="ForeTrade Logo"
-                width={30}
-                height={30}
-                className="object-contain"
+                width={42}
+                height={42}
+                className="object-contain w-full h-full"
                 priority
               />
             </div>

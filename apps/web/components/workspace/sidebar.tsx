@@ -219,13 +219,13 @@ export function Sidebar({ workspaceId, workspaceName, userEmail }: SidebarProps)
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <Link href={`/workspace/${workspaceId}`} className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-slate-950 p-1 flex items-center justify-center text-white shadow-sm ring-1 ring-slate-800/80 group-hover:ring-blue-500/50 transition">
+          <div className="w-11 h-11 rounded-xl bg-slate-950 p-1.5 flex items-center justify-center text-white shadow-sm ring-1 ring-slate-800/80 group-hover:ring-blue-500/50 transition shrink-0">
             <Image
               src="/foretrade-icon.png"
               alt="ForeTrade Logo"
-              width={34}
-              height={34}
-              className="object-contain"
+              width={42}
+              height={42}
+              className="object-contain w-full h-full"
               priority
             />
           </div>
