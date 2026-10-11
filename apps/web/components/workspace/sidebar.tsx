@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Globe,
@@ -216,13 +217,20 @@ export function Sidebar({ workspaceId, workspaceName, userEmail }: SidebarProps)
   return (
     <aside className="w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200 shrink-0 select-none shadow-xs">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-        <Link href={`/workspace/${workspaceId}`} className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold tracking-tight">
-            <Compass className="w-5 h-5" />
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <Link href={`/workspace/${workspaceId}`} className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-slate-950 p-1 flex items-center justify-center text-white shadow-sm ring-1 ring-slate-800/80 group-hover:ring-blue-500/50 transition">
+            <Image
+              src="/foretrade-icon.png"
+              alt="ForeTrade Logo"
+              width={34}
+              height={34}
+              className="object-contain"
+              priority
+            />
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 tracking-tight leading-none text-base">
+            <h1 className="font-extrabold text-slate-900 tracking-tight leading-none text-base group-hover:text-blue-600 transition">
               ForeTrade
             </h1>
             <span className="text-[10px] text-blue-600 font-bold tracking-wide uppercase">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { api, ApiError } from "@/lib/api";
 import { Compass, ArrowRight, Loader2, KeyRound, CheckCircle2, AlertCircle, Info, ExternalLink } from "lucide-react";
 
@@ -78,11 +79,18 @@ export function AuthForm({ mode }: { mode: "sign-in" | "register" }) {
     <div className="w-full max-w-md space-y-6">
       {/* Brand Header */}
       <div className="space-y-1">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs font-bold">
-            <Compass className="w-4 h-4" />
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-950 p-1 flex items-center justify-center text-white shadow-2xs font-bold ring-1 ring-slate-800">
+            <Image
+              src="/foretrade-icon.png"
+              alt="ForeTrade Logo"
+              width={26}
+              height={26}
+              className="object-contain"
+              priority
+            />
           </div>
-          <span className="font-bold text-slate-900 text-base">ForeTrade OS</span>
+          <span className="font-extrabold text-slate-900 text-base">ForeTrade OS</span>
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
           {mode === "register" ? "Create Exporter Workspace" : "Sign In to Your Workspace"}

@@ -23,8 +23,15 @@ export default function RegisterPage() {
         {/* Top Header */}
         <div className="relative z-10 flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs font-bold">
-              <Compass className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-slate-950 p-1 flex items-center justify-center text-white shadow-2xs font-bold ring-1 ring-slate-700">
+              <Image
+                src="/foretrade-icon.png"
+                alt="ForeTrade Logo"
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="font-extrabold text-white text-lg tracking-tight">ForeTrade</span>
           </Link>

@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ForeTrade — B2B Trade Intelligence & Matchmaking",
   description: "Algorithmic EXIM matchmaking and pipeline intelligence for global exporters.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/foretrade-icon.png",
+  },
 };
 
 export default function RootLayout({

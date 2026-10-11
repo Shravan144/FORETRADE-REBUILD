@@ -101,11 +101,18 @@ export default function HomePage() {
       <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold transition-transform group-hover:scale-105">
-              <Compass className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-slate-950 p-1 flex items-center justify-center text-white shadow-xs font-bold transition-transform group-hover:scale-105 ring-1 ring-slate-800">
+              <Image
+                src="/foretrade-icon.png"
+                alt="ForeTrade Logo"
+                width={30}
+                height={30}
+                className="object-contain"
+                priority
+              />
             </div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-slate-900 text-base tracking-tight">ForeTrade</h1>
+              <h1 className="font-extrabold text-slate-900 text-base tracking-tight group-hover:text-blue-600 transition">ForeTrade</h1>
               <span className="text-[10px] text-slate-600 font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">
                 B2B EXIM OS
               </span>
